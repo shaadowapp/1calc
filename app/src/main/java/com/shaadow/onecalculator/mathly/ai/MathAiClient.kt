@@ -8,6 +8,7 @@ import okhttp3.Request
 import okhttp3.RequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import com.shaadow.onecalculator.BuildConfig
 
 object MathAiClient {
     private const val OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
@@ -27,6 +28,7 @@ object MathAiClient {
         val request = Request.Builder()
             .url(OPENROUTER_API_URL)
             .addHeader("Content-Type", "application/json")
+            .addHeader("Authorization", "Bearer ${BuildConfig.MATHLY_API_KEY}")
             .post(body)
             .build()
 
