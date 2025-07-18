@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Medium width screens (600dp and above) - 4 columns for tablets -->
+    <integer name="grid_columns">4</integer>
+</resources>

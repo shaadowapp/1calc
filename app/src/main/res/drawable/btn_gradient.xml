@@ -1,0 +1,26 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- First shadow: 0 4px 15px rgba(0,0,0,0.4) -->
+    <item android:top="8dp" android:left="0dp" android:right="0dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="32dp"/>
+            <solid android:color="#66000000"/>
+        </shape>
+    </item>
+    <!-- Second shadow: 0 2px 5px rgba(123,66,246,0.5) -->
+    <item android:top="4dp" android:left="0dp" android:right="0dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="32dp"/>
+            <solid android:color="#807B42F6"/>
+        </shape>
+    </item>
+    <!-- Main gradient button -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="32dp"/>
+            <gradient
+                android:startColor="#5D2DC8"
+                android:endColor="#7B42F6"
+                android:angle="0"/>
+        </shape>
+    </item>
+</layer-list> 

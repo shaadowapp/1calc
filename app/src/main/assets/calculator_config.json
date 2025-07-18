@@ -1,0 +1,708 @@
+{
+  "categories": [
+    {
+      "id": "algb01",
+      "name": "Algebra",
+      "calculators": [
+        {
+          "id": "algb01lin01",
+          "name": "Linear Equations",
+          "inputs": [
+            { "id": "a", "label": "a", "type": "number" },
+            { "id": "b", "label": "b", "type": "number" },
+            { "id": "c", "label": "c", "type": "number" }
+          ],
+          "calculateButton": { "label": "Solve" },
+          "result": { "label": "x" },
+          "logic": "solveLinearEquation",
+          "formula": "ax + b = c\nx = (c - b) / a",
+          "example": "a=2, b=3, c=7 → x = (7-3)/2 = 2"
+        },
+        {
+          "id": "algb01qua01",
+          "name": "Quadratic Equations",
+          "inputs": [
+            { "id": "a", "label": "a", "type": "number" },
+            { "id": "b", "label": "b", "type": "number" },
+            { "id": "c", "label": "c", "type": "number" }
+          ],
+          "calculateButton": { "label": "Solve" },
+          "result": { "label": "x₁, x₂" },
+          "logic": "solveQuadraticEquation",
+          "formula": "ax² + bx + c = 0\nx = [-b ± sqrt(b²-4ac)] / 2a",
+          "example": "a=1, b=-3, c=2 → x₁=2, x₂=1"
+        },
+        {
+          "id": "algb01sys01",
+          "name": "System of Equations",
+          "inputs": [
+            { "id": "a1", "label": "a₁", "type": "number" },
+            { "id": "b1", "label": "b₁", "type": "number" },
+            { "id": "c1", "label": "c₁", "type": "number" },
+            { "id": "a2", "label": "a₂", "type": "number" },
+            { "id": "b2", "label": "b₂", "type": "number" },
+            { "id": "c2", "label": "c₂", "type": "number" }
+          ],
+          "calculateButton": { "label": "Solve" },
+          "result": { "label": "x, y" },
+          "logic": "solveSystemOfEquations",
+          "formula": "a₁x + b₁y = c₁\na₂x + b₂y = c₂\nx = (c₁b₂ - c₂b₁)/(a₁b₂ - a₂b₁)\ny = (a₁c₂ - a₂c₁)/(a₁b₂ - a₂b₁)",
+          "example": "a₁=2, b₁=3, c₁=8; a₂=1, b₂=-4, c₂=-2 → x=2, y=1"
+        },
+        {
+          "id": "algb01pol01",
+          "name": "Polynomials",
+          "inputs": [
+            { "id": "coefficients", "label": "Coefficients (comma-separated)", "type": "text" }
+          ],
+          "calculateButton": { "label": "Factor" },
+          "result": { "label": "Factored Form" },
+          "logic": "factorPolynomial",
+          "formula": "Enter coefficients for polynomial. The calculator will construct the polynomial and factor it.",
+          "example": "coefficients: 1, -3, 2 → (x-1)(x-2)"
+        },
+        {
+          "id": "algb01fac01",
+          "name": "Factoring",
+          "inputs": [
+            { "id": "number", "label": "Number", "type": "number" }
+          ],
+          "calculateButton": { "label": "Factor" },
+          "result": { "label": "Prime Factors" },
+          "logic": "factorNumber",
+          "formula": "Prime factorization of a number",
+          "example": "number: 12 → 2 × 2 × 3"
+        },
+        {
+          "id": "algb01com01",
+          "name": "Complex Numbers",
+          "inputs": [
+            { "id": "real", "label": "Real Part", "type": "number" },
+            { "id": "imag", "label": "Imaginary Part", "type": "number" }
+          ],
+          "calculateButton": { "label": "Convert" },
+          "result": { "label": "Polar/Rectangular" },
+          "logic": "convertComplexNumber",
+          "formula": "z = a + bi\nPolar: r = sqrt(a²+b²), θ = atan2(b,a)",
+          "example": "real=3, imag=4 → r=5, θ=53.13°"
+        }
+      ]
+    },
+    {
+      "id": "geom01",
+      "name": "Geometry",
+      "calculators": [
+        {
+          "id": "geom01are01",
+          "name": "Area Calculator",
+          "inputs": [
+            { "id": "length", "label": "Length", "type": "number", "unit": ["m", "cm", "ft", "in"] },
+            { "id": "width", "label": "Width", "type": "number", "unit": ["m", "cm", "ft", "in"] }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Area" },
+          "logic": "calculateArea",
+          "formula": "Area = Length × Width",
+          "example": "length=5m, width=3m → area=15m²"
+        },
+        {
+          "id": "geom01per01",
+          "name": "Perimeter Calculator",
+          "inputs": [
+            { "id": "length", "label": "Length", "type": "number", "unit": ["m", "cm", "ft", "in"] },
+            { "id": "width", "label": "Width", "type": "number", "unit": ["m", "cm", "ft", "in"] }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Perimeter" },
+          "logic": "calculatePerimeter",
+          "formula": "Perimeter = 2 × (Length + Width)",
+          "example": "length=5m, width=3m → perimeter=16m"
+        },
+        {
+          "id": "geom01vol01",
+          "name": "Volume Calculator",
+          "inputs": [
+            { "id": "length", "label": "Length", "type": "number", "unit": ["m", "cm", "ft", "in"] },
+            { "id": "width", "label": "Width", "type": "number", "unit": ["m", "cm", "ft", "in"] },
+            { "id": "height", "label": "Height", "type": "number", "unit": ["m", "cm", "ft", "in"] }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Volume" },
+          "logic": "calculateVolume",
+          "formula": "Volume = Length × Width × Height",
+          "example": "length=5m, width=3m, height=2m → volume=30m³"
+        },
+        {
+          "id": "geom01sur01",
+          "name": "Surface Area",
+          "inputs": [
+            { "id": "length", "label": "Length", "type": "number", "unit": ["m", "cm", "ft", "in"] },
+            { "id": "width", "label": "Width", "type": "number", "unit": ["m", "cm", "ft", "in"] },
+            { "id": "height", "label": "Height", "type": "number", "unit": ["m", "cm", "ft", "in"] }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Surface Area" },
+          "logic": "calculateSurfaceArea",
+          "formula": "Surface Area = 2 × (L×W + L×H + W×H)",
+          "example": "length=5m, width=3m, height=2m → surface area=62m²"
+        },
+        {
+          "id": "geom01pyt01",
+          "name": "Pythagorean Theorem",
+          "inputs": [
+            { "id": "a", "label": "a", "type": "number", "unit": ["m", "cm", "ft", "in"] },
+            { "id": "b", "label": "b", "type": "number", "unit": ["m", "cm", "ft", "in"] }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "c" },
+          "logic": "calculatePythagorean",
+          "formula": "c = √(a² + b²)",
+          "example": "a=3m, b=4m → c=5m"
+        },
+        {
+          "id": "geom01tri01",
+          "name": "Trigonometry",
+          "inputs": [
+            { "id": "angle", "label": "Angle", "type": "number", "unit": ["deg", "rad"] },
+            { "id": "side", "label": "Side", "type": "number", "unit": ["m", "cm", "ft", "in"] }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Result" },
+          "logic": "calculateTrigonometry",
+          "formula": "Depends on function (sin, cos, tan, etc.)",
+          "example": "angle=30°, side=10m → result=5m"
+        }
+      ]
+    },
+    {
+      "id": "finc01",
+      "name": "Finance",
+      "calculators": [
+        {
+          "id": "finc01sim01",
+          "name": "Simple Interest",
+          "inputs": [
+            { "id": "principal", "label": "Principal", "type": "number", "unit": ["₹", "$", "€", "£"] },
+            { "id": "rate", "label": "Rate (%)", "type": "number" },
+            { "id": "time", "label": "Time (years)", "type": "number" }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Simple Interest" },
+          "logic": "calculateSimpleInterest",
+          "formula": "SI = (Principal × Rate × Time) / 100",
+          "example": "principal=1000₹, rate=5%, time=2years → simple interest=100₹"
+        },
+        {
+          "id": "finc01com01",
+          "name": "Compound Interest",
+          "inputs": [
+            { "id": "principal", "label": "Principal", "type": "number", "unit": ["₹", "$", "€", "£"] },
+            { "id": "rate", "label": "Rate (%)", "type": "number" },
+            { "id": "time", "label": "Time (years)", "type": "number" },
+            { "id": "frequency", "label": "Compounds/Year", "type": "number" }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Compound Interest" },
+          "logic": "calculateCompoundInterest",
+          "formula": "CI = Principal × (1 + Rate/(100×n))^(n×Time) - Principal",
+          "example": "principal=1000₹, rate=5%, time=2years, frequency=1 → compound interest=102.50₹"
+        },
+        {
+          "id": "finc01loa01",
+          "name": "Loan Calculator",
+          "inputs": [
+            { "id": "amount", "label": "Loan Amount", "type": "number", "unit": ["₹", "$", "€", "£"] },
+            { "id": "rate", "label": "Interest Rate (%)", "type": "number" },
+            { "id": "term", "label": "Term (years)", "type": "number" }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Monthly Payment" },
+          "logic": "calculateLoanPayment",
+          "formula": "EMI = [P × r × (1+r)^n] / [(1+r)^n – 1]",
+          "example": "amount=100000₹, rate=10%, term=5years → monthly payment=2107.14₹"
+        },
+        {
+          "id": "finc01mor01",
+          "name": "Mortgage Calculator",
+          "inputs": [
+            { "id": "amount", "label": "Mortgage Amount", "type": "number", "unit": ["₹", "$", "€", "£"] },
+            { "id": "rate", "label": "Interest Rate (%)", "type": "number" },
+            { "id": "term", "label": "Term (years)", "type": "number" }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Monthly Payment" },
+          "logic": "calculateMortgagePayment",
+          "formula": "EMI = [P × r × (1+r)^n] / [(1+r)^n – 1]",
+          "example": "amount=2000000₹, rate=8%, term=20years → monthly payment=14902.95₹"
+        },
+        {
+          "id": "finc01inv01",
+          "name": "Investment Calculator",
+          "inputs": [
+            { "id": "initial", "label": "Initial Investment", "type": "number", "unit": ["₹", "$", "€", "£"] },
+            { "id": "rate", "label": "Annual Rate (%)", "type": "number" },
+            { "id": "years", "label": "Years", "type": "number" },
+            { "id": "contribution", "label": "Annual Contribution", "type": "number", "unit": ["₹", "$", "€", "£"] }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Future Value" },
+          "logic": "calculateInvestment",
+          "formula": "FV = ... (depends on compounding and contributions)",
+          "example": "initial=100000₹, rate=10%, years=5, contribution=10000₹ → future value=161051₹"
+        },
+        {
+          "id": "finc01tax01",
+          "name": "Tax Calculator",
+          "inputs": [
+            { "id": "income", "label": "Income", "type": "number", "unit": ["₹", "$", "€", "£"] },
+            { "id": "taxrate", "label": "Tax Rate (%)", "type": "number" }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Tax Amount" },
+          "logic": "calculateTax",
+          "formula": "Tax = Income × Tax Rate / 100",
+          "example": "income=500000₹, taxrate=30% → tax amount=150000₹"
+        }
+      ]
+    },
+    {
+      "id": "insr01",
+      "name": "Insurance",
+      "calculators": [
+        {
+          "id": "insr01lif01",
+          "name": "Life Insurance",
+          "inputs": [
+            { "id": "age", "label": "Age", "type": "number" },
+            { "id": "sum_assured", "label": "Sum Assured", "type": "number", "unit": ["₹", "$", "€", "£"] },
+            { "id": "term", "label": "Term (years)", "type": "number" }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Premium" },
+          "logic": "calculateLifeInsurancePremium",
+          "formula": "Premium = f(Age, Sum Assured, Term)",
+          "example": "age=30, sum_assured=1000000₹, term=20years → premium=12000₹"
+        },
+        {
+          "id": "insr01hea01",
+          "name": "Health Insurance",
+          "inputs": [
+            { "id": "age", "label": "Age", "type": "number" },
+            { "id": "sum_assured", "label": "Sum Assured", "type": "number", "unit": ["₹", "$", "€", "£"] },
+            { "id": "members", "label": "Family Members", "type": "number" }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Premium" },
+          "logic": "calculateHealthInsurancePremium",
+          "formula": "Premium = f(Age, Sum Assured, Members)",
+          "example": "age=40, sum_assured=500000₹, members=2 → premium=15000₹"
+        },
+        {
+          "id": "insr01aut01",
+          "name": "Auto Insurance",
+          "inputs": [
+            { "id": "car_value", "label": "Car Value", "type": "number", "unit": ["₹", "$", "€", "£"] },
+            { "id": "car_age", "label": "Car Age (years)", "type": "number" },
+            { "id": "driver_age", "label": "Driver Age", "type": "number" }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Premium" },
+          "logic": "calculateAutoInsurancePremium",
+          "formula": "Premium = f(Car Value, Car Age, Driver Age)",
+          "example": "car_value=500000₹, car_age=3years, driver_age=35 → premium=20000₹"
+        },
+        {
+          "id": "insr01hom01",
+          "name": "Home Insurance",
+          "inputs": [
+            { "id": "home_value", "label": "Home Value", "type": "number", "unit": ["₹", "$", "€", "£"] },
+            { "id": "area", "label": "Area (sq ft)", "type": "number" },
+            { "id": "year_built", "label": "Year Built", "type": "number" }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Premium" },
+          "logic": "calculateHomeInsurancePremium",
+          "formula": "Premium = f(Home Value, Area, Year Built)",
+          "example": "home_value=1000000₹, area=2000sq ft, year_built=2000 → premium=15000₹"
+        },
+        {
+          "id": "insr01pre01",
+          "name": "Premium Calculator",
+          "inputs": [
+            { "id": "sum_assured", "label": "Sum Assured", "type": "number", "unit": ["₹", "$", "€", "£"] },
+            { "id": "term", "label": "Term (years)", "type": "number" },
+            { "id": "rate", "label": "Rate (%)", "type": "number" }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Premium" },
+          "logic": "calculatePremium",
+          "formula": "Premium = (Sum Assured × Rate × Term) / 100",
+          "example": "sum_assured=1000000₹, term=10years, rate=5% → premium=50000₹"
+        },
+        {
+          "id": "insr01cov01",
+          "name": "Coverage Calculator",
+          "inputs": [
+            { "id": "income", "label": "Annual Income", "type": "number", "unit": ["₹", "$", "€", "£"] },
+            { "id": "liabilities", "label": "Liabilities", "type": "number", "unit": ["₹", "$", "€", "£"] },
+            { "id": "expenses", "label": "Annual Expenses", "type": "number", "unit": ["₹", "$", "€", "£"] }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Coverage Needed" },
+          "logic": "calculateCoverage",
+          "formula": "Coverage = f(Income, Liabilities, Expenses)",
+          "example": "income=1000000₹, liabilities=500000₹, expenses=200000₹ → coverage needed=300000₹"
+        }
+      ]
+    },
+    {
+      "id": "hlth01",
+      "name": "Health",
+      "calculators": [
+        {
+          "id": "hlth01bmi01",
+          "name": "BMI Calculator",
+          "inputs": [
+            { "id": "weight", "label": "Weight", "type": "number", "unit": ["kg", "lb"] },
+            { "id": "height", "label": "Height", "type": "number", "unit": ["cm", "m", "ft"] }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "BMI" },
+          "logic": "calculateBMI",
+          "formula": "BMI = Weight / (Height × Height)",
+          "example": "weight=70kg, height=170cm → bmi=24.22"
+        },
+        {
+          "id": "hlth01cal01",
+          "name": "Calorie Calculator",
+          "inputs": [
+            { "id": "age", "label": "Age", "type": "number" },
+            { "id": "weight", "label": "Weight", "type": "number", "unit": ["kg", "lb"] },
+            { "id": "height", "label": "Height", "type": "number", "unit": ["cm", "m", "ft"] },
+            { "id": "gender", "label": "Gender", "type": "text", "unit": ["Male", "Female"] },
+            { "id": "activity", "label": "Activity Level", "type": "text", "unit": ["Sedentary", "Light", "Moderate", "Active", "Very Active"] }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Calories Needed" },
+          "logic": "calculateCalories",
+          "formula": "Calories = f(Age, Weight, Height, Gender, Activity)",
+          "example": "age=25, weight=60kg, height=170cm, gender=Male, activity=Moderate → calories=2500"
+        },
+        {
+          "id": "hlth01bmr01",
+          "name": "BMR Calculator",
+          "inputs": [
+            { "id": "age", "label": "Age", "type": "number" },
+            { "id": "weight", "label": "Weight", "type": "number", "unit": ["kg", "lb"] },
+            { "id": "height", "label": "Height", "type": "number", "unit": ["cm", "m", "ft"] },
+            { "id": "gender", "label": "Gender", "type": "text", "unit": ["Male", "Female"] }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "BMR" },
+          "logic": "calculateBMR",
+          "formula": "BMR = f(Age, Weight, Height, Gender)",
+          "example": "age=30, weight=70kg, height=170cm, gender=Male → bmr=1600"
+        },
+        {
+          "id": "hlth01bod01",
+          "name": "Body Fat Calculator",
+          "inputs": [
+            { "id": "age", "label": "Age", "type": "number" },
+            { "id": "weight", "label": "Weight", "type": "number", "unit": ["kg", "lb"] },
+            { "id": "waist", "label": "Waist", "type": "number", "unit": ["cm", "in"] },
+            { "id": "gender", "label": "Gender", "type": "text", "unit": ["Male", "Female"] }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Body Fat %" },
+          "logic": "calculateBodyFat",
+          "formula": "Body Fat % = f(Age, Weight, Waist, Gender)",
+          "example": "age=28, weight=65kg, waist=80cm, gender=Male → body fat=15%"
+        },
+        {
+          "id": "hlth01ide01",
+          "name": "Ideal Weight",
+          "inputs": [
+            { "id": "height", "label": "Height", "type": "number", "unit": ["cm", "m", "ft"] },
+            { "id": "gender", "label": "Gender", "type": "text", "unit": ["Male", "Female"] }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Ideal Weight" },
+          "logic": "calculateIdealWeight",
+          "formula": "Ideal Weight = f(Height, Gender)",
+          "example": "height=170cm, gender=Male → ideal weight=65kg"
+        },
+        {
+          "id": "hlth01sco01",
+          "name": "Health Score",
+          "inputs": [
+            { "id": "age", "label": "Age", "type": "number" },
+            { "id": "weight", "label": "Weight", "type": "number", "unit": ["kg", "lb"] },
+            { "id": "height", "label": "Height", "type": "number", "unit": ["cm", "m", "ft"] },
+            { "id": "activity", "label": "Activity Level", "type": "text", "unit": ["Sedentary", "Light", "Moderate", "Active", "Very Active"] }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Health Score" },
+          "logic": "calculateHealthScore",
+          "formula": "Health Score = f(Age, Weight, Height, Activity)",
+          "example": "age=35, weight=70kg, height=170cm, activity=Moderate → health score=70"
+        }
+      ]
+    },
+    {
+      "id": "date01",
+      "name": "DateTime",
+      "calculators": [
+        {
+          "id": "date01dat01",
+          "name": "Date Calculator",
+          "inputs": [
+            { "id": "start_date", "label": "Start Date (yyyy-mm-dd)", "type": "text" },
+            { "id": "end_date", "label": "End Date (yyyy-mm-dd)", "type": "text" }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Days Between" },
+          "logic": "calculateDateDifference",
+          "formula": "Days = End Date - Start Date",
+          "example": "start_date=2023-01-01, end_date=2023-01-10 → days=9"
+        },
+        {
+          "id": "date01tim01",
+          "name": "Time Calculator",
+          "inputs": [
+            { "id": "start_time", "label": "Start Time (hh:mm)", "type": "text" },
+            { "id": "end_time", "label": "End Time (hh:mm)", "type": "text" }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Time Difference" },
+          "logic": "calculateTimeDifference",
+          "formula": "Time = End Time - Start Time",
+          "example": "start_time=10:00, end_time=12:30 → time=2.5 hours"
+        },
+        {
+          "id": "date01age01",
+          "name": "Age Calculator",
+          "inputs": [
+            { "id": "dob", "label": "Date of Birth (yyyy-mm-dd)", "type": "text" }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Age" },
+          "logic": "calculateAge",
+          "formula": "Age = Today - DOB",
+          "example": "dob=1990-01-01 → age=33 years"
+        },
+        {
+          "id": "date01cou01",
+          "name": "Countdown Timer",
+          "inputs": [
+            { "id": "target_date", "label": "Target Date (yyyy-mm-dd)", "type": "text" },
+            { "id": "target_time", "label": "Target Time (hh:mm)", "type": "text" }
+          ],
+          "calculateButton": { "label": "Start" },
+          "result": { "label": "Time Left" },
+          "logic": "calculateCountdown",
+          "formula": "Time Left = Target Date/Time - Now",
+          "example": "target_date=2024-12-31, target_time=12:00 → time left=365 days"
+        },
+        {
+          "id": "date01zon01",
+          "name": "Time Zone Converter",
+          "inputs": [
+            { "id": "time", "label": "Time (hh:mm)", "type": "text" },
+            { "id": "from_zone", "label": "From Zone", "type": "text", "unit": ["UTC", "IST", "EST", "PST", "CET"] },
+            { "id": "to_zone", "label": "To Zone", "type": "text", "unit": ["UTC", "IST", "EST", "PST", "CET"] }
+          ],
+          "calculateButton": { "label": "Convert" },
+          "result": { "label": "Converted Time" },
+          "logic": "convertTimeZone",
+          "formula": "Converted = Time in To Zone",
+          "example": "time=10:00, from_zone=UTC, to_zone=IST → converted_time=15:30"
+        },
+        {
+          "id": "date01cal01",
+          "name": "Calendar Calculator",
+          "inputs": [
+            { "id": "date", "label": "Date (yyyy-mm-dd)", "type": "text" }
+          ],
+          "calculateButton": { "label": "Check" },
+          "result": { "label": "Info" },
+          "logic": "calculateCalendarInfo",
+          "formula": "Info = f(Date)",
+          "example": "date=2023-10-27 → info=It's a Friday"
+        }
+      ]
+    },
+    {
+      "id": "unit01",
+      "name": "UnitConverters",
+      "calculators": [
+        {
+          "id": "unit01len01",
+          "name": "Length Converter",
+          "inputs": [
+            { "id": "value", "label": "Value", "type": "number" },
+            { "id": "from_unit", "label": "From", "type": "text", "unit": ["m", "cm", "mm", "km", "in", "ft", "yd", "mi"] },
+            { "id": "to_unit", "label": "To", "type": "text", "unit": ["m", "cm", "mm", "km", "in", "ft", "yd", "mi"] }
+          ],
+          "calculateButton": { "label": "Convert" },
+          "result": { "label": "Converted Value" },
+          "logic": "convertLength",
+          "formula": "Value (From) → Value (To)",
+          "example": "value=1000, from_unit=cm, to_unit=m → converted_value=10"
+        },
+        {
+          "id": "unit01wei01",
+          "name": "Weight Converter",
+          "inputs": [
+            { "id": "value", "label": "Value", "type": "number" },
+            { "id": "from_unit", "label": "From", "type": "text", "unit": ["kg", "g", "mg", "lb", "oz", "ton"] },
+            { "id": "to_unit", "label": "To", "type": "text", "unit": ["kg", "g", "mg", "lb", "oz", "ton"] }
+          ],
+          "calculateButton": { "label": "Convert" },
+          "result": { "label": "Converted Value" },
+          "logic": "convertWeight",
+          "formula": "Value (From) → Value (To)",
+          "example": "value=1000, from_unit=g, to_unit=kg → converted_value=1"
+        },
+        {
+          "id": "unit01tem01",
+          "name": "Temperature Converter",
+          "inputs": [
+            { "id": "value", "label": "Value", "type": "number" },
+            { "id": "from_unit", "label": "From", "type": "text", "unit": ["°C", "°F", "K"] },
+            { "id": "to_unit", "label": "To", "type": "text", "unit": ["°C", "°F", "K"] }
+          ],
+          "calculateButton": { "label": "Convert" },
+          "result": { "label": "Converted Value" },
+          "logic": "convertTemperature",
+          "formula": "Value (From) → Value (To)",
+          "example": "value=100, from_unit=°C, to_unit=°F → converted_value=212"
+        },
+        {
+          "id": "unit01are01",
+          "name": "Area Converter",
+          "inputs": [
+            { "id": "value", "label": "Value", "type": "number" },
+            { "id": "from_unit", "label": "From", "type": "text", "unit": ["m²", "cm²", "mm²", "km²", "in²", "ft²", "yd²", "ac", "ha"] },
+            { "id": "to_unit", "label": "To", "type": "text", "unit": ["m²", "cm²", "mm²", "km²", "in²", "ft²", "yd²", "ac", "ha"] }
+          ],
+          "calculateButton": { "label": "Convert" },
+          "result": { "label": "Converted Value" },
+          "logic": "convertArea",
+          "formula": "Value (From) → Value (To)",
+          "example": "value=1000, from_unit=m², to_unit=cm² → converted_value=100000000"
+        },
+        {
+          "id": "unit01vol01",
+          "name": "Volume Converter",
+          "inputs": [
+            { "id": "value", "label": "Value", "type": "number" },
+            { "id": "from_unit", "label": "From", "type": "text", "unit": ["m³", "cm³", "mm³", "l", "ml", "in³", "ft³", "yd³", "gal"] },
+            { "id": "to_unit", "label": "To", "type": "text", "unit": ["m³", "cm³", "mm³", "l", "ml", "in³", "ft³", "yd³", "gal"] }
+          ],
+          "calculateButton": { "label": "Convert" },
+          "result": { "label": "Converted Value" },
+          "logic": "convertVolume",
+          "formula": "Value (From) → Value (To)",
+          "example": "value=1000, from_unit=l, to_unit=ml → converted_value=1000000"
+        },
+        {
+          "id": "unit01spe01",
+          "name": "Speed Converter",
+          "inputs": [
+            { "id": "value", "label": "Value", "type": "number" },
+            { "id": "from_unit", "label": "From", "type": "text", "unit": ["m/s", "km/h", "mph", "ft/s", "kn"] },
+            { "id": "to_unit", "label": "To", "type": "text", "unit": ["m/s", "km/h", "mph", "ft/s", "kn"] }
+          ],
+          "calculateButton": { "label": "Convert" },
+          "result": { "label": "Converted Value" },
+          "logic": "convertSpeed",
+          "formula": "Value (From) → Value (To)",
+          "example": "value=100, from_unit=km/h, to_unit=m/s → converted_value=27.78"
+        }
+      ]
+    },
+    {
+      "id": "othr01",
+      "name": "Others",
+      "calculators": [
+        {
+          "id": "othr01per01",
+          "name": "Percentage Calculator",
+          "inputs": [
+            { "id": "value", "label": "Value", "type": "number" },
+            { "id": "percent", "label": "Percent (%)", "type": "number" }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Result" },
+          "logic": "calculatePercentage",
+          "formula": "Result = Value × Percent / 100",
+          "example": "value=100, percent=20% → result=20"
+        },
+        {
+          "id": "othr01rat01",
+          "name": "Ratio Calculator",
+          "inputs": [
+            { "id": "a", "label": "A", "type": "number" },
+            { "id": "b", "label": "B", "type": "number" },
+            { "id": "total", "label": "Total", "type": "number" }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Ratio Result" },
+          "logic": "calculateRatio",
+          "formula": "A : B = ? (given total)",
+          "example": "a=10, b=5, total=15 → ratio result=2:1"
+        },
+        {
+          "id": "othr01sta01",
+          "name": "Statistics Calculator",
+          "inputs": [
+            { "id": "values", "label": "Values (comma-separated)", "type": "text" }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Mean, Median, Mode" },
+          "logic": "calculateStatistics",
+          "formula": "Enter values separated by commas",
+          "example": "values: 1, 2, 3, 4, 5 → mean=3, median=3, mode=1"
+        },
+        {
+          "id": "othr01pro01",
+          "name": "Probability Calculator",
+          "inputs": [
+            { "id": "favorable", "label": "Favorable Outcomes", "type": "number" },
+            { "id": "total", "label": "Total Outcomes", "type": "number" }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Probability" },
+          "logic": "calculateProbability",
+          "formula": "Probability = Favorable / Total",
+          "example": "favorable=5, total=10 → probability=0.5"
+        },
+        {
+          "id": "othr01sci01",
+          "name": "Scientific Calculator",
+          "inputs": [
+            { "id": "expression", "label": "Expression", "type": "text" }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Result" },
+          "logic": "calculateScientific",
+          "formula": "Evaluates mathematical expressions using standard operator precedence, parentheses, and scientific functions (e.g., +, -, ×, ÷, ^, sin, cos, tan, log, exp, sqrt, etc.).",
+          "example": "expression: 2 + 3 * (4 - 1) → result=11"
+        },
+        {
+          "id": "othr01mat01",
+          "name": "Matrix Calculator",
+          "inputs": [
+            { "id": "matrix_a", "label": "Matrix A (rows;cols)", "type": "text" },
+            { "id": "matrix_b", "label": "Matrix B (rows;cols)", "type": "text" }
+          ],
+          "calculateButton": { "label": "Calculate" },
+          "result": { "label": "Matrix Result" },
+          "logic": "calculateMatrix",
+          "formula": "Enter matrices as rows;cols (e.g., 1,2;3,4)",
+          "example": "matrix_a: 1,2;3,4, matrix_b: 5,6;7,8 → matrix_result: 19,22;43,50"
+        }
+      ]
+    }
+  ]
+} 

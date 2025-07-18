@@ -1,0 +1,355 @@
+<resources>
+    <!-- App Information -->
+    <string name="app_name">1Calculator</string>
+    <string name="advance">1Calculator</string>
+    <string name="calculator_text">Calculator</string>
+    
+    <!-- Navigation -->
+    <string name="history">History</string>
+    <string name="back_text">Back</string>
+    <string name="search_text">Search</string>
+    <string name="view_all">View All</string>
+    
+    <!-- Calculator Numbers -->
+    <string name="_0">0</string>
+    <string name="_1">1</string>
+    <string name="_2">2</string>
+    <string name="_3">3</string>
+    <string name="_4">4</string>
+    <string name="_5">5</string>
+    <string name="_6">6</string>
+    <string name="_7">7</string>
+    <string name="_8">8</string>
+    <string name="_9">9</string>
+    
+    <!-- Calculator Operations -->
+    <string name="ac">AC</string>
+    <string name="basic">Basic</string>
+    <string name="error_text">Error</string>
+    <string name="expression_append">%1$s%2$s</string>
+    
+    <!-- Calculator Categories -->
+    <string name="algebra">Algebra</string>
+    <string name="geometry">Geometry</string>
+    <string name="finance">Finance</string>
+    <string name="health">Health</string>
+    <string name="date_time">Date &amp; Time</string>
+    <string name="other_units">Other Units</string>
+    
+    <!-- Tab Labels -->
+    <string name="tab_home">Home</string>
+    <string name="tab_categories">Categories</string>
+    
+    <!-- History -->
+    <string name="clear_all">Clear All</string>
+    <string name="delete">Delete</string>
+    <string name="delete_text">Delete</string>
+    <string name="delete_history_item">Delete history item</string>
+    <string name="no_history">No history yet</string>
+    <string name="no_history_found_text">No history found</string>
+    <string name="search_history_text_placeholder">Search history...</string>
+    <string name="search_1calculator_text_placeholder">Search 1Calculator</string>
+    
+    <!-- Actions -->
+    <string name="copy_text">Copy</string>
+    <string name="paste_text">Paste</string>
+    
+    <!-- Button Descriptions -->
+    <string name="square_root_button_description">Square root</string>
+    <string name="power_button_description">Power</string>
+    <string name="pi_button_description">Pi</string>
+    <string name="factorial_button_description">Factorial</string>
+    <string name="brackets_button_description">Brackets</string>
+    <string name="percent_button_description">Percent</string>
+    <string name="backspace_button_description">Backspace</string>
+    <string name="divide_button_description">Divide</string>
+    <string name="multiply_button_description">Multiply</string>
+    <string name="minus_button_description">Minus</string>
+    <string name="equals_button_description">Equal</string>
+    <string name="plus_button_description">Plus</string>
+    <string name="dot_button_description">Dot</string>
+    <string name="e_button_description">e</string>
+    <string name="ac_button_description">AC</string>
+    <string name="btn_0_text_description">0</string>
+    <string name="initial_result_text_description">Result</string>
+    
+    <!-- Menu Items -->
+    <string name="menu_text_desc">Menu</string>
+    <string name="hot_apps_text_desc">Hot Apps</string>
+    <string name="settings_text_desc">Settings</string>
+    <string name="delete_btn_desc">Delete</string>
+    <string name="result_desc">Result</string>
+    <string name="expression_desc">Expression</string>
+    <string name="hot_apps_button_description">Hot Apps</string>
+    <string name="settings_button_description">Settings</string>
+    
+    <!-- Permission Screen Strings -->
+    <string name="btn_grant_permissions">Grant Mic &amp; Camera Permissions</string>
+    <string name="desc_mic_camera">Mic and Camera</string>
+    <string name="permissions_needed">Permissions Needed</string>
+    <string name="permissions_explanation">Enable mic and camera for full experience.</string>
+    
+    <!-- New strings -->
+    <string name="hot_apps">Hot Apps</string>
+    <string name="sponsored">Sponsored</string>
+    <string name="mathly_voice">Mathly Voice</string>
+    <string name="ai_assistant">AI Assistant</string>
+    <string name="mathly_chat">Mathly Chat</string>
+    <string name="scan_and_invoice">Scan &amp; Invoice</string>
+    <string name="camera">Camera</string>
+    <string name="hidden_gallery">Hidden Gallery</string>
+    <string name="vault">Vault</string>
+    <string name="settings">Settings</string>
+    <string name="configure_app">Configure app</string>
+    <string name="made_in_india">Proudly made in India with ❤️ &amp; care.</string>
+    <!-- Widget Calculator Buttons -->
+    <string name="btn_0">0</string>
+    <string name="btn_1">1</string>
+    <string name="btn_2">2</string>
+    <string name="btn_3">3</string>
+    <string name="btn_4">4</string>
+    <string name="btn_5">5</string>
+    <string name="btn_6">6</string>
+    <string name="btn_7">7</string>
+    <string name="btn_8">8</string>
+    <string name="btn_9">9</string>
+    <string name="btn_divide">÷</string>
+    <string name="btn_multiply">×</string>
+    <string name="btn_minus">-</string>
+    <string name="btn_plus">+</string>
+    <string name="btn_dot">.</string>
+    <string name="btn_equals">=</string>
+    
+    <!-- Vosk Speech Recognition -->
+    <string name="preparing">Preparing...</string>
+    <string name="ready">Ready</string>
+    <string name="recognize_file">Recognize File</string>
+    <string name="recognize_microphone">Recognize Microphone</string>
+    <string name="stop_file">Stop File</string>
+    <string name="stop_microphone">Stop Microphone</string>
+    <string name="starting">Starting...</string>
+    <string name="say_something">Say something...</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    
+    <!-- Calculator Fragment Titles -->
+    <string name="volume_calculator">Volume Calculator</string>
+    <string name="trigonometry">Trigonometry</string>
+    <string name="time_zone_converter">Time Zone Converter</string>
+    <string name="time_calculator">Time Calculator</string>
+    <string name="tax_calculator">Tax Calculator</string>
+    <string name="system_of_equations">System of Equations</string>
+    <string name="surface_area">Surface Area</string>
+    <string name="statistics_calculator">Statistics Calculator</string>
+    <string name="speed_converter">Speed Converter</string>
+    <string name="simple_interest">Simple Interest</string>
+    <string name="ratio_calculator">Ratio Calculator</string>
+    <string name="pythagorean_theorem">Pythagorean Theorem</string>
+    <string name="quadratic_equations">Quadratic Equations</string>
+    <string name="probability_calculator">Probability Calculator</string>
+    <string name="premium_calculator">Premium Calculator</string>
+    <string name="polynomials">Polynomials</string>
+    <string name="perimeter_calculator">Perimeter Calculator</string>
+    <string name="percentage_calculator">Percentage Calculator</string>
+    
+    <!-- Action Buttons -->
+    <string name="solve">Solve</string>
+    <string name="calculate">Calculate</string>
+    <string name="convert">Convert</string>
+    
+    <!-- Results -->
+    <string name="result_coming_soon">Result: (Coming soon)</string>
+    <string name="result_prefix">Result: </string>
+    
+    <!-- Converter Symbols -->
+    <string name="swap_symbol">⇄</string>
+    
+    <!-- History Section -->
+    <string name="today">Today</string>
+    <string name="basic_screen">Basic Screen</string>
+    <string name="from_widget">From Widget</string>
+    <string name="hours_ago">hours ago</string>
+    
+    <!-- Sample Content -->
+    <string name="sample_expression">2 + 3 × 4</string>
+    <string name="sample_result">= 14</string>
+    <string name="sample_time">2 hours ago</string>
+    <string name="sample_question">What is 2 + 2?</string>
+    <string name="sample_answer">2 + 2 equals 4. This is a basic addition problem where you combine two groups of 2 items each to get a total of 4 items.</string>
+    
+    <!-- Onboarding -->
+    <string name="welcome_title">Welcome to 1Calculator!</string>
+    <string name="welcome_subtitle">Your all-in-one calculator for voice, scan, and more.</string>
+    
+    <!-- Settings -->
+    <string name="preferences">PREFERENCES</string>
+    <string name="theme_mode">Theme Mode</string>
+    <string name="auto">Auto</string>
+    <string name="default_calculator_mode">Default Calculator Mode</string>
+    <string name="scientific">Scientific</string>
+    <string name="advanced_customization">ADVANCED CUSTOMIZATION</string>
+    <string name="mathly">Mathly</string>
+    <string name="voice">Voice</string>
+    <string name="chat">Chat</string>
+    <string name="scanner">Scanner</string>
+    <string name="about_app">ABOUT APP</string>
+    <string name="privacy_permissions">Privacy &amp; Permissions</string>
+    <string name="version">Version</string>
+    <string name="app_version">1.0.0</string>
+    <string name="check_for_updates">Check for Updates</string>
+    <string name="feedback">Feedback</string>
+    <string name="rate_us">Rate Us</string>
+    
+    <!-- Mathly -->
+    <string name="mathly_greeting">👋 Hello,\nI\'m Mathly</string>
+    <string name="listening">Listening…</string>
+    <string name="sample_math_question">What is the square root of 144 multiplied by 3?</string>
+    <string name="start_listening">Start Listening</string>
+    <string name="stop">Stop</string>
+    <string name="repeat">Repeat</string>
+    <string name="auto_start">Auto-start</string>
+    
+    <!-- Toast Messages -->
+    <string name="toast_choose_default_screen">Please choose a default screen first.</string>
+    <string name="toast_complete_onboarding">Please complete onboarding to continue.</string>
+    <string name="toast_mathly_voice_status">Mathly Voice: %1$s</string>
+    <string name="toast_mathly_chat_status">Mathly Chat: %1$s</string>
+    <string name="toast_mathly_scanner_status">Mathly Scanner: %1$s</string>
+    <string name="toast_privacy_permissions">Privacy &amp; Permissions</string>
+    <string name="toast_checking_updates">Checking for updates…</string>
+    <string name="toast_feedback">Feedback</string>
+    <string name="toast_rate_us">Rate Us</string>
+    <string name="toast_theme_mode_updated">Theme mode updated</string>
+    <string name="toast_default_calculator_mode_updated">Default calculator mode updated</string>
+    <string name="toast_searching_for">Searching for: %1$s</string>
+    <string name="toast_hot_apps_coming_soon">Hot Apps coming soon!</string>
+    <string name="toast_mathly_voice_coming_soon">Mathly Voice coming soon!</string>
+    <string name="toast_mathly_chat_coming_soon">Mathly Chat coming soon!</string>
+    <string name="toast_scan_to_invoice_coming_soon">Scan to Invoice coming soon!</string>
+    <string name="toast_hidden_gallery_coming_soon">Hidden Gallery coming soon!</string>
+    <string name="toast_history">History</string>
+    <string name="toast_about">About</string>
+    <string name="toast_landscape_not_supported">Landscape mode is not supported.</string>
+    <string name="toast_copied">Copied!</string>
+    
+    <!-- Status Values -->
+    <string name="on">ON</string>
+    <string name="off">OFF</string>
+    <string name="light">Light</string>
+    <string name="dark">Dark</string>
+    <string name="programmer">Programmer</string>
+    <string name="unit_converter_mode">Unit Converter</string>
+    
+    <!-- Converter Types -->
+    <string name="length_converter">Length Converter</string>
+    <string name="weight_converter_title">Weight Converter</string>
+    <string name="temperature_converter_title">Temperature Converter</string>
+    <string name="area_converter">Area Converter</string>
+    <string name="volume_converter_title">Volume Converter</string>
+    <string name="speed_converter_title">Speed Converter</string>
+    
+    <!-- Widget Calculator -->
+    <string name="divide_symbol">÷</string>
+    <string name="multiply_symbol">×</string>
+    <string name="minus_symbol">-</string>
+    <string name="plus_symbol">+</string>
+    <string name="equals_symbol">=</string>
+    <string name="dot_symbol">.</string>
+    <string name="cut">Cut</string>
+    <string name="copy">Copy</string>
+    <string name="paste">Paste</string>
+    <string name="theme_mode_dialog">Theme Mode</string>
+    <string name="auto_system">Auto (System Default)</string>
+    <string name="cancel">Cancel</string>
+    <string name="apply">Apply</string>
+    <string name="default_home_screen_dialog">Default home screen</string>
+    <string name="basic_calculator">Basic Calculator</string>
+    <string name="programmer_calculator">Programmer Calculator</string>
+    <string name="unit_converter_calculator">Unit Converter</string>
+    <string name="calculator_dialog">Calculator</string>
+    <string name="calculate_dialog">Calculate</string>
+    <string name="result_dialog">Result</string>
+    <string name="calculator_onboarding">Calculator</string>
+    <string name="classic_fast_powerful">Classic, fast, and powerful.</string>
+    <string name="choose_default_screen">Choose your default screen</string>
+    <string name="grant_permissions_onboarding">Grant Mic &amp; Camera Permissions</string>
+    <string name="home_nav">Home</string>
+    <string name="age_calculator">Age Calculator</string>
+    <string name="area_calculator">Area Calculator</string>
+    <string name="area_formula">Formula: Area = Length × Width</string>
+    <string name="copy_toolbar">Copy</string>
+    <string name="history_basic">History</string>
+    <string name="temperature_converter">Temperature Converter</string>
+    <string name="volume_converter">Volume Converter</string>
+    <string name="weight_converter">Weight Converter</string>
+    <string name="scientific_calculator">Scientific Calculator</string>
+    <string name="welcome_back">Welcome back,</string>
+    <string name="dear">Dear</string>
+    <string name="search_feature_hint">Search for a feature…</string>
+    <string name="rich_features">Rich Features of 1Calculator</string>
+    <string name="calculator">Calculator</string>
+    <string name="unit_based">Unit-Based</string>
+    <!-- Add more as needed for other cards/sections -->
+    <string name="app_icon_desc">App icon</string>
+    <string name="settings_desc">Settings</string>
+    <string name="search_desc">Search</string>
+    <string name="basic_calculator_desc">Basic Calculator</string>
+    <string name="unit_converter_desc">Unit Converter</string>
+    <string name="hot_apps_desc">Hot Apps</string>
+    <string name="mathly_voice_desc">Mathly Voice</string>
+    <string name="mathly_chat_desc">Mathly Chat</string>
+    <string name="scan_to_invoice_desc">Scan to Invoice</string>
+    <string name="hidden_gallery_desc">Hidden Gallery</string>
+    <string name="back_desc">Back</string>
+    <string name="menu_desc">Menu</string>
+    <string name="arrow_desc">Arrow</string>
+    <string name="expand_desc">Expand</string>
+    <string name="camera_desc">Camera</string>
+    <string name="vault_desc">Vault</string>
+    <string name="assistant_desc">Assistant</string>
+    <string name="collection_desc">Collection</string>
+    <string name="ai_powered_desc">AI Powered</string>
+    <string name="configure_app_desc">Configure app</string>
+    <string name="made_in_india_desc">Proudly made in India with ❤️ &amp; care.</string>
+    <string name="tab_icon_desc">Tab Icon</string>
+    <string name="send">Send</string>
+    <string name="close_desc">Close</string>
+    <string name="area_icon_desc">Area icon</string>
+    <string name="calculate_area_desc">Calculate area</string>
+    <string name="app_logo_desc">App Logo</string>
+    <string name="calculator_icon_desc">Calculator Icon</string>
+    <string name="scan_invoice_desc">Scan to make invoice</string>
+    <string name="private_gallery_desc">Private Gallery</string>
+    <string name="ai_calculator_desc">AI Calculator</string>
+    <string name="backspace_desc">Backspace</string>
+    <string name="mathly_scanner">Mathly Scanner</string>
+    <string name="to_do_list">To-Do List</string>
+    <string name="card_description">Card description</string>
+    <string name="new_text">NEW</string>
+    <string name="card_title">Card Title</string>
+    <string name="onboarding_tagline_text">Your premium suite for mastering every math challenge — fast, visual, and intelligent.</string>
+    <string name="calculate_with_clarity">Calculate with Clarity</string>
+    <string name="get_started_btn">GET STARTED</string>
+    <string name="card_icon">Card Icon</string>
+    <string name="invoice_details">Invoice Details</string>
+    <string name="gallery">Gallery</string>
+    <string name="continue_btn">Continue</string>
+    <string name="scanner_header_text">Scan QR or Barcodes to instantly add\nproducts to your invoice.</string>
+    <string name="scanning">Scanning...</string>
+    <string name="minus_desc">Minus</string>
+    <string name="plus_desc">Plus</string>
+    <string name="scanned_products">Scanned Products</string>
+    <string name="scanning_not_recognized">Code not recognized, Try again.</string>
+    <string name="remove">Remove</string>
+    <string name="confirm">Confirm</string>
+    <string name="mathly_scanner_is_currently_turned_off">Mathly Scanner is currently turned off.</string>
+    <string name="open_settings">Open Settings</string>
+    <string name="todo">ToDo</string>
+    <string name="checklist">checklist</string>
+    <string name="toast_todo_coming_soon">ToDo Coming soon</string>
+    <string name="todo_title">To-Do List</string>
+    <string name="add_todo">Add Task</string>
+    <string name="empty_todo_list">No tasks yet. Add your first to-do!</string>
+    <string name="edit">Edit</string>
+    <string name="ai_powered">AI Powered</string>
+</resources>

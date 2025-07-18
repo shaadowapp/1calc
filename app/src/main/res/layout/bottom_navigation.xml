@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/navbar_background"
+    android:elevation="8dp">
+
+    <!-- Top Border Line -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/bottom_nav_border" />
+
+    <!-- Navigation Content -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
+
+        <!-- Home Tab -->
+        <include
+            android:id="@+id/home_tab"
+            layout="@layout/bottom_nav_item" />
+
+        <!-- Chat Tab -->
+        <include
+            android:id="@+id/category_tab"
+            layout="@layout/bottom_nav_item" />
+
+        <!-- Mathly Tab -->
+        <include
+            android:id="@+id/mathly_tab"
+            layout="@layout/bottom_nav_item" />
+
+        <!-- Scanner Tab -->
+        <include
+            android:id="@+id/scanner_tab"
+            layout="@layout/bottom_nav_item" />
+
+    </LinearLayout>
+
+</LinearLayout> 

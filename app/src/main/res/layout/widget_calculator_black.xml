@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/bg_widget_rounded"
+    android:padding="8dp">
+
+    <!-- Input/Output Area with inline backspace -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:orientation="horizontal"
+        android:background="@drawable/bg_input_rounded"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/widget_expression"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text=""
+            android:textColor="@android:color/white"
+            android:textSize="20sp"
+            android:gravity="end|center_vertical"
+            android:maxLines="2"
+            android:ellipsize="end" />
+
+        <ImageButton
+            android:id="@+id/widget_btn_backspace"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="8dp"
+            android:background="@android:color/transparent"
+            android:src="@android:drawable/ic_input_delete"
+            app:tint="@android:color/white"
+            android:contentDescription="@string/backspace_desc" />
+    </LinearLayout>
+
+    <!-- Calculator Buttons Grid: 4 columns, 4 rows -->
+    <GridLayout
+        android:id="@+id/widget_buttons_grid"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:columnCount="4"
+        android:rowCount="4"
+        android:layout_marginTop="4dp">
+
+        <!-- Row 1: 7 8 9 ÷ -->
+        <Button android:id="@+id/widget_btn_7" android:text="@string/btn_7" style="@style/WidgetCalcButtonGrid" />
+        <Button android:id="@+id/widget_btn_8" android:text="@string/btn_8" style="@style/WidgetCalcButtonGrid" />
+        <Button android:id="@+id/widget_btn_9" android:text="@string/btn_9" style="@style/WidgetCalcButtonGrid" />
+        <Button android:id="@+id/widget_btn_divide" android:text="@string/btn_divide" style="@style/WidgetCalcButtonGridOperator" />
+        <!-- Row 2: 4 5 6 × -->
+        <Button android:id="@+id/widget_btn_4" android:text="@string/btn_4" style="@style/WidgetCalcButtonGrid" />
+        <Button android:id="@+id/widget_btn_5" android:text="@string/btn_5" style="@style/WidgetCalcButtonGrid" />
+        <Button android:id="@+id/widget_btn_6" android:text="@string/btn_6" style="@style/WidgetCalcButtonGrid" />
+        <Button android:id="@+id/widget_btn_multiply" android:text="@string/btn_multiply" style="@style/WidgetCalcButtonGridOperator" />
+        <!-- Row 3: 1 2 3 - -->
+        <Button android:id="@+id/widget_btn_1" android:text="@string/btn_1" style="@style/WidgetCalcButtonGrid" />
+        <Button android:id="@+id/widget_btn_2" android:text="@string/btn_2" style="@style/WidgetCalcButtonGrid" />
+        <Button android:id="@+id/widget_btn_3" android:text="@string/btn_3" style="@style/WidgetCalcButtonGrid" />
+        <Button android:id="@+id/widget_btn_minus" android:text="@string/btn_minus" style="@style/WidgetCalcButtonGridOperator" />
+        <!-- Row 4: 0 . + = -->
+        <Button android:id="@+id/widget_btn_0" android:text="@string/btn_0" style="@style/WidgetCalcButtonGrid" />
+        <Button android:id="@+id/widget_btn_dot" android:text="@string/btn_dot" style="@style/WidgetCalcButtonGridOperator" />
+        <Button android:id="@+id/widget_btn_plus" android:text="@string/btn_plus" style="@style/WidgetCalcButtonGridOperator" />
+        <Button android:id="@+id/widget_btn_equals" android:text="@string/btn_equals" style="@style/WidgetCalcButtonGridOperator" />
+    </GridLayout>
+</LinearLayout> 

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Medium width screens (360dp) -->
+    <dimen name="button_size">@dimen/button_size_medium</dimen>
+    <dimen name="special_button_size">@dimen/special_button_size_large</dimen>
+    <dimen name="button_margin">@dimen/button_margin_medium</dimen>
+    <dimen name="special_button_margin">@dimen/special_button_margin_medium</dimen>
+    <dimen name="text_size">@dimen/text_size_large</dimen>
+    <dimen name="display_text_size">@dimen/display_text_size_large</dimen>
+    <dimen name="solution_text_size">@dimen/solution_text_size_large</dimen>
+    <dimen name="icon_size">@dimen/icon_size_large</dimen>
+    <dimen name="special_icon_size">@dimen/special_icon_size_large</dimen>
+    <dimen name="navbar_height">@dimen/navbar_height_medium</dimen>
+    <dimen name="padding">@dimen/padding_medium</dimen>
+</resources> 

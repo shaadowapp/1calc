@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Pressed state with higher elevation -->
+    <item android:state_pressed="true">
+        <set>
+            <objectAnimator
+                android:propertyName="elevation"
+                android:valueTo="8dp"
+                android:valueType="floatType"
+                android:duration="100"
+                android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </set>
+    </item>
+    
+    <!-- Default state with normal elevation -->
+    <item>
+        <set>
+            <objectAnimator
+                android:propertyName="elevation"
+                android:valueTo="4dp"
+                android:valueType="floatType"
+                android:duration="200"
+                android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </set>
+    </item>
+</selector>

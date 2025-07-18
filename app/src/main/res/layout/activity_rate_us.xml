@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#000000"
+    android:fitsSystemWindows="true">
+
+    <!-- Top AppBar -->
+    <LinearLayout
+        android:id="@+id/header"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#111111"
+        android:elevation="4dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="16dp">
+
+        <ImageView
+            android:id="@+id/back_button"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/ic_back"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="8dp"
+            android:tint="#FFFFFF"
+            android:contentDescription="Back" />
+
+        <TextView
+            android:id="@+id/header_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Rate Us"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:letterSpacing="0.03" />
+    </LinearLayout>
+
+    <!-- Scrollable Content -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="20dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingBottom="32dp">
+
+            <!-- Rating Icon -->
+            <ImageView
+                android:id="@+id/rate_icon"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:src="@drawable/ic_star"
+                android:contentDescription="Rate Icon"
+                android:tint="#5D2DC8"
+                android:layout_marginBottom="16dp"
+                android:scaleType="centerInside" />
+
+            <!-- Title -->
+            <TextView
+                android:id="@+id/rate_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Enjoying 1Calculator?"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:letterSpacing="0.05"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Message -->
+            <TextView
+                android:id="@+id/rate_message"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="We’d love to hear your feedback!\nPlease take a moment to rate us on the Play Store.\n\nYour support helps us grow and improve."
+                android:textColor="#CCCCCC"
+                android:textSize="15sp"
+                android:lineSpacingExtra="6dp"
+                android:justificationMode="inter_word"
+                android:textAlignment="center"
+                tools:ignore="JustificationMode" />
+
+            <!-- Optional: Static 5 Stars -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="20dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_star_filled"
+                    android:tint="#FFD700" />
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_star_filled"
+                    android:tint="#FFD700" />
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_star_filled"
+                    android:tint="#FFD700" />
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_star_filled"
+                    android:tint="#FFD700" />
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_star_filled"
+                    android:tint="#FFD700" />
+            </LinearLayout>
+
+            <!-- Footer -->
+            <TextView
+                android:id="@+id/rate_footer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Thanks for supporting us 💜"
+                android:textSize="13sp"
+                android:textColor="#888888"
+                android:gravity="center"
+                android:textAlignment="center"
+                android:layout_marginTop="16dp" />
+
+            <!-- CTA: Play Store -->
+            <Button
+                android:id="@+id/cta_playstore"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Rate on Play Store"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#5D2DC8"
+                android:layout_gravity="center_horizontal"
+                android:drawableLeft="@drawable/ic_star"
+                android:drawablePadding="6dp"
+                android:elevation="2dp"
+                android:layout_marginTop="18dp" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.textfield.TextInputLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/textInputLayout"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+            android:background="@color/black"
+    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+    app:boxCornerRadiusBottomEnd="24dp"
+    app:boxCornerRadiusBottomStart="24dp"
+    app:boxCornerRadiusTopEnd="24dp"
+    app:boxCornerRadiusTopStart="24dp"
+    app:startIconDrawable="@drawable/ic_search"
+    app:startIconTint="@color/category_grey"
+    app:endIconMode="clear_text"
+    app:endIconDrawable="@drawable/ic_clear"
+    app:hintTextColor="@color/category_grey"
+    app:boxStrokeColor="@color/category_grey"
+    app:boxStrokeWidth="1dp"
+    app:boxBackgroundColor="#121212"
+    android:hint="Search 1Calculator">
+
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/search_input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/white"
+        android:textSize="16sp"
+        android:inputType="text"
+        android:maxLines="1"
+        android:singleLine="true" />
+
+</com.google.android.material.textfield.TextInputLayout>

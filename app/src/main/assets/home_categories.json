@@ -1,0 +1,92 @@
+{
+  "categories": [
+    {
+      "name": "Algebra",
+      "buttons": [
+        "Linear Equations",
+        "Quadratic Equations",
+        "System of Equations",
+        "Polynomials",
+        "Factoring",
+        "Complex Numbers"
+      ]
+    },
+    {
+      "name": "Geometry",
+      "buttons": [
+        "Area Calculator",
+        "Perimeter Calculator",
+        "Volume Calculator",
+        "Surface Area",
+        "Pythagorean Theorem",
+        "Trigonometry"
+      ]
+    },
+    {
+      "name": "Finance",
+      "buttons": [
+        "Simple Interest",
+        "Compound Interest",
+        "Loan Calculator",
+        "Mortgage Calculator",
+        "Investment Calculator",
+        "Tax Calculator"
+      ]
+    },
+    {
+      "name": "Insurance",
+      "buttons": [
+        "Life Insurance",
+        "Health Insurance",
+        "Auto Insurance",
+        "Home Insurance",
+        "Premium Calculator",
+        "Coverage Calculator"
+      ]
+    },
+    {
+      "name": "Health",
+      "buttons": [
+        "BMI Calculator",
+        "Calorie Calculator",
+        "BMR Calculator",
+        "Body Fat Calculator",
+        "Ideal Weight",
+        "Health Score"
+      ]
+    },
+    {
+      "name": "Date & Time",
+      "buttons": [
+        "Date Calculator",
+        "Time Calculator",
+        "Age Calculator",
+        "Countdown Timer",
+        "Time Zone Converter",
+        "Calendar Calculator"
+      ]
+    },
+    {
+      "name": "Unit Converters",
+      "buttons": [
+        "Length Converter",
+        "Weight Converter",
+        "Temperature Converter",
+        "Area Converter",
+        "Volume Converter",
+        "Speed Converter"
+      ]
+    },
+    {
+      "name": "Others",
+      "buttons": [
+        "Percentage Calculator",
+        "Ratio Calculator",
+        "Statistics Calculator",
+        "Probability Calculator",
+        "Scientific Calculator",
+        "Matrix Calculator"
+      ]
+    }
+  ]
+} 

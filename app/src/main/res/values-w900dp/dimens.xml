@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Large width screens (900dp and above) - 5 columns for large tablets/desktop -->
+    <integer name="grid_columns">5</integer>
+</resources>

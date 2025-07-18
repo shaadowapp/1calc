@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_weight="1"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="4dp">
+
+    <!-- Icon Container - 3:1.5 Rectangular with Rounded Corners -->
+    <FrameLayout
+        android:id="@+id/icon_container"
+        android:layout_width="60dp"
+        android:layout_height="29dp"
+        android:padding="1dp"
+        android:background="@drawable/bottom_nav_item_background"
+        android:gravity="center">
+
+        <ImageView
+            android:id="@+id/tab_icon"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_home"
+            app:tint="@color/bottom_nav_icon_color"
+            android:contentDescription="Tab Icon"
+            android:scaleType="fitCenter" />
+
+    </FrameLayout>
+
+    <!-- Tab Label -->
+    <TextView
+        android:id="@+id/tab_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/home_nav"
+        android:textSize="15sp"
+        android:textColor="@color/bottom_nav_text_color"
+        android:layout_marginTop="2dp"
+        android:gravity="center"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+</LinearLayout> 

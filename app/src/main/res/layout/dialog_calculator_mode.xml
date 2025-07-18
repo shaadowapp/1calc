@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@drawable/settings_card_background">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/default_home_screen_dialog"
+        android:textColor="#E0E0E0"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:fontFamily="sans-serif"
+        android:layout_marginBottom="24dp" />
+
+    <RadioGroup
+        android:id="@+id/calculator_radio_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <RadioButton
+            android:id="@+id/radio_basic"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/basic_calculator"
+            android:textColor="#E0E0E0"
+            android:textSize="16sp"
+            android:fontFamily="sans-serif"
+            android:padding="12dp"
+            android:buttonTint="#BB86FC"
+            android:background="?attr/selectableItemBackground" />
+
+        <RadioButton
+            android:id="@+id/radio_mathly_voice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/mathly_voice"
+            android:textColor="#E0E0E0"
+            android:textSize="16sp"
+            android:fontFamily="sans-serif"
+            android:padding="12dp"
+            android:buttonTint="#BB86FC"
+            android:background="?attr/selectableItemBackground" />
+
+        <RadioButton
+            android:id="@+id/radio_chat"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/mathly_chat"
+            android:textColor="#E0E0E0"
+            android:textSize="16sp"
+            android:fontFamily="sans-serif"
+            android:padding="12dp"
+            android:buttonTint="#BB86FC"
+            android:background="?attr/selectableItemBackground" />
+
+        <RadioButton
+            android:id="@+id/radio_scanner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/mathly_scanner"
+            android:textColor="#E0E0E0"
+            android:textSize="16sp"
+            android:fontFamily="sans-serif"
+            android:padding="12dp"
+            android:buttonTint="#BB86FC"
+            android:background="?attr/selectableItemBackground" />
+
+        <RadioButton
+            android:id="@+id/radio_todo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/to_do_list"
+            android:textColor="#E0E0E0"
+            android:textSize="16sp"
+            android:fontFamily="sans-serif"
+            android:padding="12dp"
+            android:buttonTint="#BB86FC"
+            android:background="?attr/selectableItemBackground" />
+
+        <RadioButton
+            android:id="@+id/radio_gallery"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/hidden_gallery"
+            android:textColor="#E0E0E0"
+            android:textSize="16sp"
+            android:fontFamily="sans-serif"
+            android:padding="12dp"
+            android:buttonTint="#BB86FC"
+            android:background="?attr/selectableItemBackground" />
+    </RadioGroup>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:layout_marginTop="24dp">
+
+        <Button
+            android:id="@+id/btn_cancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/cancel"
+            android:textColor="#BB86FC"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:layout_marginEnd="16dp"
+            android:fontFamily="sans-serif" />
+
+        <Button
+            android:id="@+id/btn_apply"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/apply"
+            android:textColor="#BB86FC"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:fontFamily="sans-serif" />
+    </LinearLayout>
+</LinearLayout> 

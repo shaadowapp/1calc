@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="popup_vertical_offset">12dp</dimen>
+    
+    <!-- Responsive dimensions for calculator -->
+    <dimen name="button_size_small">80dp</dimen>
+    <dimen name="button_size_medium">90dp</dimen>
+    <dimen name="button_size_large">100dp</dimen>
+    <dimen name="button_size_xlarge">110dp</dimen>
+    
+    <!-- Special button sizes (first row - sqrt, power, pi, factorial, e) -->
+    <dimen name="special_button_size_small">55dp</dimen>
+    <dimen name="special_button_size_medium">65dp</dimen>
+    <dimen name="special_button_size_large">75dp</dimen>
+    <dimen name="special_button_size_xlarge">85dp</dimen>
+    
+    <!-- Regular button margins (increased) -->
+    <dimen name="button_margin_small">3dp</dimen>
+    <dimen name="button_margin_medium">5dp</dimen>
+    <dimen name="button_margin_large">7dp</dimen>
+    <dimen name="button_margin_xlarge">9dp</dimen>
+    
+    <!-- Special button margins (first row - much tighter) -->
+    <dimen name="special_button_margin_small">0dp</dimen>
+    <dimen name="special_button_margin_medium">0dp</dimen>
+    <dimen name="special_button_margin_large">0dp</dimen>
+    <dimen name="special_button_margin_xlarge">0dp</dimen>
+    
+    <dimen name="text_size_small">22sp</dimen>
+    <dimen name="text_size_medium">26sp</dimen>
+    <dimen name="text_size_large">30sp</dimen>
+    <dimen name="text_size_xlarge">34sp</dimen>
+    
+    <dimen name="display_text_size_small">44sp</dimen>
+    <dimen name="display_text_size_medium">50sp</dimen>
+    <dimen name="display_text_size_large">50sp</dimen>
+    <dimen name="display_text_size_xlarge">50sp</dimen>
+    
+    <dimen name="solution_text_size_small">25sp</dimen>
+    <dimen name="solution_text_size_medium">40sp</dimen>
+    <dimen name="solution_text_size_large">58sp</dimen>
+    <dimen name="solution_text_size_xlarge">58sp</dimen>
+    
+    <dimen name="result_text_size_small">58sp</dimen>
+    <dimen name="result_text_size_medium">58sp</dimen>
+    <dimen name="result_text_size_large">58sp</dimen>
+    <dimen name="result_text_size_xlarge">58sp</dimen>
+    
+    <!-- Regular icon sizes -->
+    <dimen name="icon_size_small">26dp</dimen>
+    <dimen name="icon_size_medium">30dp</dimen>
+    <dimen name="icon_size_large">34dp</dimen>
+    <dimen name="icon_size_xlarge">38dp</dimen>
+    
+    <!-- Special button icon sizes (first row - smaller) -->
+    <dimen name="special_icon_size_small">22dp</dimen>
+    <dimen name="special_icon_size_medium">26dp</dimen>
+    <dimen name="special_icon_size_large">30dp</dimen>
+    <dimen name="special_icon_size_xlarge">34dp</dimen>
+    
+    <dimen name="navbar_height_small">48dp</dimen>
+    <dimen name="navbar_height_medium">52dp</dimen>
+    <dimen name="navbar_height_large">56dp</dimen>
+    <dimen name="navbar_height_xlarge">60dp</dimen>
+    
+    <dimen name="padding_small">8dp</dimen>
+    <dimen name="padding_medium">12dp</dimen>
+    <dimen name="padding_large">16dp</dimen>
+    <dimen name="padding_xlarge">20dp</dimen>
+    
+    <!-- Corner Radius -->
+    <dimen name="corner_radius_small">4dp</dimen>
+    <dimen name="corner_radius_medium">8dp</dimen>
+    <dimen name="corner_radius_large">16dp</dimen>
+
+    <!-- Elevation -->
+    <dimen name="elevation_low">2dp</dimen>
+    <dimen name="elevation_medium">6dp</dimen>
+    <dimen name="elevation_high">12dp</dimen>
+
+    <!-- Spacing -->
+    <dimen name="spacing_small">8dp</dimen>
+    <dimen name="spacing_medium">16dp</dimen>
+    <dimen name="spacing_large">24dp</dimen>
+
+    <!-- Typography Scale -->
+    <dimen name="text_headline_small">34sp</dimen>
+    <dimen name="text_body_medium">16sp</dimen>
+    <dimen name="text_button">14sp</dimen>
+
+    <!-- Grid Column Counts for Responsive Design -->
+    <integer name="grid_columns_compact">2</integer>
+    <integer name="grid_columns_medium">3</integer>
+    <integer name="grid_columns_expanded">4</integer>
+    
+    <!-- Default grid column count -->
+    <integer name="grid_columns">3</integer>
+    
+    <!-- Default responsive dimensions (fallback for all devices) -->
+    <dimen name="button_size">@dimen/button_size_large</dimen>
+    <dimen name="special_button_size">@dimen/special_button_size_large</dimen>
+    <dimen name="button_margin">@dimen/button_margin_large</dimen>
+    <dimen name="special_button_margin">@dimen/special_button_margin_large</dimen>
+    <dimen name="text_size">@dimen/text_size_large</dimen>
+    <dimen name="display_text_size">@dimen/display_text_size_large</dimen>
+    <dimen name="solution_text_size">@dimen/solution_text_size_large</dimen>
+    <dimen name="icon_size">@dimen/icon_size_large</dimen>
+    <dimen name="special_icon_size">@dimen/special_icon_size_large</dimen>
+    <dimen name="navbar_height">@dimen/navbar_height_large</dimen>
+    <dimen name="padding">@dimen/padding_large</dimen>
+</resources>

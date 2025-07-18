@@ -1,0 +1,24 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# --- Additional confidential/sensitive files ---
+# APKs and release output
+app/release/
+# APK metadata
+app/src/main/release/
+app/src/main/output-metadata.json
+# Model and asset files (if proprietary or licensed)
+app/src/main/assets/model/
+app/src/main/assets/uuid
+# If you add Firebase or similar, ignore credentials
+# google-services.json
+# Debug or crash logs
+*.log
