@@ -21,6 +21,10 @@ import com.shaadow.onecalculator.mathly.logic.Validation
 import com.shaadow.onecalculator.mathly.ai.MathAiClient
 import com.shaadow.onecalculator.parser.Expression
 import kotlinx.coroutines.launch
+import android.graphics.LinearGradient
+import android.graphics.Shader
+import android.graphics.Color
+import android.widget.TextView
 
 class MathlyChatFragment : Fragment() {
     private lateinit var chatRecycler: RecyclerView
@@ -38,15 +42,32 @@ class MathlyChatFragment : Fragment() {
         chatAdapter = ChatAdapter()
         chatRecycler.adapter = chatAdapter
         chatRecycler.layoutManager = LinearLayoutManager(requireContext())
-        setupSendButton()
+        val askMathlyText = view.findViewById<TextView>(R.id.ask_mathly_gradient)
+        askMathlyText.visibility = if (chatAdapter.itemCount == 0) View.VISIBLE else View.GONE
+        askMathlyText.post {
+            val width = askMathlyText.width.toFloat()
+            val textShader = LinearGradient(
+                0f, 0f, width, askMathlyText.textSize,
+                intArrayOf(
+                    Color.parseColor("#4285F4"), // Start (blue)
+                    Color.parseColor("#5D2DC8")  // End (purple/blue-violet)
+                ),
+                null,
+                Shader.TileMode.CLAMP
+            )
+            askMathlyText.paint.shader = textShader
+        }
+        setupSendButton(askMathlyText)
+        setupSettingsPopup(view)
         return view
     }
 
-    private fun setupSendButton() {
+    private fun setupSendButton(askMathlyText: View) {
         sendButton.setOnClickListener {
             val userInput = messageInput.text.toString().trim()
             if (userInput.isEmpty()) return@setOnClickListener
             chatAdapter.addUserMessage(userInput)
+            askMathlyText.visibility = View.GONE
             scrollToBottom()
             messageInput.setText("")
             if (Validation.isGreeting(userInput)) {
@@ -72,19 +93,56 @@ class MathlyChatFragment : Fragment() {
             // Show loading bubble
             chatAdapter.addAIMessage("Thinking...")
             scrollToBottom()
-            val loadingIndex = chatAdapter.itemCount - 1
             // Call AI client
             lifecycleScope.launch {
                 try {
                     val aiReply = MathAiClient.sendMathQuery(userInput)
-                    chatAdapter.addAIMessage(aiReply.trim())
-                    // Optionally, remove the loading bubble if you want
-                    // Or update the message at loadingIndex
+                    chatAdapter.updateLastAIMessage(aiReply.trim())
                 } catch (e: Exception) {
-                    chatAdapter.addAIMessage("Error connecting to AI: ${e.message}")
+                    chatAdapter.updateLastAIMessage("Error connecting to AI: "+e.message)
                 }
                 scrollToBottom()
             }
+        }
+    }
+
+    private fun setupSettingsPopup(view: View) {
+        val settingsIcon = view.findViewById<View>(R.id.chat_settings)
+        settingsIcon.setOnClickListener { v ->
+            val items = listOf(
+                com.shaadow.onecalculator.utils.PopupMenuBuilder.Item(
+                    id = 1,
+                    title = "New chat",
+                    iconRes = R.drawable.ic_add,
+                    onClick = {
+                        chatAdapter.clearMessages()
+                        messageInput.setText("")
+                        chatAdapter.notifyDataSetChanged()
+                        true
+                    }
+                ),
+                com.shaadow.onecalculator.utils.PopupMenuBuilder.Item(
+                    id = 2,
+                    title = "Settings",
+                    iconRes = R.drawable.ic_settings,
+                    onClick = {
+                        val intent = android.content.Intent(requireContext(), com.shaadow.onecalculator.SettingsActivity::class.java)
+                        startActivity(intent)
+                        true
+                    }
+                ),
+                com.shaadow.onecalculator.utils.PopupMenuBuilder.Item(
+                    id = 3,
+                    title = "About Us",
+                    iconRes = R.drawable.ic_info,
+                    onClick = {
+                        val intent = android.content.Intent(requireContext(), com.shaadow.onecalculator.AboutUsActivity::class.java)
+                        startActivity(intent)
+                        true
+                    }
+                )
+            )
+            com.shaadow.onecalculator.utils.PopupMenuBuilder.show(requireContext(), v, items)
         }
     }
 

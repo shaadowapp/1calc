@@ -39,6 +39,21 @@ class ChatAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         notifyItemRangeInserted(startPosition, newMessages.size)
     }
     
+    fun updateLastAIMessage(newText: String) {
+        for (i in messages.size - 1 downTo 0) {
+            if (!messages[i].isUser) {
+                messages[i] = messages[i].copy(text = newText)
+                notifyItemChanged(i)
+                break
+            }
+        }
+    }
+    
+    fun clearMessages() {
+        messages.clear()
+        notifyDataSetChanged()
+    }
+    
     override fun getItemViewType(position: Int): Int {
         return if (messages[position].isUser) VIEW_TYPE_USER else VIEW_TYPE_AI
     }

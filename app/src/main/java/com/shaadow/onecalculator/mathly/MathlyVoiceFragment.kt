@@ -192,25 +192,41 @@ class MathlyVoiceFragment : Fragment() {
     }
 
     private fun showSettingsPopupMenu(view: View) {
-        val popup = android.widget.PopupMenu(requireContext(), view)
-        popup.menuInflater.inflate(R.menu.settings_popup_menu, popup.menu)
-        // Hide history item in voice tab
-        popup.menu.findItem(R.id.menu_history)?.isVisible = false
-        popup.setOnMenuItemClickListener { menuItem ->
-            when (menuItem.itemId) {
-                R.id.menu_settings -> {
-                    val intent = Intent(requireActivity(), SettingsActivity::class.java)
-                    requireActivity().startActivity(intent)
+        val items = listOf(
+            com.shaadow.onecalculator.utils.PopupMenuBuilder.Item(
+                id = 1,
+                title = "Restart Mathly",
+                iconRes = R.drawable.ic_add,
+                onClick = {
+                    // Reset Mathly Voice UI logic (similar to New Chat in chat tab)
+                    // For example, clear transcription, reset status, etc.
+                    _binding?.transcriptionBox?.text = ""
+                    _binding?.mathlyStatus?.text = "Ready to listen"
                     true
                 }
-                R.id.menu_about -> {
-                    // TODO: Add about dialog if needed
+            ),
+            com.shaadow.onecalculator.utils.PopupMenuBuilder.Item(
+                id = 2,
+                title = "Settings",
+                iconRes = R.drawable.ic_settings,
+                onClick = {
+                    val intent = android.content.Intent(requireContext(), com.shaadow.onecalculator.SettingsActivity::class.java)
+                    startActivity(intent)
                     true
                 }
-                else -> false
-            }
-        }
-        popup.show()
+            ),
+            com.shaadow.onecalculator.utils.PopupMenuBuilder.Item(
+                id = 3,
+                title = "About Us",
+                iconRes = R.drawable.ic_info,
+                onClick = {
+                    val intent = android.content.Intent(requireContext(), com.shaadow.onecalculator.AboutUsActivity::class.java)
+                    startActivity(intent)
+                    true
+                }
+            )
+        )
+        com.shaadow.onecalculator.utils.PopupMenuBuilder.show(requireContext(), view, items)
     }
 
     override fun onDestroyView() {

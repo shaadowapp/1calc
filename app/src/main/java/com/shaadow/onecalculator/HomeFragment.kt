@@ -118,31 +118,39 @@ class HomeFragment : Fragment() {
     }
     
     private fun showSettingsPopupMenu(view: View) {
-        val popup = android.widget.PopupMenu(requireContext(), view)
-        popup.menuInflater.inflate(R.menu.settings_popup_menu, popup.menu)
-        
-        popup.setOnMenuItemClickListener { menuItem ->
-            when (menuItem.itemId) {
-                R.id.menu_history -> {
-                    val intent = Intent(requireContext(), HistoryActivity::class.java)
-                    startActivity(intent)
-                    true
-                }
-                R.id.menu_settings -> {
+        val items = listOf(
+            com.shaadow.onecalculator.utils.PopupMenuBuilder.Item(
+                id = 1,
+                title = "Settings",
+                iconRes = R.drawable.ic_settings,
+                onClick = {
                     val intent = Intent(requireContext(), SettingsActivity::class.java)
                     startActivity(intent)
                     true
                 }
-                R.id.menu_about -> {
+            ),
+            com.shaadow.onecalculator.utils.PopupMenuBuilder.Item(
+                id = 2,
+                title = "About Us",
+                iconRes = R.drawable.ic_info,
+                onClick = {
                     val intent = Intent(requireContext(), AboutUsActivity::class.java)
                     startActivity(intent)
                     true
                 }
-                else -> false
-            }
-        }
-        
-        popup.show()
+            ),
+            com.shaadow.onecalculator.utils.PopupMenuBuilder.Item(
+                id = 3,
+                title = "History",
+                iconRes = R.drawable.ic_history,
+                onClick = {
+                    val intent = Intent(requireContext(), HistoryActivity::class.java)
+                    startActivity(intent)
+                    true
+                }
+            )
+        )
+        com.shaadow.onecalculator.utils.PopupMenuBuilder.show(requireContext(), view, items)
     }
 
     

@@ -4,28 +4,30 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="8dp"
+    android:padding="2dp"
     android:gravity="end">
 
     <com.google.android.material.card.MaterialCardView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="48dp"
-        app:cardCornerRadius="22dp"
-        app:cardElevation="6dp"
-        app:cardBackgroundColor="@color/brand_blue"
-        app:strokeColor="@color/brand_blue"
-        app:strokeWidth="1dp">
+        android:layout_marginStart="32dp"
+        app:cardCornerRadius="20dp"
+        app:cardElevation="4dp"
+        app:cardBackgroundColor="@android:color/transparent"
+        app:strokeColor="@android:color/transparent"
+        app:strokeWidth="0dp">
 
         <TextView
             android:id="@+id/message_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@color/white"
-            android:textSize="17sp"
-            android:padding="18dp"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:padding="12dp"
             android:maxWidth="320dp"
-            android:fontFamily="sans-serif-medium" />
+            android:fontFamily="sans-serif-medium"
+            android:background="@drawable/bg_user_bubble_gradient"
+            android:gravity="center_vertical" />
     </com.google.android.material.card.MaterialCardView>
 
     <LinearLayout
@@ -38,14 +40,14 @@
         android:layout_marginTop="2dp">
         <ImageButton
             android:id="@+id/btn_copy"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:iconSize="16dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            app:iconSize="14dp"
             android:background="@android:color/transparent"
             android:src="@drawable/ic_copy"
             android:contentDescription="Copy"
-            android:tint="@color/white"
-            android:padding="0dp" />
+            android:tint="@color/text_hint"
+            android:padding="4dp" />
     </LinearLayout>
 
 </LinearLayout> 

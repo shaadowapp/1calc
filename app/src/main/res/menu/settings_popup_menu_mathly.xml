@@ -1,29 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-    
     <item
         android:id="@+id/menu_new_chat"
         android:title="New chat"
         android:icon="@drawable/ic_add"
         app:showAsAction="never" />
-    
     <item
         android:id="@+id/menu_settings"
         android:title="Settings"
         android:icon="@drawable/ic_settings"
         app:showAsAction="never" />
-    
     <item
         android:id="@+id/menu_about"
         android:title="About Us"
         android:icon="@drawable/ic_info"
         app:showAsAction="never" />
-    
-    <item
-        android:id="@+id/menu_history"
-        android:title="History"
-        android:icon="@drawable/ic_history"
-        app:showAsAction="never" />
-        
 </menu> 

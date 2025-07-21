@@ -340,8 +340,8 @@ class DynamicCalculatorFragment : DialogFragment() {
                     return CalculatorConfig(
                         id = calc.getString("id"),
                         name = calc.getString("name"),
-                        formula = calc.optString("formula", null),
-                        example = calc.optString("example", null),
+                        formula = calc.optString("formula", ""),
+                        example = calc.optString("example", ""),
                         inputs = inputs,
                         calculateButton = ButtonConfig(calc.getJSONObject("calculateButton").getString("label")),
                         result = ResultConfig(calc.getJSONObject("result").getString("label")),
