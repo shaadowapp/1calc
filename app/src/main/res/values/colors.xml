@@ -105,4 +105,5 @@
     <color name="icon_bg">#1A1A2E</color>
     <color name="icon_tint">#B388FF</color>
     <color name="green_4caf50">#4CAF50</color>
+    <color name="chip_gradient_stroke">#5D2DC8</color>
 </resources>

@@ -25,6 +25,7 @@ import android.graphics.LinearGradient
 import android.graphics.Shader
 import android.graphics.Color
 import android.widget.TextView
+import android.widget.Button
 
 class MathlyChatFragment : Fragment() {
     private lateinit var chatRecycler: RecyclerView
@@ -42,32 +43,48 @@ class MathlyChatFragment : Fragment() {
         chatAdapter = ChatAdapter()
         chatRecycler.adapter = chatAdapter
         chatRecycler.layoutManager = LinearLayoutManager(requireContext())
+        val promptGroup = view.findViewById<View>(R.id.prompt_group)
         val askMathlyText = view.findViewById<TextView>(R.id.ask_mathly_gradient)
         askMathlyText.visibility = if (chatAdapter.itemCount == 0) View.VISIBLE else View.GONE
-        askMathlyText.post {
-            val width = askMathlyText.width.toFloat()
-            val textShader = LinearGradient(
-                0f, 0f, width, askMathlyText.textSize,
-                intArrayOf(
-                    Color.parseColor("#4285F4"), // Start (blue)
-                    Color.parseColor("#5D2DC8")  // End (purple/blue-violet)
-                ),
-                null,
-                Shader.TileMode.CLAMP
-            )
-            askMathlyText.paint.shader = textShader
+        askMathlyText.addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
+            val width = v.width.toFloat()
+            if (width > 0) {
+                val textShader = LinearGradient(
+                    0f, 0f, width, 0f,
+                    intArrayOf(
+                        Color.parseColor("#4285F4"), // Start (blue)
+                        Color.parseColor("#5D2DC8")  // End (purple/blue-violet)
+                    ),
+                    null,
+                    Shader.TileMode.CLAMP
+                )
+                (v as TextView).paint.shader = textShader
+            }
         }
-        setupSendButton(askMathlyText)
+        // Example chips logic (Material Chips)
+        val chipIds = listOf(
+            R.id.example_chip_1, R.id.example_chip_2, R.id.example_chip_3,
+            R.id.example_chip_4, R.id.example_chip_5, R.id.example_chip_6
+        )
+        chipIds.forEach { id ->
+            view.findViewById<com.google.android.material.chip.Chip>(id).setOnClickListener { chip ->
+                messageInput.setText((chip as com.google.android.material.chip.Chip).text.toString())
+                sendButton.performClick()
+                promptGroup.visibility = View.GONE
+            }
+        }
+        setupSendButton(askMathlyText, promptGroup)
         setupSettingsPopup(view)
         return view
     }
 
-    private fun setupSendButton(askMathlyText: View) {
+    private fun setupSendButton(askMathlyText: View, promptGroup: View) {
         sendButton.setOnClickListener {
             val userInput = messageInput.text.toString().trim()
             if (userInput.isEmpty()) return@setOnClickListener
             chatAdapter.addUserMessage(userInput)
             askMathlyText.visibility = View.GONE
+            promptGroup.visibility = View.GONE
             scrollToBottom()
             messageInput.setText("")
             if (Validation.isGreeting(userInput)) {
