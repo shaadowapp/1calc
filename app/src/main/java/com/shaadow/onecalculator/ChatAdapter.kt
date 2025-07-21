@@ -5,8 +5,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import java.util.UUID
 
 data class ChatMessage(
+    val id: String = UUID.randomUUID().toString(),
     val text: String,
     val isUser: Boolean
 )
@@ -26,11 +28,11 @@ class ChatAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     }
     
     fun addUserMessage(text: String) {
-        addMessage(ChatMessage(text, true))
+        addMessage(ChatMessage(text = text, isUser = true))
     }
     
     fun addAIMessage(text: String) {
-        addMessage(ChatMessage(text, false))
+        addMessage(ChatMessage(text = text, isUser = false))
     }
     
     fun addMessages(newMessages: List<ChatMessage>) {
@@ -84,6 +86,18 @@ class ChatAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     
     override fun getItemCount(): Int = messages.size
     
+    fun getMessageById(id: String): ChatMessage? = messages.find { it.id == id }
+    
+    interface OnAiActionListener {
+        fun onCopy(messageId: String)
+        fun onLike(messageId: String)
+        fun onDislike(messageId: String)
+    }
+    private var aiActionListener: OnAiActionListener? = null
+    fun setOnAiActionListener(listener: OnAiActionListener) {
+        aiActionListener = listener
+    }
+    
     inner class UserMessageViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val messageText: TextView = itemView.findViewById(R.id.message_text)
         
@@ -94,9 +108,14 @@ class ChatAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     
     inner class AIMessageViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val messageText: TextView = itemView.findViewById(R.id.message_text)
-        
+        private val btnCopy: View? = itemView.findViewById(R.id.btn_copy)
+        private val btnLike: View? = itemView.findViewById(R.id.btn_like)
+        private val btnDislike: View? = itemView.findViewById(R.id.btn_dislike)
         fun bind(message: ChatMessage) {
             messageText.text = message.text
+            btnCopy?.setOnClickListener { aiActionListener?.onCopy(message.id) }
+            btnLike?.setOnClickListener { aiActionListener?.onLike(message.id) }
+            btnDislike?.setOnClickListener { aiActionListener?.onDislike(message.id) }
         }
     }
 } 

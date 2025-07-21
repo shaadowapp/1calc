@@ -6,6 +6,10 @@ object Validation {
         "integrate", "derivative", "derive", "solve", "limit", "simplify", "factor", "expand",
         "evaluate", "differentiate", "find", "calculate", "+", "-", "*", "/", "=", "^", "log", "ln",
         "sin", "cos", "tan", "cot", "sec", "csc", "matrix", "determinant", "abs", "pi", "sqrt",
+        // Natural language math phrases
+        "square root", "cube root", "percentage", "percent", "sum", "product", "difference", "quotient",
+        "power", "root", "modulus", "mod", "divide", "multiply", "add", "subtract", "minus", "plus", "times",
+        "of", "what is", "equals", "is", "value", "result",
         // Greetings
         "hi", "hey", "hello", "greetings", "good morning", "good evening", "good afternoon"
     )
