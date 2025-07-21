@@ -6,6 +6,8 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import java.util.UUID
+import io.noties.markwon.Markwon
+import io.noties.markwon.ext.latex.JLatexMathPlugin
 
 data class ChatMessage(
     val id: String = UUID.randomUUID().toString(),
@@ -112,7 +114,11 @@ class ChatAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         private val btnLike: View? = itemView.findViewById(R.id.btn_like)
         private val btnDislike: View? = itemView.findViewById(R.id.btn_dislike)
         fun bind(message: ChatMessage) {
-            messageText.text = message.text
+            val context = messageText.context
+            val markwon = Markwon.builder(context)
+                .usePlugin(JLatexMathPlugin.create(messageText.textSize))
+                .build()
+            markwon.setMarkdown(messageText, message.text)
             btnCopy?.setOnClickListener { aiActionListener?.onCopy(message.id) }
             btnLike?.setOnClickListener { aiActionListener?.onLike(message.id) }
             btnDislike?.setOnClickListener { aiActionListener?.onDislike(message.id) }

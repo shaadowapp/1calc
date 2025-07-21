@@ -197,7 +197,7 @@
             android:layout_height="56dp"
             android:background="@drawable/bg_send_button"
             android:src="@drawable/ic_send"
-            android:tint="#FFFFFF"
+            app:tint="#FFFFFF"
             android:contentDescription="Send"
             android:layout_marginStart="12dp"
             android:layout_gravity="center_vertical"

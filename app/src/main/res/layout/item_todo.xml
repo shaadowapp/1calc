@@ -28,7 +28,7 @@
             android:contentDescription="Mark Complete"
             android:layout_marginEnd="12dp"
             android:scaleType="centerInside"
-            android:tint="@color/white_ffffff" />
+            app:tint="@color/white_ffffff" />
 
         <!-- To-do Text -->
         <TextView
@@ -52,7 +52,7 @@
             android:contentDescription="Delete"
             android:layout_marginStart="12dp"
             android:scaleType="centerInside"
-            android:tint="@color/white_ffffff" />
+            app:tint="@color/white_ffffff" />
 
         <!-- Edit Button -->
         <ImageButton
@@ -64,6 +64,6 @@
             android:contentDescription="Edit"
             android:layout_marginStart="8dp"
             android:scaleType="centerInside"
-            android:tint="@color/white_ffffff" />
+            app:tint="@color/white_ffffff" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

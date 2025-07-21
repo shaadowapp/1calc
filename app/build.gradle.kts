@@ -86,6 +86,15 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.androidx.activity.ktx)
     implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation("io.noties.markwon:core:4.6.2") {
+        exclude(group = "org.jetbrains", module = "annotations-java5")
+    }
+    implementation("io.noties.markwon:ext-latex:4.6.2") {
+        exclude(group = "org.jetbrains", module = "annotations-java5")
+    }
+    implementation("io.noties.markwon:syntax-highlight:4.6.2") {
+        exclude(group = "org.jetbrains", module = "annotations-java5")
+    }
 }
 
 configurations.all {

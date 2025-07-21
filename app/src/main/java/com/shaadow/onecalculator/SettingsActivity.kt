@@ -350,8 +350,9 @@ class SettingsActivity : AppCompatActivity() {
             // If all three are disabled, hide the bottom tab bar
             val shouldHideTabBar = !mathlyVoice && !mathlyChat && !mathlyScanner
             
-            // Send broadcast to update bottom tab bar visibility
-            val intent = android.content.Intent("com.shaadow.onecalculator.UPDATE_TAB_BAR_VISIBILITY")
+            // Send broadcast to update bottom tab bar visibility (explicit intent)
+            val intent = android.content.Intent(this@SettingsActivity, TabBarVisibilityReceiver::class.java)
+            intent.action = "com.shaadow.onecalculator.UPDATE_TAB_BAR_VISIBILITY"
             intent.putExtra("hide_tab_bar", shouldHideTabBar)
             intent.putExtra("mathly_voice_enabled", mathlyVoice)
             intent.putExtra("mathly_chat_enabled", mathlyChat)

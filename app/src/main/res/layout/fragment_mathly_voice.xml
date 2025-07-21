@@ -107,7 +107,7 @@
                 android:layout_height="72dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_mic_purple"
-                android:tint="#7B1FA2" />
+                app:tint="#7B1FA2" />
         </com.google.android.material.card.MaterialCardView>
     </FrameLayout>
 

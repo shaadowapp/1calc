@@ -79,7 +79,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/ic_arrow_down"
-                    android:tint="@android:color/white" />
+                    app:tint="@android:color/white" />
             </LinearLayout>
 
             <LinearLayout
@@ -147,7 +147,7 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@drawable/ic_arrow_down"
-                android:tint="@android:color/white" />
+                app:tint="@android:color/white" />
         </LinearLayout>
 
         <LinearLayout
@@ -259,7 +259,7 @@
                             android:layout_height="28dp"
                             android:background="@android:color/transparent"
                             android:src="@drawable/ic_delete"
-                            android:tint="#F44336"
+                            app:tint="#F44336"
                             android:contentDescription="Remove" />
                     </LinearLayout>
 
@@ -311,7 +311,7 @@
                             android:layout_height="28dp"
                             android:background="@android:color/transparent"
                             android:src="@drawable/ic_delete"
-                            android:tint="#F44336"
+                            app:tint="#F44336"
                             android:contentDescription="Remove" />
                     </LinearLayout>
 
@@ -363,7 +363,7 @@
                         android:layout_height="28dp"
                         android:background="@android:color/transparent"
                         android:src="@drawable/ic_delete"
-                        android:tint="#F44336"
+                        app:tint="#F44336"
                         android:contentDescription="Remove" />
                 </LinearLayout>
 
@@ -522,7 +522,7 @@
                 android:layout_height="48dp"
                 android:background="@drawable/bg_mic_button"
                 android:src="@drawable/ic_share"
-                android:tint="@android:color/white"
+                app:tint="@android:color/white"
                 android:contentDescription="Share Invoice" />
         </LinearLayout>
     </LinearLayout>
