@@ -1,8 +1,20 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("kotlin-kapt")
 }
+
+// Load MATHLY_API_KEY from local.properties if not present as a project property
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
+}
+val mathlyApiKey: String? = (project.findProperty("MATHLY_API_KEY") as String?)
+    ?: localProperties.getProperty("MATHLY_API_KEY")
 
 kapt {
     correctErrorTypes = true
@@ -22,8 +34,6 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Inject Mathly API Key from local.properties
-        val mathlyApiKey: String? = project.findProperty("MATHLY_API_KEY") as String?
         buildConfigField("String", "MATHLY_API_KEY", '"' + (mathlyApiKey ?: "") + '"')
     }
 
