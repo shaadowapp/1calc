@@ -8,6 +8,9 @@ import androidx.recyclerview.widget.RecyclerView
 import java.util.UUID
 import io.noties.markwon.Markwon
 import io.noties.markwon.ext.latex.JLatexMathPlugin
+import android.os.UserManager
+import android.widget.Toast
+import android.os.Build
 
 data class ChatMessage(
     val id: String = UUID.randomUUID().toString(),
@@ -119,6 +122,10 @@ class ChatAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                 .usePlugin(JLatexMathPlugin.create(messageText.textSize))
                 .build()
             markwon.setMarkdown(messageText, message.text)
+
+            // Always enable copy button, regardless of Android version
+            btnCopy?.isEnabled = true
+            btnCopy?.alpha = 1.0f
             btnCopy?.setOnClickListener { aiActionListener?.onCopy(message.id) }
             btnLike?.setOnClickListener { aiActionListener?.onLike(message.id) }
             btnDislike?.setOnClickListener { aiActionListener?.onDislike(message.id) }

@@ -16,12 +16,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.widget.CompoundButton
 import android.content.Intent
+import java.io.File
+import java.text.DecimalFormat
 
 class SettingsActivity : AppCompatActivity() {
     
     private lateinit var binding: ActivitySettingsBinding
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var preferenceDao: PreferenceDao
+    private lateinit var cacheManager: CacheManager
     
     private lateinit var mathlyVoiceSwitchListener: CompoundButton.OnCheckedChangeListener
     private lateinit var mathlyChatSwitchListener: CompoundButton.OnCheckedChangeListener
@@ -44,11 +47,13 @@ class SettingsActivity : AppCompatActivity() {
         
         sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         preferenceDao = HistoryDatabase.getInstance(this).preferenceDao()
+        cacheManager = CacheManager(this)
         
         setupSwitchListeners()
         setupClickListeners()
         loadCurrentPreferences()
         displayAppVersion()
+        updateCacheSizeDisplay()
     }
     
     private fun setupSwitchListeners() {
@@ -160,6 +165,12 @@ class SettingsActivity : AppCompatActivity() {
         binding.privacyPermissionsItem.setOnClickListener {
             startActivity(Intent(this, PrivacyPermissionsActivity::class.java))
         }
+        
+        // Clear Cache
+        binding.clearCacheItem.setOnClickListener {
+            showClearCacheDialog()
+        }
+        
         // Check for Update
         binding.checkUpdatesItem.setOnClickListener {
             startActivity(Intent(this, CheckUpdateActivity::class.java))
@@ -379,6 +390,41 @@ class SettingsActivity : AppCompatActivity() {
     private suspend fun setPrefString(key: String, value: String) {
         withContext(Dispatchers.IO) {
             preferenceDao.setPreference(PreferenceEntity(key, value))
+        }
+    }
+    
+    // Cache Management Methods
+    private fun showClearCacheDialog() {
+        lifecycleScope.launch {
+            val cacheSize = cacheManager.calculateTotalCacheSize()
+            val formattedSize = cacheManager.formatFileSize(cacheSize)
+
+            AlertDialog.Builder(this@SettingsActivity)
+                .setTitle("Clear Cache")
+                .setMessage("This will clear all cached data including temporary files, images, and app data. This action cannot be undone.\n\nCurrent cache size: $formattedSize")
+                .setPositiveButton("Clear Cache") { _, _ ->
+                    lifecycleScope.launch {
+                        val result = cacheManager.clearAllCache()
+                        val freed = cacheManager.formatFileSize(result.totalSize)
+                        val message = if (result.totalSize > 0) {
+                            "Cache cleared successfully!\nFreed: $freed\nFiles: ${result.clearedFiles}\nDirectories: ${result.clearedDirectories}"
+                        } else {
+                            "Cache is already clean!"
+                        }
+                        Toast.makeText(this@SettingsActivity, message, Toast.LENGTH_LONG).show()
+                        updateCacheSizeDisplay()
+                    }
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        }
+    }
+
+    private fun updateCacheSizeDisplay() {
+        lifecycleScope.launch {
+            val cacheSize = cacheManager.calculateTotalCacheSize()
+            val formattedSize = cacheManager.formatFileSize(cacheSize)
+            binding.cacheSizeText.text = formattedSize
         }
     }
 } 

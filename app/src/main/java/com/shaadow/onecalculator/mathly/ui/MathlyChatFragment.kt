@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.shaadow.onecalculator.ChatAdapter
 import com.shaadow.onecalculator.R
 import com.shaadow.onecalculator.mathly.logic.Validation
+import com.shaadow.onecalculator.mathly.logic.ConversationHandler
 import com.shaadow.onecalculator.mathly.ai.MathAiClient
 import com.shaadow.onecalculator.parser.Expression
 import kotlinx.coroutines.launch
@@ -26,6 +27,7 @@ import android.graphics.Shader
 import android.graphics.Color
 import android.widget.TextView
 import android.widget.Button
+import androidx.appcompat.app.AlertDialog
 
 class MathlyChatFragment : Fragment(), ChatAdapter.OnAiActionListener {
     private lateinit var chatRecycler: RecyclerView
@@ -84,7 +86,6 @@ class MathlyChatFragment : Fragment(), ChatAdapter.OnAiActionListener {
         chipIds.forEach { id ->
             view.findViewById<com.google.android.material.chip.Chip>(id).setOnClickListener { chip ->
                 val chipText = (chip as com.google.android.material.chip.Chip).text.toString()
-                Toast.makeText(requireContext(), "Chip clicked: $chipText", Toast.LENGTH_SHORT).show()
                 android.util.Log.d("MathlyChatFragment", "Chip clicked: $chipText")
                 sendUserMessage(chipText, askMathlyText, promptGroup)
                 // Only hide after sendUserMessage
@@ -98,43 +99,118 @@ class MathlyChatFragment : Fragment(), ChatAdapter.OnAiActionListener {
 
     private fun sendUserMessage(userInput: String, askMathlyText: TextView, promptGroup: View) {
         if (userInput.isEmpty()) return
+        
         chatAdapter.addUserMessage(userInput)
         hideWelcomeUI(promptGroup, askMathlyText)
         scrollToBottom()
         messageInput.setText("")
+        
+        // Check for conversational questions FIRST (before content filter)
+        if (ConversationHandler.isConversationalQuestion(userInput)) {
+            val response = ConversationHandler.getConversationalResponse(userInput)
+            if (response != null) {
+                chatAdapter.addAIMessage(response)
+                scrollToBottom()
+                return
+            }
+        }
+        
+        // Check for greetings (fallback)
         if (Validation.isGreeting(userInput)) {
-            chatAdapter.addAIMessage("Hello! I'm Mathly. How can I help you with math today?")
+            val greetingResponse = ConversationHandler.getConversationalResponse("hi")
+            chatAdapter.addAIMessage(greetingResponse ?: "Hello! I'm Mathly. How can I help you with math today?")
             scrollToBottom()
             return
         }
+        
+        // Check for inappropriate content AFTER conversation checks
+        if (Validation.containsInappropriateContent(userInput)) {
+            chatAdapter.addAIMessage(Validation.getFilteredMessage(userInput))
+            scrollToBottom()
+            return
+        }
+        
+        // Check for simple math expressions
         if (isSimpleMathExpression(userInput)) {
             try {
                 val result = Expression.calculate(userInput)
-                chatAdapter.addAIMessage("Result: $result")
+                val response = "Result: $result\n\n" + ConversationHandler.getRandomEncouragement()
+                chatAdapter.addAIMessage(response)
             } catch (e: Exception) {
-                chatAdapter.addAIMessage("Sorry, Mathly couldn't evaluate that expression.")
+                chatAdapter.addAIMessage("Sorry, Mathly couldn't evaluate that expression. Could you please check the format and try again?")
             }
             scrollToBottom()
             return
         }
+        
+        // Check if it's a math query
         if (!Validation.isMathQuery(userInput)) {
-            chatAdapter.addAIMessage("Sorry, Mathly can only help with math expressions and questions.")
+            val stats = ConversationHandler.getConversationStats()
+            val questionCount = stats["questionCount"] as? Int ?: 0
+            
+            val response = if (questionCount <= 2) {
+                "I'm Mathly, your AI math assistant! I can help you with calculations, equations, problem solving, and explaining math concepts. Try asking me something like:\n\n" +
+                "• 'Solve 2x + 5 = 15'\n" +
+                "• 'Explain quadratic equations'\n" +
+                "• 'What is calculus?'\n" +
+                "• 'Help me with algebra'"
+            } else {
+                "I'm designed to help with mathematics! I can solve equations, explain concepts, and help with calculations. What math problem or topic would you like to work on?"
+            }
+            
+            chatAdapter.addAIMessage(response)
             scrollToBottom()
             return
         }
+        
         // Show loading bubble
         chatAdapter.addAIMessage("Thinking...")
         scrollToBottom()
+        
         // Call AI client
         lifecycleScope.launch {
             try {
                 val aiReply = MathAiClient.sendMathQuery(userInput)
-                chatAdapter.updateLastAIMessage(aiReply.trim())
+                val enhancedReply = enhanceAIResponse(aiReply.trim())
+                chatAdapter.updateLastAIMessage(enhancedReply)
             } catch (e: Exception) {
-                chatAdapter.updateLastAIMessage("Error connecting to AI: "+e.message)
+                val errorResponse = "I'm having trouble connecting right now. Please try again in a moment. If the problem persists, you can try:\n\n" +
+                                  "• Checking your internet connection\n" +
+                                  "• Asking a simpler question\n" +
+                                  "• Restarting the app"
+                chatAdapter.updateLastAIMessage(errorResponse)
             }
             scrollToBottom()
         }
+    }
+    
+    /**
+     * Enhance AI response with conversation context
+     */
+    private fun enhanceAIResponse(aiReply: String): String {
+        val stats = ConversationHandler.getConversationStats()
+        val questionCount = stats["questionCount"] as? Int ?: 0
+        val userMood = stats["userMood"] as? String ?: "neutral"
+        
+        // Add encouragement for frustrated users
+        if (userMood == "frustrated") {
+            return "$aiReply\n\n${ConversationHandler.getRandomEncouragement()}"
+        }
+        
+        // Add follow-up for longer conversations
+        if (questionCount > 3) {
+            val followUp = when {
+                aiReply.contains("solution") || aiReply.contains("answer") -> 
+                    "\n\nWould you like me to explain any part of this solution in more detail?"
+                aiReply.contains("equation") || aiReply.contains("formula") -> 
+                    "\n\nWould you like to practice more problems like this?"
+                else -> 
+                    "\n\nIs there anything else you'd like to know about this topic?"
+            }
+            return aiReply + followUp
+        }
+        
+        return aiReply
     }
 
     private fun setupSendButton(askMathlyText: TextView, promptGroup: View) {
@@ -157,6 +233,8 @@ class MathlyChatFragment : Fragment(), ChatAdapter.OnAiActionListener {
                         messageInput.setText("")
                         chatAdapter.notifyDataSetChanged()
                         showWelcomeUI(promptGroup, askMathlyText)
+                        // Reset conversation context for new chat
+                        ConversationHandler.resetConversationContext()
                         true
                     }
                 ),
@@ -199,11 +277,21 @@ class MathlyChatFragment : Fragment(), ChatAdapter.OnAiActionListener {
 
     override fun onCopy(messageId: String) {
         val message = chatAdapter.getMessageById(messageId)
-        message?.let {
-            val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            val clip = ClipData.newPlainText("AI Message", it.text)
-            clipboard.setPrimaryClip(clip)
-            Toast.makeText(requireContext(), "Copied!", Toast.LENGTH_SHORT).show()
+        if (message != null) {
+            try {
+                val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText("Copied Text", message.text)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(requireContext(), "Copied!", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                android.os.Handler(requireContext().mainLooper).post {
+                    AlertDialog.Builder(requireContext())
+                        .setTitle("Copy not allowed")
+                        .setMessage("Copying to clipboard is restricted by your device or profile. This may happen on work profiles, secondary users, or some enterprise devices. Try on a personal device or profile if you need this feature.")
+                        .setPositiveButton("OK", null)
+                        .show()
+                }
+            }
         }
     }
     override fun onLike(messageId: String) {
