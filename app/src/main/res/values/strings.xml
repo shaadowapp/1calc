@@ -352,4 +352,10 @@
     <string name="empty_todo_list">No tasks yet. Add your first to-do!</string>
     <string name="edit">Edit</string>
     <string name="ai_powered">AI Powered</string>
+
+    <!-- Search -->
+    <string name="no_results_found">No results found</string>
+    <string name="clear_search">Clear search</string>
+    <string name="all_unit_calculators">All Unit Calculators</string>
+    <string name="no_calculators_found">No calculators found</string>
 </resources>

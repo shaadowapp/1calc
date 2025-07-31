@@ -104,6 +104,47 @@
                     android:background="@android:color/transparent"
                     android:inputType="text"
                     android:fontFamily="sans-serif" />
+
+                <ImageView
+                    android:id="@+id/search_clear_button"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_clear"
+                    android:layout_marginStart="8dp"
+                    android:visibility="gone"
+                    android:contentDescription="@string/clear_search"
+                    app:tint="@color/text_muted_b0aec0" />
+            </LinearLayout>
+
+            <!-- Search Results Container -->
+            <LinearLayout
+                android:id="@+id/search_results_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/bg_input_rounded"
+                android:padding="8dp">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/search_results_recycler_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:maxHeight="300dp"
+                    android:visibility="visible" />
+
+                <TextView
+                    android:id="@+id/search_no_results_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/no_results_found"
+                    android:textColor="@color/text_muted_b0aec0"
+                    android:textSize="14sp"
+                    android:gravity="center"
+                    android:padding="16dp"
+                    android:visibility="gone" />
+
             </LinearLayout>
 
             <!-- Rich Features of 1Calculator -->
@@ -119,6 +160,7 @@
                 android:layout_gravity="center_horizontal" />
 
             <GridLayout
+                android:id="@+id/calculators_grid_layout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:columnCount="2"
@@ -527,6 +569,46 @@
                 </com.google.android.material.card.MaterialCardView>
 
             </GridLayout>
+
+            <!-- All Calculators Section -->
+            <LinearLayout
+                android:id="@+id/all_calculators_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="32dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/all_unit_calculators"
+                    android:textColor="@color/text_light_f2f2f2"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif"
+                    android:layout_marginBottom="12dp"
+                    android:layout_marginTop="18dp"
+                    android:layout_gravity="center_horizontal" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/unit_calculators_recycler_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+
+                <TextView
+                    android:id="@+id/no_calculators_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/no_calculators_found"
+                    android:textColor="@color/text_muted_b0aec0"
+                    android:textSize="14sp"
+                    android:gravity="center"
+                    android:padding="16dp"
+                    android:visibility="gone" />
+
+            </LinearLayout>
 
             <!-- Footer -->
             <LinearLayout

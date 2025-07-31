@@ -13,8 +13,8 @@ import android.content.Context
 import android.text.Editable
 import android.text.TextWatcher
 import android.widget.TextView
-import androidx.recyclerview.widget.GridLayoutManager
 import com.shaadow.onecalculator.model.UnitCalculator
+import com.shaadow.onecalculator.model.CalculatorSection
 import com.shaadow.onecalculator.UnitCalculatorsAdapter
 import com.shaadow.onecalculator.DynamicCalculatorFragment
 import org.json.JSONObject
@@ -29,9 +29,10 @@ class HomeFragment : Fragment() {
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
-    private lateinit var unitCalculatorsAdapter: UnitCalculatorsAdapter
+
     private lateinit var searchResultsAdapter: SearchResultsAdapter
     private lateinit var searchManager: SearchManager
+    private lateinit var unitCalculatorsAdapter: UnitCalculatorsAdapter
     private val searchHandler = Handler(Looper.getMainLooper())
     private var searchRunnable: Runnable? = null
     private var hasUserInteracted = false
@@ -52,8 +53,11 @@ class HomeFragment : Fragment() {
         setupSearchBar()
         setupSearchResults()
         setupCategoryCards()
-        setupUnitCalculators()
+        setupAllCalculators()
         setupNotificationIcon()
+
+        // Ensure search results are hidden initially
+        hideSearchResults()
         val versionText = view.findViewById<TextView>(R.id.appVersion)
         val versionName = requireContext().packageManager
             .getPackageInfo(requireContext().packageName, 0).versionName
@@ -108,19 +112,21 @@ class HomeFragment : Fragment() {
 
     private fun hideSearchResults() {
         binding.searchResultsContainer.visibility = android.view.View.GONE
+        // Clear the adapter data to ensure no results are shown
+        searchResultsAdapter.clearAll()
         binding.searchInput.clearFocus()
         val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(binding.searchInput.windowToken, 0)
     }
 
     private fun setupSearchBar() {
-        // Only show recent history when user has typed something and then cleared it
+        // Hide search results when focus is lost
         binding.searchInput.setOnFocusChangeListener { _, hasFocus ->
             if (!hasFocus) {
                 hideSearchResults()
                 hasUserInteracted = false // Reset interaction flag when losing focus
             }
-            // Remove automatic showing of recent history on focus
+            // Don't show anything automatically on focus - only show results when user types
         }
 
         binding.searchInput.addTextChangedListener(object : TextWatcher {
@@ -146,12 +152,8 @@ class HomeFragment : Fragment() {
                 // Create new search runnable with slight delay for better performance
                 searchRunnable = Runnable {
                     if (query.isEmpty()) {
-                        // Only show recent history if user has previously typed something
-                        if (hasUserInteracted) {
-                            showRecentHistory()
-                        } else {
-                            hideSearchResults()
-                        }
+                        // Always hide search results when input is empty
+                        hideSearchResults()
                     } else {
                         performSearch(query)
                     }
@@ -160,6 +162,8 @@ class HomeFragment : Fragment() {
                 // Execute search immediately for empty query, with small delay for non-empty
                 if (query.isEmpty()) {
                     searchRunnable?.run()
+                    // Additional safety: ensure search results are hidden when query is empty
+                    binding.searchResultsContainer.visibility = android.view.View.GONE
                 } else {
                     searchHandler.postDelayed(searchRunnable!!, 150) // 150ms delay
                 }
@@ -171,7 +175,10 @@ class HomeFragment : Fragment() {
         binding.searchClearButton.setOnClickListener {
             binding.searchInput.text.clear()
             hasUserInteracted = false // Reset interaction flag
+            // Explicitly hide search results and clear adapter
             hideSearchResults()
+            // Double-check that the container is hidden
+            binding.searchResultsContainer.visibility = android.view.View.GONE
         }
 
         // Clear focus when clicking outside
@@ -181,34 +188,13 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun showRecentHistory() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val recentHistory = searchManager.getRecentHistory()
-                if (recentHistory.isNotEmpty()) {
-                    val sections = listOf(SearchResultSection("Recent Calculations", recentHistory))
-                    searchResultsAdapter.updateSections(sections)
-                    binding.searchNoResultsText.visibility = android.view.View.GONE
-                    binding.searchResultsRecyclerView.visibility = android.view.View.VISIBLE
-                    showSearchResults()
-                } else {
-                    hideSearchResults()
-                }
-            } catch (e: Exception) {
-                android.util.Log.e("HomeFragment", "Error showing recent history: ${e.message}")
-                hideSearchResults()
-            }
-        }
-    }
+    // Removed showRecentHistory() method - we don't want to show recent history anymore
+    // Search results should only be shown when user actively types something
 
     private fun performSearch(query: String) {
         if (query.isEmpty()) {
-            // Only show recent history if user has previously typed something
-            if (hasUserInteracted) {
-                showRecentHistory()
-            } else {
-                hideSearchResults()
-            }
+            // Always hide search results when query is empty
+            hideSearchResults()
             return
         }
 
@@ -245,9 +231,9 @@ class HomeFragment : Fragment() {
 
         // Unit Converter
         binding.cardUnitConverter.setOnClickListener {
-            // Scroll to all calculators section
-            binding.allCalculatorsSection.post {
-                binding.nestedScrollView.smoothScrollTo(0, binding.allCalculatorsSection.top)
+            // Scroll to the calculator grid section
+            binding.calculatorsGridLayout.post {
+                binding.nestedScrollView.smoothScrollTo(0, binding.calculatorsGridLayout.top)
             }
         }
 
@@ -275,8 +261,7 @@ class HomeFragment : Fragment() {
             Toast.makeText(requireContext(), getString(R.string.toast_scan_to_invoice_coming_soon), Toast.LENGTH_SHORT).show()
         }
 
-        // Unit Calculators Section
-        setupUnitCalculators()
+
 
         // Hidden Gallery
         binding.cardHiddenGallery.setOnClickListener {
@@ -297,118 +282,9 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun setupUnitCalculators() {
-        // Setup RecyclerView for calculator categories
-        binding.unitCalculatorsRecyclerView.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
-        binding.unitCalculatorsRecyclerView.setHasFixedSize(true)
 
-        // Get calculator sections from SearchManager
-        val calculatorSections = if (::searchManager.isInitialized) {
-            searchManager.getAllSections()
-        } else {
-            loadAllCalculatorSections() // Fallback to old method
-        }
-        android.util.Log.d("HomeFragment", "Loaded ${calculatorSections.size} sections")
-        
-        unitCalculatorsAdapter = UnitCalculatorsAdapter(
-            onCalculatorClick = { calculator ->
-                // Open the appropriate calculator dialog using CalculatorHostDialog
-                val dialog = CalculatorHostDialog.newInstance(calculator.title)
-                dialog.show(parentFragmentManager, "calculator_dialog")
-            },
-            onSearchResultsChanged = { hasResults, showNoResults ->
-                // Show/hide no results message only when there's an active search with no results
-                binding.noResultsText.visibility = if (showNoResults) {
-                    android.view.View.VISIBLE
-                } else {
-                    android.view.View.GONE
-                }
-                // Always show the RecyclerView (it will be empty if no results, but that's fine)
-                binding.unitCalculatorsRecyclerView.visibility = android.view.View.VISIBLE
-            }
-        )
-        unitCalculatorsAdapter.updateSections(calculatorSections)
-        binding.unitCalculatorsRecyclerView.adapter = unitCalculatorsAdapter
-        
-        // Debug: Check if adapter has items
-        android.util.Log.d("HomeFragment", "Adapter item count: ${unitCalculatorsAdapter.itemCount}")
-        android.util.Log.d("HomeFragment", "RecyclerView visibility: ${binding.unitCalculatorsRecyclerView.visibility}")
-    }
 
-    private fun loadAllCalculatorSections(): List<CalculatorSection> {
-        val sections = mutableListOf<CalculatorSection>()
-        
-        try {
-            // Read JSON from assets
-            val inputStream = requireContext().assets.open("home_categories.json")
-            val reader = BufferedReader(InputStreamReader(inputStream))
-            val jsonString = reader.use { it.readText() }
-            
-            android.util.Log.d("HomeFragment", "JSON loaded: ${jsonString.length} characters")
-            
-            // Parse JSON
-            val root = JSONObject(jsonString)
-            val categoriesArray = root.getJSONArray("categories")
-            
-            android.util.Log.d("HomeFragment", "Found ${categoriesArray.length()} categories")
-            
-            // Process all categories and create sections
-            for (i in 0 until categoriesArray.length()) {
-                val category = categoriesArray.getJSONObject(i)
-                val categoryName = category.getString("name")
-                val buttons = category.getJSONArray("buttons")
-                
-                android.util.Log.d("HomeFragment", "Category: $categoryName, Buttons: ${buttons.length()}")
-                
-                val calculators = mutableListOf<UnitCalculator>()
-                
-                for (j in 0 until buttons.length()) {
-                    val buttonName = buttons.getString(j)
-                    // Generate calculator ID based on category and button
-                    val calculatorId = generateCalculatorId(categoryName, buttonName)
-                    
-                    calculators.add(UnitCalculator(
-                        id = calculatorId,
-                        title = buttonName,
-                        description = "", // No description needed for new design
-                        icon = R.drawable.ic_calc_icon
-                    ))
-                }
-                
-                sections.add(CalculatorSection(
-                    title = categoryName,
-                    calculators = calculators
-                ))
-            }
-            
-            android.util.Log.d("HomeFragment", "Total sections created: ${sections.size}")
-            
-        } catch (e: Exception) {
-            e.printStackTrace()
-            android.util.Log.e("HomeFragment", "Error loading calculator sections", e)
-            Toast.makeText(requireContext(), "Error loading calculator sections", Toast.LENGTH_SHORT).show()
-        }
-        
-        return sections
-    }
 
-    private fun generateCalculatorId(categoryName: String, buttonName: String): String {
-        // Generate consistent IDs based on category and button name
-        val categoryPrefix = when (categoryName) {
-            "Algebra" -> "alg"
-            "Geometry" -> "geo"
-            "Finance" -> "fin"
-            "Insurance" -> "ins"
-            "Health" -> "hlth"
-            "Date & Time" -> "dt"
-            "Unit Converters" -> "unit"
-            "Others" -> "other"
-            else -> "calc"
-        }
-        
-        val buttonSuffix = buttonName.lowercase().replace(" ", "_").replace("&", "and")
-        return "${categoryPrefix}_${buttonSuffix}"
-    }
 
     private fun showSettingsPopupMenu(view: View) {
         val items = listOf(
@@ -446,8 +322,35 @@ class HomeFragment : Fragment() {
         com.shaadow.onecalculator.utils.PopupMenuBuilder.show(requireContext(), view, items)
     }
 
+    private fun setupAllCalculators() {
+        // Setup RecyclerView for all calculators with linear layout (categories with internal grids)
+        binding.unitCalculatorsRecyclerView.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
+        binding.unitCalculatorsRecyclerView.setHasFixedSize(true)
 
+        // Get calculator sections from SearchManager
+        val calculatorSections = searchManager.getAllSections()
 
+        // Setup adapter with click handling
+        unitCalculatorsAdapter = UnitCalculatorsAdapter(
+            onCalculatorClick = { calculator ->
+                // Open the appropriate calculator dialog using CalculatorHostDialog
+                val dialog = CalculatorHostDialog.newInstance(calculator.title)
+                dialog.show(parentFragmentManager, "calculator_dialog")
+            },
+            onSearchResultsChanged = { hasResults, showNoResults ->
+                // Show/hide no results message only when there's an active search with no results
+                binding.noCalculatorsText.visibility = if (showNoResults) {
+                    android.view.View.VISIBLE
+                } else {
+                    android.view.View.GONE
+                }
+                // Always show the RecyclerView (it will be empty if no results, but that's fine)
+                binding.unitCalculatorsRecyclerView.visibility = android.view.View.VISIBLE
+            }
+        )
+        unitCalculatorsAdapter.updateSections(calculatorSections)
+        binding.unitCalculatorsRecyclerView.adapter = unitCalculatorsAdapter
+    }
 
     override fun onDestroyView() {
         super.onDestroyView()

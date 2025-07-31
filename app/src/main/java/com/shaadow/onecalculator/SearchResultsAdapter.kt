@@ -17,7 +17,6 @@ import androidx.recyclerview.widget.RecyclerView
  * @since 1.0
  */
 class SearchResultsAdapter(
-    private val sections: List<SearchResultSection>,
     private val onItemClick: (SearchResult) -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
@@ -32,7 +31,7 @@ class SearchResultsAdapter(
     }
 
     init {
-        updateSections(sections)
+        // Initialize with empty list
     }
 
     /**
@@ -47,6 +46,14 @@ class SearchResultsAdapter(
             allItems.add(section.title)
             allItems.addAll(section.items)
         }
+        notifyDataSetChanged()
+    }
+
+    /**
+     * Clears all items from the adapter.
+     */
+    fun clearAll() {
+        allItems.clear()
         notifyDataSetChanged()
     }
 

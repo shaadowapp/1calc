@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="0dp"
+    android:layout_height="80dp"
+    android:layout_columnWeight="1"
+    android:layout_margin="6dp"
+    app:cardBackgroundColor="@color/card_bg_2a2833"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    app:strokeColor="@color/card_stroke_3f3c4b"
+    app:strokeWidth="1dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?android:attr/selectableItemBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/calculator_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Calculator"
+            android:textColor="@color/text_light_f2f2f2"
+            android:textSize="16sp"
+            android:textAlignment="center"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif"
+            android:lineSpacingExtra="2dp" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>
