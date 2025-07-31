@@ -154,6 +154,10 @@ class SearchResultsAdapter(
             val text = when (item) {
                 is SearchResult.HistoryItem -> "${item.entity.expression} = ${item.entity.result}"
                 is SearchResult.CalculatorItem -> item.label
+                is SearchResult.TodoItem -> {
+                    val status = if (item.entity.done) "✓" else "○"
+                    "$status ${item.entity.text}"
+                }
             }
             textView.text = text
             itemView.setOnClickListener { onItemClick(item) }

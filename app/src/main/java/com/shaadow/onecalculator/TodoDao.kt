@@ -16,4 +16,7 @@ interface TodoDao {
 
     @Delete
     suspend fun delete(todo: TodoEntity)
-} 
+
+    @Query("SELECT * FROM todo WHERE text LIKE :query ORDER BY id DESC")
+    suspend fun searchTodos(query: String): List<TodoEntity>
+}

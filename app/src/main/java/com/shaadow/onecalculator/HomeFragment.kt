@@ -1,28 +1,21 @@
 package com.shaadow.onecalculator
 
-import android.os.Bundle
-import android.view.View
-import android.view.LayoutInflater
-import android.view.ViewGroup
-import androidx.fragment.app.Fragment
-import android.widget.Toast
-import android.content.Intent
-import com.shaadow.onecalculator.databinding.FragmentHomeBinding
-import android.view.inputmethod.InputMethodManager
 import android.content.Context
-import android.text.Editable
-import android.text.TextWatcher
-import android.widget.TextView
-import com.shaadow.onecalculator.model.UnitCalculator
-import com.shaadow.onecalculator.model.CalculatorSection
-import com.shaadow.onecalculator.UnitCalculatorsAdapter
-import com.shaadow.onecalculator.DynamicCalculatorFragment
-import org.json.JSONObject
-import java.io.BufferedReader
-import java.io.InputStreamReader
+import android.content.Intent
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
+import android.widget.TextView
+import android.widget.Toast
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.shaadow.onecalculator.databinding.FragmentHomeBinding
 import kotlinx.coroutines.launch
 
 class HomeFragment : Fragment() {
@@ -96,6 +89,16 @@ class HomeFragment : Fragment() {
                 val intent = Intent(requireContext(), MainActivity::class.java)
                 intent.putExtra("expression", searchResult.entity.expression)
                 intent.putExtra("result", searchResult.entity.result)
+                startActivity(intent)
+
+                // Clear search and hide results
+                binding.searchInput.text.clear()
+                hasUserInteracted = false // Reset interaction flag
+                hideSearchResults()
+            }
+            is SearchResult.TodoItem -> {
+                // Handle todo item click - navigate to todo activity
+                val intent = Intent(requireContext(), TodoActivity::class.java)
                 startActivity(intent)
 
                 // Clear search and hide results

@@ -159,49 +159,62 @@
         android:overScrollMode="always" />
 
     <!-- Footer / Input Area -->
-    <LinearLayout
-        android:id="@+id/chat_footer"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:background="@android:color/transparent"
-        android:padding="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginBottom="24dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp">
-
-        <EditText
-            android:id="@+id/message_input"
+        <LinearLayout
+            android:id="@+id/chat_footer"
             android:layout_width="0dp"
-            android:layout_height="56dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_glassy_input"
-            android:hint="Ask Mathly..."
-            android:textColor="#F3F4F6"
-            android:textColorHint="#9CA3AF"
-            android:paddingLeft="24dp"
-            android:paddingRight="24dp"
-            android:textSize="17sp"
-            android:inputType="text"
-            android:singleLine="true"
-            android:elevation="2dp"
-            android:layout_gravity="center_vertical"
-            android:gravity="center_vertical|start" />
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@android:color/transparent"
+            android:padding="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginBottom="0dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <EditText
+                    android:id="@+id/message_input"
+                    android:layout_width="0dp"
+                    android:layout_height="56dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_glassy_input"
+                    android:hint="Ask Mathly..."
+                    android:textColor="#F3F4F6"
+                    android:textColorHint="#9CA3AF"
+                    android:paddingLeft="24dp"
+                    android:paddingRight="24dp"
+                    android:textSize="17sp"
+                    android:inputType="text"
+                    android:singleLine="true"
+                    android:elevation="2dp"
+                    android:layout_gravity="center_vertical"
+                    android:gravity="center_vertical|start" />
 
-        <ImageButton
-            android:id="@+id/send_button"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:background="@drawable/bg_send_button"
-            android:src="@drawable/ic_send"
-            app:tint="#FFFFFF"
-            android:contentDescription="Send"
-            android:layout_marginStart="12dp"
-            android:layout_gravity="center_vertical"
-            android:elevation="6dp" />
+                <ImageButton
+                    android:id="@+id/send_button"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:background="@drawable/bg_send_button"
+                    android:src="@drawable/ic_send"
+                    app:tint="#FFFFFF"
+                    android:contentDescription="Send"
+                    android:layout_marginStart="12dp"
+                    android:layout_gravity="center_vertical"
+                    android:elevation="6dp" />
+        </LinearLayout>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Remember Mathly can make mistakes, it's in beta state."
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:gravity="center"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="8dp"/>
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout> 

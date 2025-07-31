@@ -22,6 +22,13 @@ sealed class SearchResult {
      * @param label The display name of the calculator feature
      */
     data class CalculatorItem(val category: String, val label: String) : SearchResult()
+
+    /**
+     * Represents a todo item found in search results.
+     *
+     * @param entity The TodoEntity containing the todo text and completion status
+     */
+    data class TodoItem(val entity: TodoEntity) : SearchResult()
 }
 
 /**

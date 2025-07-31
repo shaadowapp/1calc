@@ -69,28 +69,31 @@
                     app:tint="@color/text_hint"
                     android:padding="6dp"
                     android:layout_marginEnd="1dp" />
-                <ImageButton
-                    android:id="@+id/btn_like"
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
-                    app:iconSize="12dp"
-                    android:background="@android:color/transparent"
-                    android:src="@drawable/ic_thumb_up"
-                    android:contentDescription="Like"
-                    app:tint="@color/text_hint"
-                    android:padding="6dp"
-                    android:layout_marginEnd="1dp" />
-                <ImageButton
-                    android:id="@+id/btn_dislike"
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
-                    app:iconSize="12dp"
-                    android:background="@android:color/transparent"
-                    android:src="@drawable/ic_thumb_down"
-                    android:contentDescription="Dislike"
-                    app:tint="@color/text_hint"
-                    android:padding="6dp"
-                    android:layout_marginEnd="1dp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+<!--                <ImageButton-->
+<!--                    android:id="@+id/btn_like"-->
+<!--                    android:layout_width="28dp"-->
+<!--                    android:layout_height="28dp"-->
+<!--                    app:iconSize="12dp"-->
+<!--                    android:background="@android:color/transparent"-->
+<!--                    android:src="@drawable/ic_thumb_up"-->
+<!--                    android:contentDescription="Like"-->
+<!--                    app:tint="@color/text_hint"-->
+<!--                    android:padding="6dp"-->
+<!--                    android:layout_marginEnd="1dp" />-->
+<!--                <ImageButton-->
+<!--                    android:id="@+id/btn_dislike"-->
+<!--                    android:layout_width="28dp"-->
+<!--                    android:layout_height="28dp"-->
+<!--                    app:iconSize="12dp"-->
+<!--                    android:background="@android:color/transparent"-->
+<!--                    android:src="@drawable/ic_thumb_down"-->
+<!--                    android:contentDescription="Dislike"-->
+<!--                    app:tint="@color/text_hint"-->
+<!--                    android:padding="6dp"-->
+<!--                    android:layout_marginEnd="1dp" />-->
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

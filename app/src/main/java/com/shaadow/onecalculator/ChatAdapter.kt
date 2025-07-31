@@ -114,8 +114,8 @@ class ChatAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     inner class AIMessageViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val messageText: TextView = itemView.findViewById(R.id.message_text)
         private val btnCopy: View? = itemView.findViewById(R.id.btn_copy)
-        private val btnLike: View? = itemView.findViewById(R.id.btn_like)
-        private val btnDislike: View? = itemView.findViewById(R.id.btn_dislike)
+//        private val btnLike: View? = itemView.findViewById(R.id.btn_like)
+//        private val btnDislike: View? = itemView.findViewById(R.id.btn_dislike)
         fun bind(message: ChatMessage) {
             val context = messageText.context
             val markwon = Markwon.builder(context)
@@ -127,8 +127,8 @@ class ChatAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             btnCopy?.isEnabled = true
             btnCopy?.alpha = 1.0f
             btnCopy?.setOnClickListener { aiActionListener?.onCopy(message.id) }
-            btnLike?.setOnClickListener { aiActionListener?.onLike(message.id) }
-            btnDislike?.setOnClickListener { aiActionListener?.onDislike(message.id) }
+//            btnLike?.setOnClickListener { aiActionListener?.onLike(message.id) }
+//            btnDislike?.setOnClickListener { aiActionListener?.onDislike(message.id) }
         }
     }
 } 

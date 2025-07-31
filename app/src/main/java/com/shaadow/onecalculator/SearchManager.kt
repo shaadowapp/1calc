@@ -28,6 +28,10 @@ class SearchManager(private val context: Context) {
         ).build()
     }
 
+    private val todoDatabase by lazy {
+        TodoDatabase.getInstance(context)
+    }
+
     private val calculatorSections by lazy {
         loadAllCalculatorSections()
     }
@@ -55,6 +59,12 @@ class SearchManager(private val context: Context) {
         val historyResults = searchHistory(query)
         if (historyResults.isNotEmpty()) {
             results.add(SearchResultSection("History", historyResults))
+        }
+
+        // Search in todos
+        val todoResults = searchTodos(query)
+        if (todoResults.isNotEmpty()) {
+            results.add(SearchResultSection("Tasks", todoResults))
         }
 
         results
@@ -120,6 +130,23 @@ class SearchManager(private val context: Context) {
             historyItems.map { historyEntity -> SearchResult.HistoryItem(historyEntity) }
         } catch (e: Exception) {
             android.util.Log.e("SearchManager", "Error searching history: ${e.message}")
+            emptyList()
+        }
+    }
+
+    /**
+     * Searches for todo items matching the query.
+     *
+     * @param query The search query string
+     * @return List of SearchResult.TodoItem containing matching todo items
+     */
+    private suspend fun searchTodos(query: String): List<SearchResult> {
+        return try {
+            val todoDao = todoDatabase.todoDao()
+            val todoItems = todoDao.searchTodos("%$query%")
+            todoItems.map { SearchResult.TodoItem(it) }
+        } catch (e: Exception) {
+            android.util.Log.e("SearchManager", "Error searching todos: ${e.message}")
             emptyList()
         }
     }
