@@ -123,9 +123,22 @@ class MathlyChatFragment : Fragment(), ChatAdapter.OnAiActionListener {
             return
         }
         
-        // Check for inappropriate content AFTER conversation checks
+        // Enhanced content filtering with better user feedback
         if (Validation.containsInappropriateContent(userInput)) {
-            chatAdapter.addAIMessage(Validation.getFilteredMessage(userInput))
+            val severity = Validation.getContentSeverity(userInput)
+            val isLikelyFalsePositive = Validation.isLikelyFalsePositive(userInput)
+
+            // Log for analytics (optional)
+            android.util.Log.d("ContentFilter", "Blocked content - Severity: $severity, False positive: $isLikelyFalsePositive")
+
+            // Provide contextual response based on severity
+            val response = if (isLikelyFalsePositive && severity <= 2) {
+                "I noticed some potentially inappropriate language in your message. If this was a legitimate math question, please try rephrasing it. I'm here to help with mathematics!\n\nFor example, try asking: 'Solve this equation' or 'Explain this concept'."
+            } else {
+                Validation.getFilteredMessage(userInput)
+            }
+
+            chatAdapter.addAIMessage(response)
             scrollToBottom()
             return
         }
@@ -283,6 +296,10 @@ class MathlyChatFragment : Fragment(), ChatAdapter.OnAiActionListener {
                 val clip = ClipData.newPlainText("Copied Text", message.text)
                 clipboard.setPrimaryClip(clip)
                 Toast.makeText(requireContext(), "Copied!", Toast.LENGTH_SHORT).show()
+
+                // Add UI feedback - show copy feedback
+                chatAdapter.showCopyFeedback(messageId)
+
             } catch (e: Exception) {
                 android.os.Handler(requireContext().mainLooper).post {
                     AlertDialog.Builder(requireContext())
@@ -294,6 +311,8 @@ class MathlyChatFragment : Fragment(), ChatAdapter.OnAiActionListener {
             }
         }
     }
+
+
     override fun onLike(messageId: String) {
         val message = chatAdapter.getMessageById(messageId)
         message?.let {

@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.ImageButton
 import androidx.recyclerview.widget.RecyclerView
 import java.util.UUID
 import io.noties.markwon.Markwon
@@ -12,6 +13,7 @@ import android.os.UserManager
 import android.widget.Toast
 import android.os.Build
 
+
 data class ChatMessage(
     val id: String = UUID.randomUUID().toString(),
     val text: String,
@@ -19,9 +21,9 @@ data class ChatMessage(
 )
 
 class ChatAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-    
+
     private val messages = mutableListOf<ChatMessage>()
-    
+
     companion object {
         private const val VIEW_TYPE_USER = 1
         private const val VIEW_TYPE_AI = 2
@@ -90,8 +92,25 @@ class ChatAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     }
     
     override fun getItemCount(): Int = messages.size
-    
+
+
+
     fun getMessageById(id: String): ChatMessage? = messages.find { it.id == id }
+
+    // Track which message was recently copied for UI feedback
+    private var recentlyCopiedMessageId: String? = null
+    private val copyResetHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
+    fun showCopyFeedback(messageId: String) {
+        recentlyCopiedMessageId = messageId
+        notifyDataSetChanged()
+
+        // Reset after 2 seconds
+        copyResetHandler.postDelayed({
+            recentlyCopiedMessageId = null
+            notifyDataSetChanged()
+        }, 2000)
+    }
     
     interface OnAiActionListener {
         fun onCopy(messageId: String)
@@ -113,9 +132,14 @@ class ChatAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     
     inner class AIMessageViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val messageText: TextView = itemView.findViewById(R.id.message_text)
-        private val btnCopy: View? = itemView.findViewById(R.id.btn_copy)
+        private val btnCopy: ImageButton? = itemView.findViewById(R.id.btn_copy)
+        private val btnCopyText: TextView? = itemView.findViewById(R.id.btn_copy_text)
+
+
+
 //        private val btnLike: View? = itemView.findViewById(R.id.btn_like)
 //        private val btnDislike: View? = itemView.findViewById(R.id.btn_dislike)
+
         fun bind(message: ChatMessage) {
             val context = messageText.context
             val markwon = Markwon.builder(context)
@@ -126,9 +150,30 @@ class ChatAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             // Always enable copy button, regardless of Android version
             btnCopy?.isEnabled = true
             btnCopy?.alpha = 1.0f
-            btnCopy?.setOnClickListener { aiActionListener?.onCopy(message.id) }
+
+            // Set up copy button click listener - EXACTLY AS ORIGINAL
+            btnCopy?.setOnClickListener {
+                aiActionListener?.onCopy(message.id)
+            }
+
+            // Also make the copy text clickable
+            btnCopyText?.setOnClickListener {
+                aiActionListener?.onCopy(message.id)
+            }
+
+            // Set copy text based on feedback state
+            if (recentlyCopiedMessageId == message.id) {
+                btnCopyText?.text = "Copied"
+                btnCopyText?.setTextColor(context.getColor(R.color.brand_green))
+            } else {
+                btnCopyText?.text = "Copy"
+                btnCopyText?.setTextColor(context.getColor(R.color.text_hint))
+            }
+
 //            btnLike?.setOnClickListener { aiActionListener?.onLike(message.id) }
 //            btnDislike?.setOnClickListener { aiActionListener?.onDislike(message.id) }
         }
+
+
     }
 } 

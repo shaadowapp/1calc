@@ -41,6 +41,27 @@ object Validation {
     }
 
     fun getFilteredMessage(input: String): String {
-        return ContentFilter.getDetailedFilteredMessage(input)
+        val baseMessage = ContentFilter.getDetailedFilteredMessage(input)
+
+        // Add educational suggestions for better user experience
+        return if (ContentFilter.containsInappropriateContent(input)) {
+            baseMessage + ContentFilter.getEducationalSuggestions()
+        } else {
+            baseMessage
+        }
+    }
+
+    /**
+     * Get content severity level for logging/analytics
+     */
+    fun getContentSeverity(input: String): Int {
+        return ContentFilter.getSeverityLevel(input)
+    }
+
+    /**
+     * Check if content might be a false positive
+     */
+    fun isLikelyFalsePositive(input: String): Boolean {
+        return ContentFilter.isLikelyFalsePositive(input)
     }
 } 
