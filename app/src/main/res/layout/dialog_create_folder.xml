@@ -72,8 +72,7 @@
             android:layout_height="wrap_content"
             android:textColor="@color/text_light_f2f2f2"
             android:textColorHint="@color/text_muted_b0aec0"
-            android:inputType="textPassword"
-            android:minLength="4" />
+            android:inputType="textPassword" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -102,8 +101,7 @@
             android:layout_height="wrap_content"
             android:textColor="@color/text_light_f2f2f2"
             android:textColorHint="@color/text_muted_b0aec0"
-            android:inputType="textPassword"
-            android:minLength="4" />
+            android:inputType="textPassword" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
