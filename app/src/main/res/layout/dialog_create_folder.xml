@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@drawable/bg_input_rounded">
+
+    <!-- Title -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Create Encrypted Folder"
+        android:textColor="@color/text_light_f2f2f2"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:fontFamily="sans-serif"
+        android:gravity="center"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Folder Name Input -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/folder_name_input_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:hint="Folder Name"
+        app:hintTextColor="@color/text_muted_b0aec0"
+        app:boxBackgroundColor="@color/card_bg_2a2833"
+        app:boxStrokeColor="@color/card_stroke_3f3c4b"
+        app:boxCornerRadiusTopStart="8dp"
+        app:boxCornerRadiusTopEnd="8dp"
+        app:boxCornerRadiusBottomStart="8dp"
+        app:boxCornerRadiusBottomEnd="8dp"
+        app:startIconDrawable="@drawable/ic_folder"
+        app:startIconTint="@color/text_muted_b0aec0">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/folder_name_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_light_f2f2f2"
+            android:textColorHint="@color/text_muted_b0aec0"
+            android:inputType="text"
+            android:maxLength="50" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Password Input -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/folder_password_input_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:hint="Password"
+        app:hintTextColor="@color/text_muted_b0aec0"
+        app:boxBackgroundColor="@color/card_bg_2a2833"
+        app:boxStrokeColor="@color/card_stroke_3f3c4b"
+        app:boxCornerRadiusTopStart="8dp"
+        app:boxCornerRadiusTopEnd="8dp"
+        app:boxCornerRadiusBottomStart="8dp"
+        app:boxCornerRadiusBottomEnd="8dp"
+        app:startIconDrawable="@drawable/ic_lock"
+        app:startIconTint="@color/text_muted_b0aec0"
+        app:endIconMode="password_toggle"
+        app:endIconTint="@color/text_muted_b0aec0">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/folder_password_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_light_f2f2f2"
+            android:textColorHint="@color/text_muted_b0aec0"
+            android:inputType="textPassword"
+            android:minLength="4" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Confirm Password Input -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/folder_confirm_password_input_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        android:hint="Confirm Password"
+        app:hintTextColor="@color/text_muted_b0aec0"
+        app:boxBackgroundColor="@color/card_bg_2a2833"
+        app:boxStrokeColor="@color/card_stroke_3f3c4b"
+        app:boxCornerRadiusTopStart="8dp"
+        app:boxCornerRadiusTopEnd="8dp"
+        app:boxCornerRadiusBottomStart="8dp"
+        app:boxCornerRadiusBottomEnd="8dp"
+        app:startIconDrawable="@drawable/ic_lock"
+        app:startIconTint="@color/text_muted_b0aec0"
+        app:endIconMode="password_toggle"
+        app:endIconTint="@color/text_muted_b0aec0">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/folder_confirm_password_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_light_f2f2f2"
+            android:textColorHint="@color/text_muted_b0aec0"
+            android:inputType="textPassword"
+            android:minLength="4" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Security Info -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/bg_input_rounded"
+        android:padding="12dp"
+        android:layout_marginBottom="24dp">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_info"
+            android:layout_marginEnd="8dp"
+            app:tint="@color/text_muted_b0aec0" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Your folder will be encrypted with AES-256 encryption. Make sure to remember your password as it cannot be recovered."
+            android:textColor="@color/text_muted_b0aec0"
+            android:textSize="12sp"
+            android:fontFamily="sans-serif" />
+
+    </LinearLayout>
+
+    <!-- Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/cancel_button"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            android:textColor="@color/text_muted_b0aec0"
+            android:layout_marginEnd="8dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/create_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Create"
+            android:textColor="@color/white_ffffff"
+            app:backgroundTint="@color/card_bg_2a2833"
+            app:cornerRadius="12dp" />
+
+    </LinearLayout>
+
+</LinearLayout>

@@ -6,6 +6,11 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-permission android:name="android.permission.INTERNET" />
+    
+    <!-- Media permissions for Hidden Gallery -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
 
     <application
         android:allowBackup="true"
@@ -47,6 +52,7 @@
         <activity android:name=".RateUsActivity" />
         <activity android:name=".TodoActivity" />
         <activity android:name=".HotAppsActivity" />
+        <activity android:name=".MediaGalleryActivity" android:screenOrientation="portrait" />
 
         <receiver android:name=".CalculatorWidgetBlack" android:exported="false">
             <intent-filter>

@@ -268,8 +268,8 @@ class HomeFragment : Fragment() {
 
         // Hidden Gallery
         binding.cardHiddenGallery.setOnClickListener {
-            // TODO: Navigate to hidden gallery section
-            Toast.makeText(requireContext(), getString(R.string.toast_hidden_gallery_coming_soon), Toast.LENGTH_SHORT).show()
+            val intent = Intent(requireContext(), MediaGalleryActivity::class.java)
+            startActivity(intent)
         }
 
         // Todo
