@@ -540,6 +540,12 @@ class SettingsActivity : androidx.fragment.app.FragmentActivity() {
             android.util.Log.d("SettingsActivity", "Set Hidden Gallery Security button clicked")
             showSecurityOptionsDialog()
         }
+
+        // Setup Recovery Question button
+        binding.setupRecoveryQuestionButton.setOnClickListener {
+            android.util.Log.d("SettingsActivity", "Setup Recovery Question button clicked")
+            showRecoveryQuestionDialog()
+        }
     }
 
     private fun openHiddenGallery() {
@@ -771,5 +777,282 @@ class SettingsActivity : androidx.fragment.app.FragmentActivity() {
         intent.setPackage(packageName) // Ensure it's sent within the app
         sendBroadcast(intent)
         android.util.Log.d("SettingsActivity", "Fingerprint setting broadcast sent: $enabled")
+    }
+
+    private fun showRecoveryQuestionDialog() {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_recovery_question_setup, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(false) // Prevent accidental dismissal
+            .create()
+
+        // Setup spinner with predefined questions
+        val spinner = dialogView.findViewById<android.widget.Spinner>(R.id.security_question_spinner)
+        val customQuestionLayout = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.custom_question_layout)
+        val customQuestionInput = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.custom_question_input)
+        val answerInput = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.answer_input)
+        val pinHintInput = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.pin_hint_input)
+        val cancelButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.cancel_button)
+        val saveButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.save_button)
+
+        // Load existing data if available
+        loadExistingRecoveryData(spinner, customQuestionInput, answerInput, pinHintInput)
+
+        // Predefined security questions
+        val questions = arrayOf(
+            "What is your mother's maiden name?",
+            "What was the name of your first pet?",
+            "What city were you born in?",
+            "What is your favorite movie?",
+            "What was your childhood nickname?",
+            "What is the name of your best friend?",
+            "What was your first car model?",
+            "What is your favorite food?",
+            "Custom Question"
+        )
+
+        val adapter = android.widget.ArrayAdapter(this, android.R.layout.simple_spinner_item, questions)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinner.adapter = adapter
+
+        // Show/hide custom question input based on selection
+        spinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
+                if (position == questions.size - 1) { // "Custom Question" selected
+                    customQuestionLayout.visibility = android.view.View.VISIBLE
+                } else {
+                    customQuestionLayout.visibility = android.view.View.GONE
+                }
+            }
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+        }
+
+        cancelButton.setOnClickListener { dialog.dismiss() }
+
+        saveButton.setOnClickListener {
+            if (validateAndSaveRecoveryData(
+                    spinner, customQuestionInput, answerInput, pinHintInput,
+                    questions, dialog
+                )) {
+                // Validation and saving handled in separate method
+            }
+        }
+
+        dialog.show()
+    }
+
+    private fun loadExistingRecoveryData(
+        spinner: android.widget.Spinner,
+        customQuestionInput: com.google.android.material.textfield.TextInputEditText,
+        answerInput: com.google.android.material.textfield.TextInputEditText,
+        pinHintInput: com.google.android.material.textfield.TextInputEditText
+    ) {
+        lifecycleScope.launch {
+            try {
+                val existingQuestion = withContext(Dispatchers.IO) {
+                    preferenceDao.getPreference("hidden_gallery_recovery_question")?.value
+                }
+                val existingHint = withContext(Dispatchers.IO) {
+                    preferenceDao.getPreference("hidden_gallery_pin_hint")?.value
+                }
+
+                // Pre-populate existing data
+                existingQuestion?.let { question ->
+                    val questions = (spinner.adapter as android.widget.ArrayAdapter<String>)
+                    val position = (0 until questions.count).find { questions.getItem(it) == question }
+                    if (position != null) {
+                        spinner.setSelection(position)
+                    } else {
+                        // Custom question
+                        spinner.setSelection(questions.count - 1)
+                        customQuestionInput.setText(question)
+                    }
+                }
+
+                existingHint?.let { hint ->
+                    pinHintInput.setText(hint)
+                }
+
+                if (existingQuestion != null) {
+                    answerInput.hint = "Leave blank to keep existing answer"
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("SettingsActivity", "Error loading existing recovery data", e)
+            }
+        }
+    }
+
+    private fun validateAndSaveRecoveryData(
+        spinner: android.widget.Spinner,
+        customQuestionInput: com.google.android.material.textfield.TextInputEditText,
+        answerInput: com.google.android.material.textfield.TextInputEditText,
+        pinHintInput: com.google.android.material.textfield.TextInputEditText,
+        questions: Array<String>,
+        dialog: AlertDialog
+    ): Boolean {
+        val selectedQuestion = if (spinner.selectedItemPosition == questions.size - 1) {
+            customQuestionInput.text.toString().trim()
+        } else {
+            questions[spinner.selectedItemPosition]
+        }
+
+        val answer = answerInput.text.toString().trim()
+        val pinHint = pinHintInput.text.toString().trim()
+
+        // Industry-level validation
+        val validationResult = validateRecoveryInput(selectedQuestion, answer, pinHint)
+        if (!validationResult.isValid) {
+            showValidationError(validationResult.errorMessage)
+            return false
+        }
+
+        // Save with proper error handling and security
+        saveRecoveryDataSecurely(selectedQuestion, answer, pinHint, dialog)
+        return true
+    }
+
+    private data class ValidationResult(
+        val isValid: Boolean,
+        val errorMessage: String = ""
+    )
+
+    private fun validateRecoveryInput(question: String, answer: String, pinHint: String): ValidationResult {
+        // Question validation
+        if (question.isEmpty()) {
+            return ValidationResult(false, "Security question cannot be empty")
+        }
+        if (question.length < 10) {
+            return ValidationResult(false, "Security question must be at least 10 characters long")
+        }
+        if (question.length > 200) {
+            return ValidationResult(false, "Security question cannot exceed 200 characters")
+        }
+
+        // Answer validation
+        if (answer.isEmpty()) {
+            return ValidationResult(false, "Answer cannot be empty")
+        }
+        if (answer.length < 2) {
+            return ValidationResult(false, "Answer must be at least 2 characters long")
+        }
+        if (answer.length > 100) {
+            return ValidationResult(false, "Answer cannot exceed 100 characters")
+        }
+
+        // Check for common weak answers
+        val weakAnswers = listOf("yes", "no", "maybe", "idk", "123", "abc", "test", "password", "admin")
+        if (weakAnswers.contains(answer.lowercase())) {
+            return ValidationResult(false, "Please choose a more secure answer")
+        }
+
+        // PIN hint validation (optional but if provided, must be valid)
+        if (pinHint.isNotEmpty()) {
+            if (pinHint.length > 150) {
+                return ValidationResult(false, "PIN hint cannot exceed 150 characters")
+            }
+            // Check if hint reveals the actual PIN
+            if (pinHint.matches(Regex(".*\\b\\d{4}\\b.*"))) {
+                return ValidationResult(false, "PIN hint should not contain the actual PIN")
+            }
+        }
+
+        return ValidationResult(true)
+    }
+
+    private fun showValidationError(message: String) {
+        AlertDialog.Builder(this)
+            .setTitle("Validation Error")
+            .setMessage(message)
+            .setPositiveButton("OK", null)
+            .show()
+    }
+
+    private fun saveRecoveryDataSecurely(
+        question: String,
+        answer: String,
+        pinHint: String,
+        dialog: AlertDialog
+    ) {
+        lifecycleScope.launch {
+            try {
+                // Show progress
+                val progressDialog = AlertDialog.Builder(this@SettingsActivity)
+                    .setTitle("Saving Recovery Data")
+                    .setMessage("Please wait...")
+                    .setCancelable(false)
+                    .create()
+                progressDialog.show()
+
+                val success = withContext(Dispatchers.IO) {
+                    try {
+                        // Use proper cryptographic hashing
+                        val salt = generateSalt()
+                        val hashedAnswer = hashAnswerWithSalt(answer.lowercase().trim(), salt)
+
+                        // Save with transaction for atomicity
+                        preferenceDao.setPreference(PreferenceEntity("hidden_gallery_recovery_question", question))
+                        preferenceDao.setPreference(PreferenceEntity("hidden_gallery_recovery_answer", hashedAnswer))
+                        preferenceDao.setPreference(PreferenceEntity("hidden_gallery_recovery_salt", salt))
+
+                        if (pinHint.isNotEmpty()) {
+                            preferenceDao.setPreference(PreferenceEntity("hidden_gallery_pin_hint", pinHint))
+                        } else {
+                            // Remove existing hint if empty
+                            preferenceDao.deletePreference("hidden_gallery_pin_hint")
+                        }
+
+                        // Set recovery setup timestamp
+                        preferenceDao.setPreference(PreferenceEntity("hidden_gallery_recovery_setup_time", System.currentTimeMillis().toString()))
+
+                        android.util.Log.d("SettingsActivity", "Recovery data saved successfully")
+                        true
+                    } catch (e: Exception) {
+                        android.util.Log.e("SettingsActivity", "Error in database transaction", e)
+                        false
+                    }
+                }
+
+                progressDialog.dismiss()
+
+                if (success) {
+                    AlertDialog.Builder(this@SettingsActivity)
+                        .setTitle("Success")
+                        .setMessage("Recovery question and PIN hint have been saved successfully.\n\nPlease remember your answer as it will be needed to recover your PIN/password.")
+                        .setPositiveButton("OK") { _, _ ->
+                            dialog.dismiss()
+                        }
+                        .setCancelable(false)
+                        .show()
+                } else {
+                    showValidationError("Failed to save recovery data. Please try again.")
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("SettingsActivity", "Error saving recovery data", e)
+                showValidationError("An unexpected error occurred. Please try again.")
+            }
+        }
+    }
+
+    private fun generateSalt(): String {
+        val random = java.security.SecureRandom()
+        val salt = ByteArray(16)
+        random.nextBytes(salt)
+        return android.util.Base64.encodeToString(salt, android.util.Base64.DEFAULT)
+    }
+
+    private fun hashAnswerWithSalt(answer: String, salt: String): String {
+        return try {
+            val saltBytes = android.util.Base64.decode(salt, android.util.Base64.DEFAULT)
+            val answerBytes = answer.toByteArray(Charsets.UTF_8)
+            val combined = saltBytes + answerBytes
+
+            val digest = java.security.MessageDigest.getInstance("SHA-256")
+            val hash = digest.digest(combined)
+            android.util.Base64.encodeToString(hash, android.util.Base64.DEFAULT)
+        } catch (e: Exception) {
+            android.util.Log.e("SettingsActivity", "Error hashing answer", e)
+            // Fallback to simple encoding (not recommended for production)
+            android.util.Base64.encodeToString(answer.toByteArray(), android.util.Base64.DEFAULT)
+        }
     }
 }

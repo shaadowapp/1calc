@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@drawable/dialog_background">
+
+    <!-- Title -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Setup Recovery Question"
+        android:textColor="@color/text_light_e0e0e0"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Description -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Set up a security question to recover your PIN/password if you forget it."
+        android:textColor="@color/text_muted_a0a0a0"
+        android:textSize="14sp"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Security Question Dropdown -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Choose Security Question"
+        android:textColor="@color/text_light_e0e0e0"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <Spinner
+        android:id="@+id/security_question_spinner"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/spinner_background"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Custom Question Input (initially hidden) -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/custom_question_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:visibility="gone"
+        app:boxBackgroundMode="outline"
+        app:boxBackgroundColor="@color/card_bg_2a2833"
+        app:boxStrokeColor="@color/accent_purple_bb86fc"
+        app:hintTextColor="@color/text_muted_a0a0a0">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/custom_question_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Enter your custom question"
+            android:textColor="@color/text_light_e0e0e0"
+            android:textColorHint="@color/text_muted_a0a0a0"
+            android:maxLines="2" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Answer Input -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Your Answer"
+        android:textColor="@color/text_light_e0e0e0"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/answer_input_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        app:boxBackgroundMode="outline"
+        app:boxBackgroundColor="@color/card_bg_2a2833"
+        app:boxStrokeColor="@color/accent_purple_bb86fc"
+        app:hintTextColor="@color/text_muted_a0a0a0">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/answer_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Enter your answer"
+            android:textColor="@color/text_light_e0e0e0"
+            android:textColorHint="@color/text_muted_a0a0a0"
+            android:maxLines="1" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- PIN Hint Input -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="PIN Hint (Optional)"
+        android:textColor="@color/text_light_e0e0e0"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/pin_hint_input_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        app:boxBackgroundMode="outline"
+        app:boxBackgroundColor="@color/card_bg_2a2833"
+        app:boxStrokeColor="@color/accent_purple_bb86fc"
+        app:hintTextColor="@color/text_muted_a0a0a0">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/pin_hint_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="e.g., Birth year + favorite number"
+            android:textColor="@color/text_light_e0e0e0"
+            android:textColorHint="@color/text_muted_a0a0a0"
+            android:maxLines="2" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/cancel_button"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            android:textSize="16sp"
+            android:textColor="@color/text_muted_a0a0a0"
+            android:layout_marginEnd="8dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/save_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Save"
+            android:textSize="16sp"
+            android:textColor="@color/white"
+            app:backgroundTint="@color/accent_purple_bb86fc" />
+
+    </LinearLayout>
+
+</LinearLayout>

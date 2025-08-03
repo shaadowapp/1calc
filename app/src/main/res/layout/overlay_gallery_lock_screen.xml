@@ -102,6 +102,24 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Forgot PIN/Password Button (for password mode) -->
+        <TextView
+            android:id="@+id/forgot_password_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Forgot Password?"
+            android:textColor="#FF4A90E2"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp"
+            android:padding="12dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+
         <!-- PIN Input Display (for PIN mode) -->
         <LinearLayout
             android:id="@+id/pin_display_layout"
@@ -327,6 +345,22 @@
             </LinearLayout>
 
         </LinearLayout>
+
+        <!-- Forgot PIN/Password Button -->
+        <TextView
+            android:id="@+id/forgot_pin_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Forgot PIN/Password?"
+            android:textColor="#FF4A90E2"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginTop="20dp"
+            android:padding="12dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_gravity="center" />
 
     </LinearLayout>
 
