@@ -144,6 +144,9 @@ class MediaGalleryActivity : AppCompatActivity() {
             },
             onFolderLongClick = { folder ->
                 showFolderOptionsDialog(folder)
+            },
+            onAddFolderClick = {
+                showCreateFolderDialog()
             }
         )
 
@@ -152,11 +155,23 @@ class MediaGalleryActivity : AppCompatActivity() {
             adapter = folderAdapter
         }
 
-        // Observe folders from database
+        // Check if we need to create default folders first
         lifecycleScope.launch {
-            encryptedFolderDao.getAllFolders().collect { folders ->
-                folderAdapter.submitList(folders)
-                updateEmptyState(folders.isEmpty())
+            val existingFolders = withContext(Dispatchers.IO) {
+                encryptedFolderDao.getAllFolders()
+            }
+
+            // Observe folders from database
+            existingFolders.collect { folders ->
+                if (folders.isEmpty()) {
+                    // Create default folders on first access
+                    withContext(Dispatchers.IO) {
+                        createDefaultFolders()
+                    }
+                } else {
+                    folderAdapter.submitFoldersWithAddButton(folders)
+                    updateEmptyState(false)
+                }
             }
         }
     }
@@ -633,6 +648,98 @@ class MediaGalleryActivity : AppCompatActivity() {
     private fun updateEmptyState(isEmpty: Boolean) {
         binding.emptyStateLayout.visibility = if (isEmpty) View.VISIBLE else View.GONE
         binding.foldersRecyclerView.visibility = if (isEmpty) View.GONE else View.VISIBLE
+    }
+
+    private suspend fun createDefaultFolders() {
+        try {
+            android.util.Log.d("MediaGalleryActivity", "Creating default folders...")
+
+            val defaultFolders = listOf(
+                DefaultFolderInfo("Photos", "ic_folder", "Store your private photos", "icon_bg_1"),
+                DefaultFolderInfo("Videos", "ic_folder", "Store your private videos", "icon_bg_2"),
+                DefaultFolderInfo("Audios", "ic_folder", "Store your private audio files", "icon_bg_3")
+            )
+
+            val defaultPassword = "0000"
+
+            for (folderInfo in defaultFolders) {
+                // Check if folder already exists
+                val existingFolder = encryptedFolderDao.getFolderByName(folderInfo.name)
+                if (existingFolder == null) {
+                    // Generate salt and hash password
+                    val salt = EncryptionUtils.generateSalt()
+                    val hashedPassword = EncryptionUtils.hashPassword(defaultPassword, salt)
+
+                    // Create folder directory
+                    val folderPath = createFolderDirectory(folderInfo.name)
+
+                    // Create folder entity
+                    val folder = EncryptedFolderEntity(
+                        name = folderInfo.name,
+                        passwordHash = hashedPassword,
+                        salt = salt,
+                        folderPath = folderPath
+                    )
+
+                    // Save to database
+                    encryptedFolderDao.insertFolder(folder)
+                    android.util.Log.d("MediaGalleryActivity", "Created default folder: ${folderInfo.name}")
+                }
+            }
+
+            android.util.Log.d("MediaGalleryActivity", "Default folders creation completed")
+
+            // Show welcome message on main thread
+            runOnUiThread {
+                showWelcomeMessage()
+            }
+
+        } catch (e: Exception) {
+            android.util.Log.e("MediaGalleryActivity", "Error creating default folders", e)
+            runOnUiThread {
+                Toast.makeText(this@MediaGalleryActivity, "Error setting up default folders", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private data class DefaultFolderInfo(
+        val name: String,
+        val icon: String,
+        val description: String,
+        val iconBackground: String
+    )
+
+    private fun showWelcomeMessage() {
+        val message = buildString {
+            append("🎉 Welcome to Hidden Gallery!\n\n")
+            append("We've created 3 default folders for you:\n\n")
+            append("📷 Photos - For your private photos\n")
+            append("🎥 Videos - For your private videos\n")
+            append("🎵 Audios - For your private audio files\n\n")
+            append("➕ Use the '+' button to create more folders\n\n")
+            append("🔐 Default PIN: 0000\n\n")
+            append("You can change the PIN for each folder individually by long-pressing on them.\n\n")
+            append("💡 Tip: Set up a recovery question in Settings for account security!")
+        }
+
+        androidx.appcompat.app.AlertDialog.Builder(this@MediaGalleryActivity)
+            .setTitle("Hidden Gallery Setup Complete")
+            .setMessage(message)
+            .setPositiveButton("Got It!") { _, _ ->
+                // User acknowledged the welcome message
+            }
+            .setNeutralButton("Setup Recovery") { _, _ ->
+                // Open settings to setup recovery
+                try {
+                    val intent = Intent(this@MediaGalleryActivity, SettingsActivity::class.java)
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    android.util.Log.e("MediaGalleryActivity", "Error opening settings", e)
+                    Toast.makeText(this@MediaGalleryActivity, "Unable to open settings", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setCancelable(true)
+            .show()
     }
 
     private fun showCreateFolderDialog() {
