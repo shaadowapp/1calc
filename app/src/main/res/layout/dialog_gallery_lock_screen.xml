@@ -1,0 +1,380 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#000000"
+    android:gravity="center"
+    android:padding="32dp">
+
+    <!-- Lock Icon -->
+    <ImageView
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:src="@drawable/ic_lock"
+        android:layout_marginBottom="24dp"
+        app:tint="@color/text_light_e0e0e0" />
+
+    <!-- Title -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Hidden Gallery"
+        android:textColor="@color/text_light_f2f2f2"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:fontFamily="sans-serif"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Subtitle -->
+    <TextView
+        android:id="@+id/lock_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Enter your PIN to continue"
+        android:textColor="@color/text_muted_a0a0a0"
+        android:textSize="16sp"
+        android:fontFamily="sans-serif"
+        android:layout_marginBottom="32dp"
+        android:gravity="center" />
+
+    <!-- Password Input (for password mode) -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/password_input_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        android:visibility="gone"
+        app:boxBackgroundMode="outline"
+        app:boxBackgroundColor="@color/card_bg_2a2833"
+        app:boxStrokeColor="@color/text_muted_a0a0a0"
+        app:hintTextColor="@color/text_muted_a0a0a0">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/password_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Enter password"
+            android:textColor="@color/text_light_e0e0e0"
+            android:textColorHint="@color/text_muted_a0a0a0"
+            android:inputType="textPassword"
+            android:maxLines="1" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- PIN Input Display (for PIN mode) -->
+    <LinearLayout
+        android:id="@+id/pin_display_layout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="32dp"
+        android:visibility="visible">
+
+        <TextView
+            android:id="@+id/pin_digit_1"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/pin_digit_background"
+            android:gravity="center"
+            android:textColor="@color/text_light_e0e0e0"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginEnd="12dp" />
+
+        <TextView
+            android:id="@+id/pin_digit_2"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/pin_digit_background"
+            android:gravity="center"
+            android:textColor="@color/text_light_e0e0e0"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginEnd="12dp" />
+
+        <TextView
+            android:id="@+id/pin_digit_3"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/pin_digit_background"
+            android:gravity="center"
+            android:textColor="@color/text_light_e0e0e0"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginEnd="12dp" />
+
+        <TextView
+            android:id="@+id/pin_digit_4"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/pin_digit_background"
+            android:gravity="center"
+            android:textColor="@color/text_light_e0e0e0"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+    <!-- PIN Keypad (for PIN mode) -->
+    <LinearLayout
+        android:id="@+id/pin_keypad_layout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="24dp"
+        android:visibility="visible">
+
+        <!-- Row 1: 1, 2, 3 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+
+            <Button
+                android:id="@+id/pin_btn_1"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:text="1"
+                android:textColor="@color/text_light_e0e0e0"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:background="@drawable/pin_button_background"
+                android:layout_marginEnd="12dp" />
+
+            <Button
+                android:id="@+id/pin_btn_2"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:text="2"
+                android:textColor="@color/text_light_e0e0e0"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:background="@drawable/pin_button_background"
+                android:layout_marginEnd="12dp" />
+
+            <Button
+                android:id="@+id/pin_btn_3"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:text="3"
+                android:textColor="@color/text_light_e0e0e0"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:background="@drawable/pin_button_background" />
+
+        </LinearLayout>
+
+        <!-- Row 2: 4, 5, 6 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+
+            <Button
+                android:id="@+id/pin_btn_4"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:text="4"
+                android:textColor="@color/text_light_e0e0e0"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:background="@drawable/pin_button_background"
+                android:layout_marginEnd="12dp" />
+
+            <Button
+                android:id="@+id/pin_btn_5"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:text="5"
+                android:textColor="@color/text_light_e0e0e0"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:background="@drawable/pin_button_background"
+                android:layout_marginEnd="12dp" />
+
+            <Button
+                android:id="@+id/pin_btn_6"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:text="6"
+                android:textColor="@color/text_light_e0e0e0"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:background="@drawable/pin_button_background" />
+
+        </LinearLayout>
+
+        <!-- Row 3: 7, 8, 9 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+
+            <Button
+                android:id="@+id/pin_btn_7"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:text="7"
+                android:textColor="@color/text_light_e0e0e0"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:background="@drawable/pin_button_background"
+                android:layout_marginEnd="12dp" />
+
+            <Button
+                android:id="@+id/pin_btn_8"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:text="8"
+                android:textColor="@color/text_light_e0e0e0"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:background="@drawable/pin_button_background"
+                android:layout_marginEnd="12dp" />
+
+            <Button
+                android:id="@+id/pin_btn_9"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:text="9"
+                android:textColor="@color/text_light_e0e0e0"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:background="@drawable/pin_button_background" />
+
+        </LinearLayout>
+
+        <!-- Row 4: empty, 0, backspace -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <View
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_marginEnd="12dp" />
+
+            <Button
+                android:id="@+id/pin_btn_0"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:text="0"
+                android:textColor="@color/text_light_e0e0e0"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:background="@drawable/pin_button_background"
+                android:layout_marginEnd="12dp" />
+
+            <ImageButton
+                android:id="@+id/pin_btn_backspace"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:src="@drawable/ic_backspace"
+                android:background="@drawable/pin_button_background"
+                android:contentDescription="Backspace"
+                app:tint="@color/text_light_e0e0e0" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Fingerprint Section -->
+    <LinearLayout
+        android:id="@+id/fingerprint_section"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginTop="24dp"
+        android:visibility="gone">
+
+        <!-- OR Divider -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:background="@color/text_muted_a0a0a0"
+                android:alpha="0.3" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="OR"
+                android:textColor="@color/text_muted_a0a0a0"
+                android:textSize="12sp"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:background="@color/text_muted_a0a0a0"
+                android:alpha="0.3" />
+
+        </LinearLayout>
+
+        <!-- Fingerprint Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/fingerprint_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Use Fingerprint"
+            android:textColor="@color/text_light_e0e0e0"
+            app:backgroundTint="@color/card_bg_2a2833"
+            app:cornerRadius="12dp"
+            app:icon="@drawable/ic_fingerprint"
+            app:iconTint="@color/text_light_e0e0e0"
+            app:strokeColor="@color/text_muted_a0a0a0"
+            app:strokeWidth="1dp" />
+
+    </LinearLayout>
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="16dp">
+
+        <!-- Submit Button (for password mode) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/submit_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Unlock"
+            android:textColor="@color/white_ffffff"
+            app:backgroundTint="@color/card_bg_2a2833"
+            app:cornerRadius="12dp"
+            android:layout_marginEnd="16dp"
+            android:visibility="gone" />
+
+        <!-- Cancel Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/cancel_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            android:textColor="@color/text_muted_a0a0a0"
+            app:backgroundTint="@android:color/transparent"
+            app:strokeColor="@color/text_muted_a0a0a0"
+            app:strokeWidth="1dp"
+            app:cornerRadius="12dp" />
+
+    </LinearLayout>
+
+</LinearLayout>

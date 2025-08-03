@@ -346,6 +346,249 @@
                 </LinearLayout>
             </LinearLayout>
 
+            <!-- Hidden Gallery Section -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="32dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hidden Gallery"
+                    android:textColor="@color/text_muted_a0a0a0"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif"
+                    android:layout_marginBottom="12dp"
+                    android:letterSpacing="0.1" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/settings_card_background">
+
+                    <!-- Open Hidden Gallery Button -->
+                    <LinearLayout
+                        android:id="@+id/open_hidden_gallery_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="16dp"
+                        android:background="?android:attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_gallery"
+                            android:layout_marginEnd="16dp"
+                            app:tint="@color/text_light_e0e0e0" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Open Hidden Gallery"
+                                android:textColor="@color/text_light_e0e0e0"
+                                android:textSize="16sp"
+                                android:fontFamily="sans-serif"
+                                android:textStyle="normal" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Access your encrypted media files"
+                                android:textColor="@color/text_muted_a0a0a0"
+                                android:textSize="14sp"
+                                android:fontFamily="sans-serif"
+                                android:layout_marginTop="2dp" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_arrow_down"
+                            android:rotation="270"
+                            app:tint="@color/text_muted_a0a0a0" />
+                    </LinearLayout>
+
+                    <!-- Divider -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/text_muted_a0a0a0"
+                        android:alpha="0.3"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="16dp" />
+
+                    <!-- Change Hidden Gallery Password Button -->
+                    <LinearLayout
+                        android:id="@+id/set_hidden_gallery_security_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="16dp"
+                        android:background="?android:attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_lock"
+                            android:layout_marginEnd="16dp"
+                            app:tint="@color/text_light_e0e0e0" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Set Hidden Gallery Security"
+                                android:textColor="@color/text_light_e0e0e0"
+                                android:textSize="16sp"
+                                android:fontFamily="sans-serif"
+                                android:textStyle="normal" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Choose password, PIN, or fingerprint protection"
+                                android:textColor="@color/text_muted_a0a0a0"
+                                android:textSize="14sp"
+                                android:fontFamily="sans-serif"
+                                android:layout_marginTop="2dp" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_arrow_down"
+                            android:rotation="270"
+                            app:tint="@color/text_muted_a0a0a0" />
+                    </LinearLayout>
+
+                    <!-- Divider -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/text_muted_a0a0a0"
+                        android:alpha="0.3"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="16dp" />
+
+                    <!-- Show Hidden Gallery Button -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="16dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Show Hidden Gallery Button"
+                                android:textColor="@color/text_light_e0e0e0"
+                                android:textSize="16sp"
+                                android:fontFamily="sans-serif"
+                                android:textStyle="normal" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Display hidden gallery button in home features section"
+                                android:textColor="@color/text_muted_a0a0a0"
+                                android:textSize="14sp"
+                                android:fontFamily="sans-serif"
+                                android:layout_marginTop="2dp" />
+                        </LinearLayout>
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/hidden_gallery_switch"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            app:thumbTint="@color/switch_thumb_color"
+                            app:trackTint="@color/switch_track_color" />
+                    </LinearLayout>
+
+                    <!-- Divider -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/text_muted_a0a0a0"
+                        android:alpha="0.3"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="16dp" />
+
+                    <!-- Unlock with Fingerprint -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="16dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Unlock with Fingerprint"
+                                android:textColor="@color/text_light_e0e0e0"
+                                android:textSize="16sp"
+                                android:fontFamily="sans-serif"
+                                android:textStyle="normal" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Allow fingerprint unlock in addition to PIN/password"
+                                android:textColor="@color/text_muted_a0a0a0"
+                                android:textSize="14sp"
+                                android:fontFamily="sans-serif"
+                                android:layout_marginTop="2dp" />
+                        </LinearLayout>
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/fingerprint_unlock_switch"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="false"
+                            app:thumbTint="@color/switch_thumb_color"
+                            app:trackTint="@color/switch_track_color" />
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
             <!-- About App Section -->
             <LinearLayout
                 android:layout_width="match_parent"

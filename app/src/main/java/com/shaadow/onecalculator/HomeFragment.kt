@@ -30,6 +30,8 @@ class HomeFragment : Fragment() {
     private var searchRunnable: Runnable? = null
     private var hasUserInteracted = false
 
+
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -55,6 +57,16 @@ class HomeFragment : Fragment() {
         val versionName = requireContext().packageManager
             .getPackageInfo(requireContext().packageName, 0).versionName
         versionText?.text = "App Version: $versionName"
+
+        // Observe preference changes in real time for immediate effect (like MainTabActivity)
+        val dao = HistoryDatabase.getInstance(requireContext()).preferenceDao()
+        lifecycleScope.launch {
+            dao.observeAllPreferences().collect { prefs ->
+                val hiddenGalleryVisible = prefs.find { it.key == "hidden_gallery_visible" }?.value?.toBooleanStrictOrNull() ?: true
+                android.util.Log.d("HomeFragment", "Real-time preference update - hidden gallery visible: $hiddenGalleryVisible")
+                updateHiddenGalleryButtonVisibility(hiddenGalleryVisible)
+            }
+        }
     }
 
     private fun setupSearchManager() {
@@ -360,5 +372,34 @@ class HomeFragment : Fragment() {
         // Clean up search handler
         searchRunnable?.let { searchHandler.removeCallbacks(it) }
         _binding = null
+    }
+
+
+
+    private fun updateHiddenGalleryButtonVisibility(isVisible: Boolean) {
+        android.util.Log.d("HomeFragment", "Updating hidden gallery button visibility: $isVisible")
+
+        // Animate the visibility change for smooth effect
+        if (isVisible) {
+            if (binding.cardHiddenGallery.visibility != View.VISIBLE) {
+                binding.cardHiddenGallery.visibility = View.VISIBLE
+                binding.cardHiddenGallery.alpha = 0f
+                binding.cardHiddenGallery.animate()
+                    .alpha(1f)
+                    .setDuration(300)
+                    .start()
+            }
+        } else {
+            if (binding.cardHiddenGallery.visibility == View.VISIBLE) {
+                binding.cardHiddenGallery.animate()
+                    .alpha(0f)
+                    .setDuration(300)
+                    .withEndAction {
+                        binding.cardHiddenGallery.visibility = View.GONE
+                        binding.cardHiddenGallery.alpha = 1f // Reset alpha for next show
+                    }
+                    .start()
+            }
+        }
     }
 }

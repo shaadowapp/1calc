@@ -187,10 +187,12 @@ class MathlyChatFragment : Fragment(), ChatAdapter.OnAiActionListener {
                 val enhancedReply = enhanceAIResponse(aiReply.trim())
                 chatAdapter.updateLastAIMessage(enhancedReply)
             } catch (e: Exception) {
+                android.util.Log.e("MathlyChatFragment", "AI Client Error: ${e.message}", e)
                 val errorResponse = "I'm having trouble connecting right now. Please try again in a moment. If the problem persists, you can try:\n\n" +
                                   "• Checking your internet connection\n" +
                                   "• Asking a simpler question\n" +
-                                  "• Restarting the app"
+                                  "• Restarting the app\n\n" +
+                                  "Error: ${e.message}"
                 chatAdapter.updateLastAIMessage(errorResponse)
             }
             scrollToBottom()

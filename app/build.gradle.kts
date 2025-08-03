@@ -7,7 +7,7 @@ plugins {
     id("kotlin-kapt")
 }
 
-// Load MATHLY_API_KEY from local.properties if not present as a project property
+// Load MATHLY_API_KEY from local.properties securely
 val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
@@ -50,8 +50,11 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
+
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        }
     }
     
     buildFeatures {
@@ -85,6 +88,7 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.androidx.activity.ktx)
+    implementation("androidx.biometric:biometric:1.1.0")
     implementation("com.squareup.okhttp3:okhttp:4.11.0")
     implementation("io.noties.markwon:core:4.6.2") {
         exclude(group = "org.jetbrains", module = "annotations-java5")

@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@drawable/settings_card_background">
+
+    <!-- Dialog Header with Back Button -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+        <ImageView
+            android:id="@+id/back_button"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_arrow_back"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:padding="4dp"
+            android:clickable="true"
+            android:focusable="true"
+            app:tint="@color/text_muted_a0a0a0" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Set PIN"
+            android:textColor="@color/text_light_f2f2f2"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif"
+            android:layout_marginStart="8dp" />
+
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Enter a 4-digit PIN for hidden gallery access"
+        android:textColor="@color/text_muted_b0aec0"
+        android:textSize="14sp"
+        android:fontFamily="sans-serif"
+        android:layout_marginBottom="24dp" />
+
+    <!-- PIN Display -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_gravity="center"
+        android:layout_marginBottom="24dp">
+
+        <TextView
+            android:id="@+id/pin_digit_1"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/circle_background"
+            android:gravity="center"
+            android:textColor="@color/text_light_f2f2f2"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginEnd="8dp" />
+
+        <TextView
+            android:id="@+id/pin_digit_2"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/circle_background"
+            android:gravity="center"
+            android:textColor="@color/text_light_f2f2f2"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginEnd="8dp" />
+
+        <TextView
+            android:id="@+id/pin_digit_3"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/circle_background"
+            android:gravity="center"
+            android:textColor="@color/text_light_f2f2f2"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginEnd="8dp" />
+
+        <TextView
+            android:id="@+id/pin_digit_4"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/circle_background"
+            android:gravity="center"
+            android:textColor="@color/text_light_f2f2f2"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+    <!-- PIN Keypad -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_gravity="center">
+
+        <!-- Row 1 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/pin_1"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:text="1"
+                android:textColor="@color/text_light_f2f2f2"
+                android:textSize="18sp"
+                android:background="@drawable/circle_background"
+                android:layout_margin="8dp"
+                style="@style/Widget.MaterialComponents.Button" />
+
+            <Button
+                android:id="@+id/pin_2"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:text="2"
+                android:textColor="@color/text_light_f2f2f2"
+                android:textSize="18sp"
+                android:background="@drawable/circle_background"
+                android:layout_margin="8dp"
+                style="@style/Widget.MaterialComponents.Button" />
+
+            <Button
+                android:id="@+id/pin_3"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:text="3"
+                android:textColor="@color/text_light_f2f2f2"
+                android:textSize="18sp"
+                android:background="@drawable/circle_background"
+                android:layout_margin="8dp"
+                style="@style/Widget.MaterialComponents.Button" />
+
+        </LinearLayout>
+
+        <!-- Row 2 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/pin_4"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:text="4"
+                android:textColor="@color/text_light_f2f2f2"
+                android:textSize="18sp"
+                android:background="@drawable/circle_background"
+                android:layout_margin="8dp"
+                style="@style/Widget.MaterialComponents.Button" />
+
+            <Button
+                android:id="@+id/pin_5"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:text="5"
+                android:textColor="@color/text_light_f2f2f2"
+                android:textSize="18sp"
+                android:background="@drawable/circle_background"
+                android:layout_margin="8dp"
+                style="@style/Widget.MaterialComponents.Button" />
+
+            <Button
+                android:id="@+id/pin_6"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:text="6"
+                android:textColor="@color/text_light_f2f2f2"
+                android:textSize="18sp"
+                android:background="@drawable/circle_background"
+                android:layout_margin="8dp"
+                style="@style/Widget.MaterialComponents.Button" />
+
+        </LinearLayout>
+
+        <!-- Row 3 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/pin_7"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:text="7"
+                android:textColor="@color/text_light_f2f2f2"
+                android:textSize="18sp"
+                android:background="@drawable/circle_background"
+                android:layout_margin="8dp"
+                style="@style/Widget.MaterialComponents.Button" />
+
+            <Button
+                android:id="@+id/pin_8"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:text="8"
+                android:textColor="@color/text_light_f2f2f2"
+                android:textSize="18sp"
+                android:background="@drawable/circle_background"
+                android:layout_margin="8dp"
+                style="@style/Widget.MaterialComponents.Button" />
+
+            <Button
+                android:id="@+id/pin_9"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:text="9"
+                android:textColor="@color/text_light_f2f2f2"
+                android:textSize="18sp"
+                android:background="@drawable/circle_background"
+                android:layout_margin="8dp"
+                style="@style/Widget.MaterialComponents.Button" />
+
+        </LinearLayout>
+
+        <!-- Row 4 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <View
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:layout_margin="8dp" />
+
+            <Button
+                android:id="@+id/pin_0"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:text="0"
+                android:textColor="@color/text_light_f2f2f2"
+                android:textSize="18sp"
+                android:background="@drawable/circle_background"
+                android:layout_margin="8dp"
+                style="@style/Widget.MaterialComponents.Button" />
+
+            <Button
+                android:id="@+id/pin_backspace"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:text="⌫"
+                android:textColor="@color/text_light_f2f2f2"
+                android:textSize="18sp"
+                android:background="@drawable/circle_background"
+                android:layout_margin="8dp"
+                style="@style/Widget.MaterialComponents.Button" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:layout_marginTop="24dp">
+
+        <Button
+            android:id="@+id/cancel_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            android:textColor="@color/text_muted_a0a0a0"
+            android:background="@android:color/transparent"
+            android:layout_marginEnd="16dp"
+            style="@style/Widget.MaterialComponents.Button.TextButton" />
+
+        <Button
+            android:id="@+id/set_pin_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Set PIN"
+            android:textColor="@color/white"
+            android:background="@drawable/bg_button_purple"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:enabled="false"
+            style="@style/Widget.MaterialComponents.Button" />
+    </LinearLayout>
+
+</LinearLayout>
