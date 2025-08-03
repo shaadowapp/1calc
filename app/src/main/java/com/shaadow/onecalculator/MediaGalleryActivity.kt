@@ -145,6 +145,9 @@ class MediaGalleryActivity : AppCompatActivity() {
             onFolderLongClick = { folder ->
                 showFolderOptionsDialog(folder)
             },
+            onFolderMenuClick = { folder, view ->
+                showFolderPopupMenu(folder, view)
+            },
             onAddFolderClick = {
                 showCreateFolderDialog()
             }
@@ -320,6 +323,37 @@ class MediaGalleryActivity : AppCompatActivity() {
 
         binding.createFirstFolderBtn.setOnClickListener {
             showCreateFolderDialog()
+        }
+
+        // Setup toolbar menu
+        binding.toolbar.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.action_select_all -> {
+                    selectAllFolders()
+                    true
+                }
+                R.id.action_delete_selected -> {
+                    deleteSelectedFolders()
+                    true
+                }
+                R.id.action_move_selected -> {
+                    moveSelectedFolders()
+                    true
+                }
+                R.id.action_export_selected -> {
+                    exportSelectedFolders()
+                    true
+                }
+                R.id.action_settings -> {
+                    openSettings()
+                    true
+                }
+                R.id.action_help -> {
+                    showHelpDialog()
+                    true
+                }
+                else -> false
+            }
         }
     }
 
@@ -851,15 +885,50 @@ class MediaGalleryActivity : AppCompatActivity() {
         return folderDir.absolutePath
     }
 
+    private fun showFolderPopupMenu(folder: EncryptedFolderEntity, anchorView: View) {
+        val popup = androidx.appcompat.widget.PopupMenu(this, anchorView)
+        popup.menuInflater.inflate(R.menu.menu_folder_options, popup.menu)
+
+        popup.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.action_open_folder -> {
+                    // TODO: Open folder contents
+                    Toast.makeText(this, "Opening ${folder.name}", Toast.LENGTH_SHORT).show()
+                    true
+                }
+                R.id.action_rename_folder -> {
+                    showRenameFolderDialog(folder)
+                    true
+                }
+                R.id.action_change_pin -> {
+                    showChangePinDialog(folder)
+                    true
+                }
+                R.id.action_export_folder -> {
+                    exportFolder(folder)
+                    true
+                }
+                R.id.action_delete_folder -> {
+                    showDeleteFolderDialog(folder)
+                    true
+                }
+                else -> false
+            }
+        }
+        popup.show()
+    }
+
     private fun showFolderOptionsDialog(folder: EncryptedFolderEntity) {
-        val options = arrayOf("Rename", "Delete")
-        
+        val options = arrayOf("Rename", "Change PIN", "Export", "Delete")
+
         MaterialAlertDialogBuilder(this)
             .setTitle(folder.name)
             .setItems(options) { _, which ->
                 when (which) {
                     0 -> showRenameFolderDialog(folder)
-                    1 -> showDeleteFolderDialog(folder)
+                    1 -> showChangePinDialog(folder)
+                    2 -> exportFolder(folder)
+                    3 -> showDeleteFolderDialog(folder)
                 }
             }
             .show()
@@ -1388,5 +1457,77 @@ class MediaGalleryActivity : AppCompatActivity() {
                 showRecoveryError("Unable to retrieve credentials. Please contact support.")
             }
         }
+    }
+
+    // Toolbar menu actions
+    private fun selectAllFolders() {
+        // TODO: Implement multi-select functionality
+        Toast.makeText(this, "Select All functionality coming soon", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun deleteSelectedFolders() {
+        // TODO: Implement bulk delete functionality
+        Toast.makeText(this, "Delete Selected functionality coming soon", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun moveSelectedFolders() {
+        // TODO: Implement bulk move functionality
+        Toast.makeText(this, "Move Selected functionality coming soon", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun exportSelectedFolders() {
+        // TODO: Implement bulk export functionality
+        Toast.makeText(this, "Export Selected functionality coming soon", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun openSettings() {
+        try {
+            val intent = Intent(this, SettingsActivity::class.java)
+            startActivity(intent)
+        } catch (e: Exception) {
+            android.util.Log.e("MediaGalleryActivity", "Error opening settings", e)
+            Toast.makeText(this, "Unable to open settings", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun showHelpDialog() {
+        val helpMessage = buildString {
+            append("🔐 Hidden Gallery Help\n\n")
+            append("📁 Folder Management:\n")
+            append("• Tap folder to open\n")
+            append("• Long press for options\n")
+            append("• Use ⋮ menu for quick actions\n\n")
+            append("➕ Creating Folders:\n")
+            append("• Tap '+' button to create new folder\n")
+            append("• Set custom PIN for each folder\n\n")
+            append("🔒 Security Features:\n")
+            append("• Each folder has its own PIN\n")
+            append("• Set up recovery questions in Settings\n")
+            append("• Default PIN is 0000 (change recommended)\n\n")
+            append("💡 Tips:\n")
+            append("• Use ⋮ menu in header for bulk operations\n")
+            append("• Export folders to backup your data\n")
+            append("• Change PINs regularly for better security")
+        }
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Help & Tips")
+            .setMessage(helpMessage)
+            .setPositiveButton("Got It", null)
+            .setNeutralButton("Settings") { _, _ ->
+                openSettings()
+            }
+            .show()
+    }
+
+    // Folder-specific actions
+    private fun showChangePinDialog(folder: EncryptedFolderEntity) {
+        // TODO: Implement change PIN functionality
+        Toast.makeText(this, "Change PIN for ${folder.name} coming soon", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun exportFolder(folder: EncryptedFolderEntity) {
+        // TODO: Implement export functionality
+        Toast.makeText(this, "Export ${folder.name} coming soon", Toast.LENGTH_SHORT).show()
     }
 }

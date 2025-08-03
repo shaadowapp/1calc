@@ -14,6 +14,7 @@ import java.util.*
 class EncryptedFolderAdapter(
     private val onFolderClick: (EncryptedFolderEntity) -> Unit,
     private val onFolderLongClick: (EncryptedFolderEntity) -> Unit,
+    private val onFolderMenuClick: (EncryptedFolderEntity, View) -> Unit,
     private val onAddFolderClick: () -> Unit
 ) : ListAdapter<Any, RecyclerView.ViewHolder>(FolderDiffCallback()) {
 
@@ -66,6 +67,7 @@ class EncryptedFolderAdapter(
         private val lockIcon: ImageView = itemView.findViewById(R.id.lock_icon)
         private val folderName: TextView = itemView.findViewById(R.id.folder_name)
         private val folderItemCount: TextView = itemView.findViewById(R.id.folder_item_count)
+        private val folderMenu: ImageView = itemView.findViewById(R.id.folder_menu)
 
         fun bind(folder: EncryptedFolderEntity) {
             folderName.text = folder.name
@@ -82,6 +84,10 @@ class EncryptedFolderAdapter(
             itemView.setOnLongClickListener {
                 onFolderLongClick(folder)
                 true
+            }
+
+            folderMenu.setOnClickListener { view ->
+                onFolderMenuClick(folder, view)
             }
         }
     }

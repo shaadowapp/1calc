@@ -22,7 +22,8 @@
             app:title="Hidden Gallery"
             app:titleTextColor="@color/text_light_f2f2f2"
             app:navigationIcon="@drawable/ic_back"
-            app:navigationIconTint="@color/text_light_f2f2f2" />
+            app:navigationIconTint="@color/text_light_f2f2f2"
+            app:menu="@menu/menu_hidden_gallery" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
