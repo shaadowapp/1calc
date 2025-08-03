@@ -36,9 +36,7 @@ class MediaGalleryActivity : AppCompatActivity() {
     private lateinit var database: HistoryDatabase
     private lateinit var encryptedFolderDao: EncryptedFolderDao
 
-    // Current lock dialog reference for real-time updates
-    private var currentLockDialog: androidx.appcompat.app.AlertDialog? = null
-    private var currentFingerprintSection: android.widget.LinearLayout? = null
+    // No longer needed since fingerprint button is now in keypad
 
     // Broadcast receiver for fingerprint setting changes
     private val fingerprintSettingReceiver = object : BroadcastReceiver() {
@@ -93,8 +91,8 @@ class MediaGalleryActivity : AppCompatActivity() {
             android.util.Log.w("MediaGalleryActivity", "Broadcast receiver was not registered")
         }
 
-        // Dismiss any open dialogs
-        currentLockDialog?.dismiss()
+        // Hide any open lock screen
+        hideLockScreen()
     }
 
     private fun setupToolbar() {
@@ -168,49 +166,68 @@ class MediaGalleryActivity : AppCompatActivity() {
                 // Security is set up, show lock screen
                 showLockScreen(securityMethod)
             } else {
-                // No security set up, proceed normally
-                proceedToGallery()
+                // No security set up, set default PIN "0000" and show lock screen
+                withContext(Dispatchers.IO) {
+                    preferenceDao.setPreference(PreferenceEntity("hidden_gallery_security_method", "pin"))
+                    val defaultPinHash = android.util.Base64.encodeToString("0000".toByteArray(), android.util.Base64.DEFAULT)
+                    preferenceDao.setPreference(PreferenceEntity("hidden_gallery_security_value", defaultPinHash))
+                }
+                showLockScreen("pin")
             }
         }
     }
 
     private fun showLockScreen(securityMethod: String) {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_gallery_lock_screen, null)
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(this, R.style.DialogStyle_Todo)
-            .setView(dialogView)
-            .setCancelable(false)
-            .create()
+        // Show the lock screen overlay
+        val lockScreenOverlay = binding.lockScreenOverlay.root
+        lockScreenOverlay.visibility = View.VISIBLE
 
-        // Store dialog reference for real-time updates
-        currentLockDialog = dialog
-        currentFingerprintSection = dialogView.findViewById(R.id.fingerprint_section)
+        // Make activity full screen
+        window.setFlags(
+            android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN,
+            android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN
+        )
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+
+        // No longer needed since fingerprint button is now in keypad
 
         // Configure UI based on security method
         when (securityMethod) {
-            "password" -> setupPasswordLockScreen(dialogView, dialog)
-            "pin" -> setupPinLockScreen(dialogView, dialog)
+            "password" -> setupPasswordLockScreen()
+            "pin" -> setupPinLockScreen()
             else -> proceedToGallery() // Fallback
         }
 
-        dialog.show()
+        // Hide system UI for true full screen
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                window.insetsController?.let { controller ->
+                    controller.hide(android.view.WindowInsets.Type.statusBars() or android.view.WindowInsets.Type.navigationBars())
+                    controller.systemBarsBehavior = android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                window.decorView.systemUiVisibility = (
+                    android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or
+                    android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                    android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                )
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("MediaGalleryActivity", "Failed to hide system UI: ${e.message}")
+        }
     }
 
-    private fun setupPasswordLockScreen(dialogView: View, dialog: androidx.appcompat.app.AlertDialog) {
-        val passwordInputLayout = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.password_input_layout)
-        val passwordInput = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.password_input)
-        val pinDisplayLayout = dialogView.findViewById<android.widget.LinearLayout>(R.id.pin_display_layout)
-        val pinKeypadLayout = dialogView.findViewById<android.widget.LinearLayout>(R.id.pin_keypad_layout)
-        val submitButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.submit_button)
-        val fingerprintButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.fingerprint_button)
-        val cancelButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.cancel_button)
-        val subtitle = dialogView.findViewById<android.widget.TextView>(R.id.lock_subtitle)
+    private fun setupPasswordLockScreen() {
+        val overlay = binding.lockScreenOverlay
 
         // Show password UI, hide PIN UI
-        passwordInputLayout.visibility = View.VISIBLE
-        pinDisplayLayout.visibility = View.GONE
-        pinKeypadLayout.visibility = View.GONE
-        submitButton.visibility = View.VISIBLE
-        subtitle.text = "Enter your password to continue"
+        overlay.passwordInputLayout.visibility = View.VISIBLE
+        overlay.pinDisplayLayout.visibility = View.GONE
+        overlay.pinKeypadLayout.visibility = View.GONE
+        overlay.actionButtonsLayout.visibility = View.VISIBLE
+        overlay.lockSubtitle.text = "Enter your password to continue"
 
         // Check if fingerprint is enabled
         lifecycleScope.launch {
@@ -218,24 +235,27 @@ class MediaGalleryActivity : AppCompatActivity() {
                 database.preferenceDao().getPreference("hidden_gallery_fingerprint_enabled")?.value?.toBooleanStrictOrNull() ?: false
             }
             if (fingerprintEnabled) {
-                val fingerprintSection = dialogView.findViewById<android.widget.LinearLayout>(R.id.fingerprint_section)
-                fingerprintSection.visibility = View.VISIBLE
-                setupFingerprintAuthentication(fingerprintButton, dialog)
+                // Fingerprint button is now in keypad, no separate section
+                setupFingerprintAuthentication(overlay.fingerprintButton)
             }
         }
 
-        submitButton.setOnClickListener {
-            val enteredPassword = passwordInput.text.toString()
+        overlay.submitButton.setOnClickListener {
+            val enteredPassword = overlay.passwordInput.text.toString()
             if (enteredPassword.isNotEmpty()) {
-                verifyPassword(enteredPassword, dialog)
+                verifyPassword(enteredPassword)
             } else {
                 Toast.makeText(this, "Please enter your password", Toast.LENGTH_SHORT).show()
             }
         }
 
-        cancelButton.setOnClickListener {
-            dialog.dismiss()
-            clearDialogReferences()
+        overlay.cancelButton.setOnClickListener {
+            hideLockScreen()
+            finish()
+        }
+
+        overlay.backButton.setOnClickListener {
+            hideLockScreen()
             finish()
         }
     }
@@ -250,54 +270,84 @@ class MediaGalleryActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupPinLockScreen(dialogView: View, dialog: androidx.appcompat.app.AlertDialog) {
-        val passwordInputLayout = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.password_input_layout)
-        val pinDisplayLayout = dialogView.findViewById<android.widget.LinearLayout>(R.id.pin_display_layout)
-        val pinKeypadLayout = dialogView.findViewById<android.widget.LinearLayout>(R.id.pin_keypad_layout)
-        val submitButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.submit_button)
-        val fingerprintButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.fingerprint_button)
-        val cancelButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.cancel_button)
-        val subtitle = dialogView.findViewById<android.widget.TextView>(R.id.lock_subtitle)
+    private fun hideLockScreen() {
+        binding.lockScreenOverlay.root.visibility = View.GONE
 
+        // Restore normal UI
+        window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN)
+
+        // Show system UI
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                window.insetsController?.show(android.view.WindowInsets.Type.statusBars() or android.view.WindowInsets.Type.navigationBars())
+            } else {
+                @Suppress("DEPRECATION")
+                window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_VISIBLE
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("MediaGalleryActivity", "Failed to show system UI: ${e.message}")
+        }
+
+        clearDialogReferences()
+    }
+
+    private fun setupPinLockScreen() {
+        val overlay = binding.lockScreenOverlay
         // Show PIN UI, hide password UI
-        passwordInputLayout.visibility = View.GONE
-        pinDisplayLayout.visibility = View.VISIBLE
-        pinKeypadLayout.visibility = View.VISIBLE
-        submitButton.visibility = View.GONE
-        subtitle.text = "Enter your PIN to continue"
+        overlay.passwordInputLayout.visibility = View.GONE
+        overlay.pinDisplayLayout.visibility = View.VISIBLE
+        overlay.pinKeypadLayout.visibility = View.VISIBLE
+        overlay.actionButtonsLayout.visibility = View.GONE
 
-        // Check if fingerprint is enabled
+        // Check if this is the default PIN
+        lifecycleScope.launch {
+            val storedPinHash = withContext(Dispatchers.IO) {
+                database.preferenceDao().getPreference("hidden_gallery_security_value")?.value
+            }
+            val defaultPinHash = android.util.Base64.encodeToString("0000".toByteArray(), android.util.Base64.DEFAULT)
+
+            if (storedPinHash == defaultPinHash) {
+                overlay.lockSubtitle.text = "Enter PIN: 0000 (default)"
+            } else {
+                overlay.lockSubtitle.text = "Enter your PIN to continue"
+            }
+        }
+
+        // Check if fingerprint is enabled and setup fingerprint button in keypad
         lifecycleScope.launch {
             val fingerprintEnabled = withContext(Dispatchers.IO) {
                 database.preferenceDao().getPreference("hidden_gallery_fingerprint_enabled")?.value?.toBooleanStrictOrNull() ?: false
             }
             if (fingerprintEnabled) {
-                val fingerprintSection = dialogView.findViewById<android.widget.LinearLayout>(R.id.fingerprint_section)
-                fingerprintSection.visibility = View.VISIBLE
-                setupFingerprintAuthentication(fingerprintButton, dialog)
+                // Show fingerprint button in keypad (fingerprint_button - LEFT side)
+                overlay.fingerprintButton.visibility = View.VISIBLE
+                setupFingerprintAuthentication(overlay.fingerprintButton)
+            } else {
+                // Hide fingerprint button if not enabled
+                overlay.fingerprintButton.visibility = View.GONE
             }
         }
 
         // Setup PIN input
         var currentPin = ""
         val pinDigits = arrayOf(
-            dialogView.findViewById<android.widget.TextView>(R.id.pin_digit_1),
-            dialogView.findViewById<android.widget.TextView>(R.id.pin_digit_2),
-            dialogView.findViewById<android.widget.TextView>(R.id.pin_digit_3),
-            dialogView.findViewById<android.widget.TextView>(R.id.pin_digit_4)
+            overlay.pinDigit1,
+            overlay.pinDigit2,
+            overlay.pinDigit3,
+            overlay.pinDigit4
         )
 
         val numberButtons = arrayOf(
-            dialogView.findViewById<android.widget.Button>(R.id.pin_btn_0),
-            dialogView.findViewById<android.widget.Button>(R.id.pin_btn_1),
-            dialogView.findViewById<android.widget.Button>(R.id.pin_btn_2),
-            dialogView.findViewById<android.widget.Button>(R.id.pin_btn_3),
-            dialogView.findViewById<android.widget.Button>(R.id.pin_btn_4),
-            dialogView.findViewById<android.widget.Button>(R.id.pin_btn_5),
-            dialogView.findViewById<android.widget.Button>(R.id.pin_btn_6),
-            dialogView.findViewById<android.widget.Button>(R.id.pin_btn_7),
-            dialogView.findViewById<android.widget.Button>(R.id.pin_btn_8),
-            dialogView.findViewById<android.widget.Button>(R.id.pin_btn_9)
+            overlay.pinBtn0,
+            overlay.pinBtn1,
+            overlay.pinBtn2,
+            overlay.pinBtn3,
+            overlay.pinBtn4,
+            overlay.pinBtn5,
+            overlay.pinBtn6,
+            overlay.pinBtn7,
+            overlay.pinBtn8,
+            overlay.pinBtn9
         )
 
         numberButtons.forEachIndexed { index, button ->
@@ -308,7 +358,7 @@ class MediaGalleryActivity : AppCompatActivity() {
 
                     // Auto-verify when 4 digits are entered
                     if (currentPin.length == 4) {
-                        verifyPin(currentPin, dialog, pinDigits) {
+                        verifyPin(currentPin, pinDigits) {
                             // Clear PIN on failure
                             currentPin = ""
                             updatePinDisplay(pinDigits, currentPin)
@@ -318,16 +368,21 @@ class MediaGalleryActivity : AppCompatActivity() {
             }
         }
 
-        dialogView.findViewById<android.widget.ImageButton>(R.id.pin_btn_backspace).setOnClickListener {
+        // Backspace button (RIGHT side - id="button_backspace" in your layout)
+        overlay.buttonBackspace.setOnClickListener {
             if (currentPin.isNotEmpty()) {
                 currentPin = currentPin.dropLast(1)
                 updatePinDisplay(pinDigits, currentPin)
             }
         }
 
-        cancelButton.setOnClickListener {
-            dialog.dismiss()
-            clearDialogReferences()
+        overlay.cancelButton.setOnClickListener {
+            hideLockScreen()
+            finish()
+        }
+
+        overlay.backButton.setOnClickListener {
+            hideLockScreen()
             finish()
         }
     }
@@ -338,7 +393,7 @@ class MediaGalleryActivity : AppCompatActivity() {
         }
     }
 
-    private fun verifyPassword(enteredPassword: String, dialog: androidx.appcompat.app.AlertDialog) {
+    private fun verifyPassword(enteredPassword: String) {
         lifecycleScope.launch {
             val storedPasswordHash = withContext(Dispatchers.IO) {
                 database.preferenceDao().getPreference("hidden_gallery_security_value")?.value
@@ -347,8 +402,7 @@ class MediaGalleryActivity : AppCompatActivity() {
             if (storedPasswordHash != null) {
                 val enteredPasswordHash = android.util.Base64.encodeToString(enteredPassword.toByteArray(), android.util.Base64.DEFAULT)
                 if (enteredPasswordHash.trim() == storedPasswordHash.trim()) {
-                    dialog.dismiss()
-                    clearDialogReferences()
+                    hideLockScreen()
                     proceedToGallery()
                 } else {
                     Toast.makeText(this@MediaGalleryActivity, "Incorrect password", Toast.LENGTH_SHORT).show()
@@ -359,7 +413,7 @@ class MediaGalleryActivity : AppCompatActivity() {
         }
     }
 
-    private fun verifyPin(enteredPin: String, dialog: androidx.appcompat.app.AlertDialog, pinDigits: Array<android.widget.TextView>, onFailure: () -> Unit) {
+    private fun verifyPin(enteredPin: String, pinDigits: Array<android.widget.TextView>, onFailure: () -> Unit) {
         lifecycleScope.launch {
             val storedPinHash = withContext(Dispatchers.IO) {
                 database.preferenceDao().getPreference("hidden_gallery_security_value")?.value
@@ -368,10 +422,10 @@ class MediaGalleryActivity : AppCompatActivity() {
             if (storedPinHash != null) {
                 val enteredPinHash = android.util.Base64.encodeToString(enteredPin.toByteArray(), android.util.Base64.DEFAULT)
                 if (enteredPinHash.trim() == storedPinHash.trim()) {
-                    dialog.dismiss()
-                    clearDialogReferences()
+                    hideLockScreen()
                     proceedToGallery()
                 } else {
+                    showPinError(pinDigits)
                     Toast.makeText(this@MediaGalleryActivity, "Incorrect PIN", Toast.LENGTH_SHORT).show()
                     onFailure()
                 }
@@ -382,35 +436,56 @@ class MediaGalleryActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupFingerprintAuthentication(fingerprintButton: com.google.android.material.button.MaterialButton, dialog: androidx.appcompat.app.AlertDialog) {
+    private fun showPinError(pinDigits: Array<android.widget.TextView>) {
+        // Animate PIN digits to show error
+        pinDigits.forEach { digit ->
+            digit.setBackgroundColor(android.graphics.Color.parseColor("#FFFF4444"))
+            digit.animate()
+                .scaleX(1.2f)
+                .scaleY(1.2f)
+                .setDuration(100)
+                .withEndAction {
+                    digit.animate()
+                        .scaleX(1.0f)
+                        .scaleY(1.0f)
+                        .setDuration(100)
+                        .withEndAction {
+                            // Reset background after animation
+                            digit.setBackgroundResource(R.drawable.pin_digit_background)
+                        }
+                }
+        }
+    }
+
+    private fun setupFingerprintAuthentication(fingerprintButton: android.widget.ImageButton) {
         fingerprintButton.setOnClickListener {
             android.util.Log.d("MediaGalleryActivity", "Fingerprint button clicked")
 
             // Add visual feedback
             fingerprintButton.isEnabled = false
-            fingerprintButton.text = "Authenticating..."
+            fingerprintButton.alpha = 0.5f
 
             val biometricManager = BiometricManager.from(this)
             when (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK)) {
                 BiometricManager.BIOMETRIC_SUCCESS -> {
                     android.util.Log.d("MediaGalleryActivity", "Biometric authentication available, showing prompt")
-                    showBiometricPrompt(dialog) {
+                    showBiometricPrompt {
                         // Reset button state on completion
                         fingerprintButton.isEnabled = true
-                        fingerprintButton.text = "Use Fingerprint"
+                        fingerprintButton.alpha = 1.0f
                     }
                 }
                 else -> {
                     android.util.Log.e("MediaGalleryActivity", "Biometric authentication not available")
                     Toast.makeText(this, "Biometric authentication not available", Toast.LENGTH_SHORT).show()
                     fingerprintButton.isEnabled = true
-                    fingerprintButton.text = "Use Fingerprint"
+                    fingerprintButton.alpha = 1.0f
                 }
             }
         }
     }
 
-    private fun showBiometricPrompt(dialog: androidx.appcompat.app.AlertDialog, onComplete: () -> Unit) {
+    private fun showBiometricPrompt(onComplete: () -> Unit) {
         val executor: Executor = ContextCompat.getMainExecutor(this)
         val biometricPrompt = BiometricPrompt(this as FragmentActivity, executor,
             object : BiometricPrompt.AuthenticationCallback() {
@@ -424,8 +499,7 @@ class MediaGalleryActivity : AppCompatActivity() {
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                     super.onAuthenticationSucceeded(result)
                     android.util.Log.d("MediaGalleryActivity", "Biometric authentication succeeded")
-                    dialog.dismiss()
-                    clearDialogReferences()
+                    hideLockScreen()
                     proceedToGallery()
                     onComplete()
                 }
@@ -453,43 +527,33 @@ class MediaGalleryActivity : AppCompatActivity() {
     }
 
     private fun updateFingerprintSectionVisibility(enabled: Boolean) {
-        android.util.Log.d("MediaGalleryActivity", "Updating fingerprint section visibility: $enabled")
+        android.util.Log.d("MediaGalleryActivity", "Updating fingerprint button visibility: $enabled")
 
-        currentFingerprintSection?.let { fingerprintSection ->
-            runOnUiThread {
-                if (enabled) {
-                    // Check if biometric authentication is actually available
-                    val biometricManager = BiometricManager.from(this)
-                    when (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK)) {
-                        BiometricManager.BIOMETRIC_SUCCESS -> {
-                            fingerprintSection.visibility = View.VISIBLE
-
-                            // Setup fingerprint authentication if not already set up
-                            val fingerprintButton = fingerprintSection.findViewById<com.google.android.material.button.MaterialButton>(R.id.fingerprint_button)
-                            currentLockDialog?.let { dialog ->
-                                setupFingerprintAuthentication(fingerprintButton, dialog)
-                            }
-
-                            android.util.Log.d("MediaGalleryActivity", "Fingerprint section shown")
-                        }
-                        else -> {
-                            fingerprintSection.visibility = View.GONE
-                            android.util.Log.d("MediaGalleryActivity", "Biometric not available, hiding fingerprint section")
-                        }
+        runOnUiThread {
+            if (enabled) {
+                // Check if biometric authentication is actually available
+                val biometricManager = BiometricManager.from(this)
+                when (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK)) {
+                    BiometricManager.BIOMETRIC_SUCCESS -> {
+                        // Show fingerprint button in keypad (LEFT side)
+                        binding.lockScreenOverlay.fingerprintButton.visibility = View.VISIBLE
+                        setupFingerprintAuthentication(binding.lockScreenOverlay.fingerprintButton)
+                        android.util.Log.d("MediaGalleryActivity", "Fingerprint button shown on LEFT side")
                     }
-                } else {
-                    fingerprintSection.visibility = View.GONE
-                    android.util.Log.d("MediaGalleryActivity", "Fingerprint section hidden")
+                    else -> {
+                        binding.lockScreenOverlay.fingerprintButton.visibility = View.GONE
+                        android.util.Log.d("MediaGalleryActivity", "Biometric not available, hiding fingerprint button")
+                    }
                 }
+            } else {
+                binding.lockScreenOverlay.fingerprintButton.visibility = View.GONE
+                android.util.Log.d("MediaGalleryActivity", "Fingerprint button hidden")
             }
-        } ?: run {
-            android.util.Log.w("MediaGalleryActivity", "No current fingerprint section to update")
         }
     }
 
     private fun clearDialogReferences() {
-        currentLockDialog = null
-        currentFingerprintSection = null
+        // No longer needed since fingerprint button is now in keypad
         android.util.Log.d("MediaGalleryActivity", "Dialog references cleared")
     }
 
