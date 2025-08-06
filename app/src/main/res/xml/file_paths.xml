@@ -1,4 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
+    <!-- External files directory for general file sharing -->
     <external-files-path name="external_files" path="." />
-</paths> 
+
+    <!-- Internal files directory for encrypted folders -->
+    <files-path name="internal_files" path="." />
+
+    <!-- Cache directory for temporary files -->
+    <cache-path name="cache_files" path="." />
+
+    <!-- External cache directory -->
+    <external-cache-path name="external_cache" path="." />
+
+    <!-- Encrypted media directory (where encrypted folders are stored) -->
+    <files-path name="encrypted_media" path="encrypted_media/" />
+
+    <!-- Root files directory to access all subdirectories -->
+    <files-path name="files_root" path="." />
+
+    <!-- Invoices directory for sharing -->
+    <external-files-path name="invoices" path="invoices/" />
+</paths>

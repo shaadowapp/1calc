@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="16dp"
+    app:cardBackgroundColor="@color/dark_background"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="8dp"
+    app:strokeColor="@color/accent_purple_bb86fc"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="32dp">
+
+        <!-- Header Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginBottom="32dp">
+
+            <!-- Icon -->
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:src="@drawable/ic_folder"
+                android:background="@drawable/icon_bg_5"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp"
+                app:tint="@color/white_ffffff" />
+
+            <!-- Title -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Create New Folder"
+                android:textColor="@color/white_ffffff"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Subtitle -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Secure your files with encryption"
+                android:textColor="@color/text_muted_b0aec0"
+                android:textSize="16sp"
+                android:fontFamily="sans-serif"
+                android:gravity="center" />
+
+        </LinearLayout>
+
+        <!-- Input Fields Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="24dp">
+
+            <!-- Folder Name Input -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/folder_name_input_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:boxBackgroundMode="outline"
+                app:boxBackgroundColor="@color/card_bg_2a2833"
+                app:boxStrokeColor="@color/accent_purple_bb86fc"
+                app:boxStrokeWidth="2dp"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp"
+                app:hintTextColor="@color/accent_purple_bb86fc"
+                app:startIconDrawable="@drawable/ic_folder"
+                app:startIconTint="@color/accent_purple_bb86fc">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/folder_name_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Folder Name"
+                    android:textColor="@color/white_ffffff"
+                    android:textColorHint="@color/text_muted_b0aec0"
+                    android:textSize="16sp"
+                    android:fontFamily="sans-serif"
+                    android:maxLines="1"
+                    android:inputType="text"
+                    android:paddingTop="16dp"
+                    android:paddingBottom="16dp" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- PIN Input -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/folder_pin_input_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:boxBackgroundMode="outline"
+                app:boxBackgroundColor="@color/card_bg_2a2833"
+                app:boxStrokeColor="@color/accent_purple_bb86fc"
+                app:boxStrokeWidth="2dp"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp"
+                app:hintTextColor="@color/accent_purple_bb86fc"
+                app:startIconDrawable="@drawable/ic_lock"
+                app:startIconTint="@color/accent_purple_bb86fc"
+                app:passwordToggleEnabled="true"
+                app:passwordToggleTint="@color/accent_purple_bb86fc">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/folder_pin_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="4-Digit PIN"
+                    android:textColor="@color/white_ffffff"
+                    android:textColorHint="@color/text_muted_b0aec0"
+                    android:textSize="16sp"
+                    android:fontFamily="sans-serif"
+                    android:maxLines="1"
+                    android:maxLength="4"
+                    android:inputType="numberPassword"
+                    android:paddingTop="16dp"
+                    android:paddingBottom="16dp" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Confirm PIN Input -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/folder_confirm_pin_input_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:boxBackgroundMode="outline"
+                app:boxBackgroundColor="@color/card_bg_2a2833"
+                app:boxStrokeColor="@color/accent_purple_bb86fc"
+                app:boxStrokeWidth="2dp"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp"
+                app:hintTextColor="@color/accent_purple_bb86fc"
+                app:startIconDrawable="@drawable/ic_lock"
+                app:startIconTint="@color/accent_purple_bb86fc"
+                app:passwordToggleEnabled="true"
+                app:passwordToggleTint="@color/accent_purple_bb86fc">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/folder_confirm_pin_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Confirm PIN"
+                    android:textColor="@color/white_ffffff"
+                    android:textColorHint="@color/text_muted_b0aec0"
+                    android:textSize="16sp"
+                    android:fontFamily="sans-serif"
+                    android:maxLines="1"
+                    android:maxLength="4"
+                    android:inputType="numberPassword"
+                    android:paddingTop="16dp"
+                    android:paddingBottom="16dp" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+        </LinearLayout>
+
+        <!-- Info Section -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="32dp"
+            app:cardBackgroundColor="@color/card_bg_2a2833"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/accent_purple_bb86fc"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_info"
+                    android:layout_marginEnd="12dp"
+                    app:tint="@color/accent_purple_bb86fc" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Default PIN is 0000. You can customize it or change it later from folder options."
+                    android:textColor="@color/text_light_f2f2f2"
+                    android:textSize="14sp"
+                    android:fontFamily="sans-serif"
+                    android:lineSpacingExtra="2dp" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Buttons Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:weightSum="2">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/cancel_button"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="Cancel"
+                android:textColor="@color/text_muted_b0aec0"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
+                app:cornerRadius="16dp"
+                app:strokeColor="@color/text_muted_b0aec0"
+                app:strokeWidth="2dp"
+                app:backgroundTint="@android:color/transparent" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/create_button"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="Create Folder"
+                android:textColor="@color/white_ffffff"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
+                app:cornerRadius="16dp"
+                app:backgroundTint="@color/accent_purple_bb86fc"
+                app:elevation="4dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

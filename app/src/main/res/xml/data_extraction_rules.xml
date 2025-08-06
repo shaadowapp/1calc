@@ -1,19 +1,71 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Data extraction rules for OneCalculator app
+   Controls what data is backed up to cloud and transferred between devices
    See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <!-- Include calculator settings and preferences -->
+        <include domain="sharedpref" path="calculator_preferences.xml"/>
+        <include domain="sharedpref" path="app_settings.xml"/>
+        <include domain="sharedpref" path="widget_preferences.xml"/>
+
+        <!-- Include calculation history (non-sensitive) -->
+        <include domain="database" path="history_database.db"/>
+        <include domain="database" path="todo_database.db"/>
+
+        <!-- Include app configuration -->
+        <include domain="file" path="calculator_config.json"/>
+
+        <!-- EXCLUDE sensitive data -->
+        <!-- Encrypted folders and their contents -->
+        <exclude domain="file" path="encrypted_media/"/>
+        <exclude domain="file" path="encrypted_folders/"/>
+
+        <!-- Hidden gallery security settings -->
+        <exclude domain="sharedpref" path="hidden_gallery_security.xml"/>
+        <exclude domain="database" path="encrypted_folder_database.db"/>
+
+        <!-- Biometric and security data -->
+        <exclude domain="file" path="security/"/>
+        <exclude domain="file" path="biometric/"/>
+
+        <!-- Temporary and cache files -->
+        <exclude domain="cache"/>
+        <exclude domain="file" path="temp/"/>
+        <exclude domain="file" path="logs/"/>
+
+        <!-- User's private media files -->
+        <exclude domain="file" path="invoices/"/>
+        <exclude domain="external_files" path="private_media/"/>
     </cloud-backup>
-    <!--
+
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <!-- Include basic app data for device transfer -->
+        <include domain="sharedpref" path="calculator_preferences.xml"/>
+        <include domain="sharedpref" path="app_settings.xml"/>
+        <include domain="database" path="history_database.db"/>
+        <include domain="database" path="todo_database.db"/>
+
+        <!-- EXCLUDE all sensitive data from device transfer -->
+        <!-- Hidden gallery and encrypted content -->
+        <exclude domain="file" path="encrypted_media/"/>
+        <exclude domain="file" path="encrypted_folders/"/>
+        <exclude domain="database" path="encrypted_folder_database.db"/>
+
+        <!-- Security and authentication data -->
+        <exclude domain="sharedpref" path="hidden_gallery_security.xml"/>
+        <exclude domain="file" path="security/"/>
+        <exclude domain="file" path="biometric/"/>
+
+        <!-- Private user content -->
+        <exclude domain="file" path="invoices/"/>
+        <exclude domain="external_files" path="private_media/"/>
+
+        <!-- Cache and temporary files -->
+        <exclude domain="cache"/>
+        <exclude domain="file" path="temp/"/>
+        <exclude domain="file" path="logs/"/>
     </device-transfer>
-    -->
 </data-extraction-rules>

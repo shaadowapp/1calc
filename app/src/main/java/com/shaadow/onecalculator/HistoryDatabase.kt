@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [HistoryEntity::class, PreferenceEntity::class, EncryptedFolderEntity::class], version = 5, exportSchema = false)
+@Database(entities = [HistoryEntity::class, PreferenceEntity::class, EncryptedFolderEntity::class], version = 6, exportSchema = false) // erhöhte Version
 abstract class HistoryDatabase : RoomDatabase() {
     abstract fun historyDao(): HistoryDao
     abstract fun preferenceDao(): PreferenceDao
@@ -34,4 +34,4 @@ abstract class HistoryDatabase : RoomDatabase() {
             INSTANCE = null
         }
     }
-} 
+}

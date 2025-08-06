@@ -2,8 +2,19 @@ package com.shaadow.onecalculator
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import androidx.room.ForeignKey
+import androidx.room.Index
 
-@Entity(tableName = "encrypted_folders")
+@Entity(
+    tableName = "encrypted_folders",
+    foreignKeys = [ForeignKey(
+        entity = EncryptedFolderEntity::class,
+        parentColumns = ["id"],
+        childColumns = ["parentFolderId"],
+        onDelete = ForeignKey.CASCADE // Optional: define behavior on parent delete
+    )],
+    indices = [Index(value = ["parentFolderId"])] // Optional: improves query performance
+)
 data class EncryptedFolderEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
@@ -13,5 +24,6 @@ data class EncryptedFolderEntity(
     val createdAt: Long = System.currentTimeMillis(),
     val lastModified: Long = System.currentTimeMillis(),
     val itemCount: Int = 0,
-    val folderPath: String // Internal app directory path for this folder
+    val folderPath: String, // Internal app directory path for this folder
+    val parentFolderId: Long? = null // ID of the parent folder, null for root folders
 )

@@ -24,6 +24,7 @@ kapt {
 android {
     namespace = "com.shaadow.onecalculator"
     compileSdk = 35
+    buildToolsVersion = "35.0.0"
 
     defaultConfig {
         applicationId = "com.shaadow.onecalculator"
@@ -72,7 +73,6 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     implementation(libs.rhino.android)
     implementation(libs.androidx.viewpager2)
-    implementation(libs.material)
     implementation(libs.flexbox)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)

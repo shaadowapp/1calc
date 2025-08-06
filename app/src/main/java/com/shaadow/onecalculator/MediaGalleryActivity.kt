@@ -21,6 +21,7 @@ import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
@@ -139,8 +140,7 @@ class MediaGalleryActivity : AppCompatActivity() {
     private fun setupFolderList() {
         folderAdapter = EncryptedFolderAdapter(
             onFolderClick = { folder ->
-                // TODO: Open folder contents (implement in next phase)
-                Toast.makeText(this, "Opening ${folder.name}", Toast.LENGTH_SHORT).show()
+                showFolderPinDialog(folder)
             },
             onFolderLongClick = { folder ->
                 showFolderOptionsDialog(folder)
@@ -689,9 +689,10 @@ class MediaGalleryActivity : AppCompatActivity() {
             android.util.Log.d("MediaGalleryActivity", "Creating default folders...")
 
             val defaultFolders = listOf(
-                DefaultFolderInfo("Photos", "ic_folder", "Store your private photos", "icon_bg_1"),
-                DefaultFolderInfo("Videos", "ic_folder", "Store your private videos", "icon_bg_2"),
-                DefaultFolderInfo("Audios", "ic_folder", "Store your private audio files", "icon_bg_3")
+                DefaultFolderInfo("Photos", "ic_folder", "Store your private photos", "icon_bg_1", 1),
+                DefaultFolderInfo("Videos", "ic_folder", "Store your private videos", "icon_bg_2", 2),
+                DefaultFolderInfo("Audios", "ic_folder", "Store your private audio files", "icon_bg_3", 3),
+                DefaultFolderInfo("Others", "ic_folder", "Store other private files", "icon_bg_4", 4)
             )
 
             val defaultPassword = "0000"
@@ -740,19 +741,21 @@ class MediaGalleryActivity : AppCompatActivity() {
         val name: String,
         val icon: String,
         val description: String,
-        val iconBackground: String
+        val iconBackground: String,
+        val order: Int
     )
 
     private fun showWelcomeMessage() {
         val message = buildString {
             append("🎉 Welcome to Hidden Gallery!\n\n")
-            append("We've created 3 default folders for you:\n\n")
+            append("We've created 4 default folders for you:\n\n")
             append("📷 Photos - For your private photos\n")
             append("🎥 Videos - For your private videos\n")
-            append("🎵 Audios - For your private audio files\n\n")
+            append("🎵 Audios - For your private audio files\n")
+            append("📁 Others - For other private files\n\n")
             append("➕ Use the '+' button to create more folders\n\n")
             append("🔐 Default PIN: 0000\n\n")
-            append("You can change the PIN for each folder individually by long-pressing on them.\n\n")
+            append("You can change the PIN for each folder individually by using the ⋮ menu.\n\n")
             append("💡 Tip: Set up a recovery question in Settings for account security!")
         }
 
@@ -777,13 +780,17 @@ class MediaGalleryActivity : AppCompatActivity() {
     }
 
     private fun showCreateFolderDialog() {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_create_folder, null)
+        val dialogView = layoutInflater.inflate(R.layout.dialog_create_folder_pin, null)
         val folderNameInput = dialogView.findViewById<TextInputEditText>(R.id.folder_name_input)
-        val folderPasswordInput = dialogView.findViewById<TextInputEditText>(R.id.folder_password_input)
-        val folderConfirmPasswordInput = dialogView.findViewById<TextInputEditText>(R.id.folder_confirm_password_input)
+        val folderPinInput = dialogView.findViewById<TextInputEditText>(R.id.folder_pin_input)
+        val folderConfirmPinInput = dialogView.findViewById<TextInputEditText>(R.id.folder_confirm_pin_input)
         val folderNameLayout = dialogView.findViewById<TextInputLayout>(R.id.folder_name_input_layout)
-        val folderPasswordLayout = dialogView.findViewById<TextInputLayout>(R.id.folder_password_input_layout)
-        val folderConfirmPasswordLayout = dialogView.findViewById<TextInputLayout>(R.id.folder_confirm_password_input_layout)
+        val folderPinLayout = dialogView.findViewById<TextInputLayout>(R.id.folder_pin_input_layout)
+        val folderConfirmPinLayout = dialogView.findViewById<TextInputLayout>(R.id.folder_confirm_pin_input_layout)
+
+        // Set default PIN
+        folderPinInput.setText("0000")
+        folderConfirmPinInput.setText("0000")
 
         val dialog = MaterialAlertDialogBuilder(this)
             .setView(dialogView)
@@ -795,13 +802,13 @@ class MediaGalleryActivity : AppCompatActivity() {
 
         dialogView.findViewById<View>(R.id.create_button).setOnClickListener {
             val name = folderNameInput.text?.toString()?.trim() ?: ""
-            val password = folderPasswordInput.text?.toString() ?: ""
-            val confirmPassword = folderConfirmPasswordInput.text?.toString() ?: ""
+            val pin = folderPinInput.text?.toString() ?: ""
+            val confirmPin = folderConfirmPinInput.text?.toString() ?: ""
 
             // Clear previous errors
             folderNameLayout.error = null
-            folderPasswordLayout.error = null
-            folderConfirmPasswordLayout.error = null
+            folderPinLayout.error = null
+            folderConfirmPinLayout.error = null
 
             var hasError = false
 
@@ -814,23 +821,100 @@ class MediaGalleryActivity : AppCompatActivity() {
                 hasError = true
             }
 
-            if (password.isEmpty()) {
-                folderPasswordLayout.error = "Password is required"
+            if (pin.length != 4) {
+                folderPinLayout.error = "PIN must be exactly 4 digits"
                 hasError = true
-            } else if (password.length < 4) {
-                folderPasswordLayout.error = "Password must be at least 4 characters"
+            } else if (!pin.all { it.isDigit() }) {
+                folderPinLayout.error = "PIN must contain only numbers"
                 hasError = true
             }
 
-            if (confirmPassword != password) {
-                folderConfirmPasswordLayout.error = "Passwords do not match"
+            if (confirmPin != pin) {
+                folderConfirmPinLayout.error = "PINs do not match"
                 hasError = true
             }
 
             if (!hasError) {
-                createFolder(name, password)
+                createFolder(name, pin)
                 dialog.dismiss()
             }
+        }
+
+        dialog.show()
+    }
+
+    private fun showFolderPinDialog(folder: EncryptedFolderEntity) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_folder_pin, null)
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this, R.style.DialogStyle_Todo)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        // Set folder name
+        dialogView.findViewById<TextView>(R.id.folder_name_text).text = folder.name
+
+        val pinDigits = arrayOf(
+            dialogView.findViewById<TextView>(R.id.pin_digit_1),
+            dialogView.findViewById<TextView>(R.id.pin_digit_2),
+            dialogView.findViewById<TextView>(R.id.pin_digit_3),
+            dialogView.findViewById<TextView>(R.id.pin_digit_4)
+        )
+
+        var currentPin = ""
+        val errorMessage = dialogView.findViewById<TextView>(R.id.error_message)
+
+        // Number buttons with null checks
+        val numberButtons = arrayOf(
+            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_1),
+            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_2),
+            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_3),
+            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_4),
+            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_5),
+            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_6),
+            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_7),
+            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_8),
+            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_9),
+            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_0)
+        )
+
+        numberButtons.forEachIndexed { index, button ->
+            button?.setOnClickListener {
+                if (currentPin.length < 4) {
+                    currentPin += if (index == 9) "0" else (index + 1).toString()
+                    updatePinDisplay(pinDigits, currentPin)
+                    errorMessage?.visibility = View.GONE
+
+                    if (currentPin.length == 4) {
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            verifyFolderPin(folder, currentPin) { success ->
+                                if (success) {
+                                    dialog.dismiss()
+                                    openFolderContents(folder)
+                                } else {
+                                    showPinError(pinDigits)
+                                    errorMessage?.visibility = View.VISIBLE
+                                    currentPin = ""
+                                    updatePinDisplay(pinDigits, currentPin)
+                                }
+                            }
+                        }, 300)
+                    }
+                }
+            }
+        }
+
+        // Backspace button with null check
+        dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_backspace)?.setOnClickListener {
+            if (currentPin.isNotEmpty()) {
+                currentPin = currentPin.dropLast(1)
+                updatePinDisplay(pinDigits, currentPin)
+                errorMessage?.visibility = View.GONE
+            }
+        }
+
+        // Cancel button with null check
+        dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.cancel_button)?.setOnClickListener {
+            dialog.dismiss()
         }
 
         dialog.show()
@@ -892,8 +976,7 @@ class MediaGalleryActivity : AppCompatActivity() {
         popup.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.action_open_folder -> {
-                    // TODO: Open folder contents
-                    Toast.makeText(this, "Opening ${folder.name}", Toast.LENGTH_SHORT).show()
+                    showFolderPinDialog(folder)
                     true
                 }
                 R.id.action_rename_folder -> {
@@ -1529,5 +1612,41 @@ class MediaGalleryActivity : AppCompatActivity() {
     private fun exportFolder(folder: EncryptedFolderEntity) {
         // TODO: Implement export functionality
         Toast.makeText(this, "Export ${folder.name} coming soon", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun verifyFolderPin(folder: EncryptedFolderEntity, enteredPin: String, callback: (Boolean) -> Unit) {
+        lifecycleScope.launch {
+            try {
+                android.util.Log.d("MediaGalleryActivity", "Verifying PIN '$enteredPin' for folder: ${folder.name}")
+                val isValid = withContext(Dispatchers.IO) {
+                    val storedHash = folder.passwordHash
+                    val salt = folder.salt
+                    val enteredHash = EncryptionUtils.hashPassword(enteredPin, salt)
+                    android.util.Log.d("MediaGalleryActivity", "Stored hash: $storedHash")
+                    android.util.Log.d("MediaGalleryActivity", "Entered hash: $enteredHash")
+                    android.util.Log.d("MediaGalleryActivity", "Salt: $salt")
+                    val result = storedHash == enteredHash
+                    android.util.Log.d("MediaGalleryActivity", "PIN verification result: $result")
+                    result
+                }
+                callback(isValid)
+            } catch (e: Exception) {
+                android.util.Log.e("MediaGalleryActivity", "Error verifying folder PIN", e)
+                callback(false)
+            }
+        }
+    }
+
+    private fun openFolderContents(folder: EncryptedFolderEntity) {
+        try {
+            android.util.Log.d("MediaGalleryActivity", "Opening folder contents for: ${folder.name}, ID: ${folder.id}")
+            val intent = Intent(this, FolderContentsActivity::class.java)
+            intent.putExtra(FolderContentsActivity.EXTRA_FOLDER_ID, folder.id)
+            startActivity(intent)
+            android.util.Log.d("MediaGalleryActivity", "Intent started successfully")
+        } catch (e: Exception) {
+            android.util.Log.e("MediaGalleryActivity", "Error opening folder contents", e)
+            Toast.makeText(this, "Error opening folder: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 }
