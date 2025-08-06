@@ -5,11 +5,12 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [HistoryEntity::class, PreferenceEntity::class, EncryptedFolderEntity::class], version = 6, exportSchema = false) // erhöhte Version
+@Database(entities = [HistoryEntity::class, PreferenceEntity::class, EncryptedFolderEntity::class, EncryptedFileEntity::class], version = 8, exportSchema = false) // Updated for new architecture
 abstract class HistoryDatabase : RoomDatabase() {
     abstract fun historyDao(): HistoryDao
     abstract fun preferenceDao(): PreferenceDao
     abstract fun encryptedFolderDao(): EncryptedFolderDao
+    abstract fun encryptedFileDao(): EncryptedFileDao
 
     companion object {
         @Volatile
@@ -22,8 +23,8 @@ abstract class HistoryDatabase : RoomDatabase() {
                     HistoryDatabase::class.java,
                     "history_database"
                 )
-                .fallbackToDestructiveMigration()
-                .build()
+                    .fallbackToDestructiveMigration(dropAllTables = true)
+                    .build()
                 INSTANCE = instance
                 instance
             }

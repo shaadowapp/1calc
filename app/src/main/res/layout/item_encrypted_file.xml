@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    app:strokeWidth="0dp"
+    app:cardBackgroundColor="@color/card_bg_2a2833">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- File Icon -->
+        <ImageView
+            android:id="@+id/file_icon"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="8dp"
+            android:src="@drawable/ic_file"
+            app:tint="@color/accent_purple_bb86fc" />
+
+        <!-- File Name -->
+        <TextView
+            android:id="@+id/file_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:ellipsize="middle"
+            android:gravity="center"
+            android:maxLines="2"
+            android:text="filename.jpg"
+            android:textColor="@color/text_light_f2f2f2"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <!-- File Info (Type • Size) -->
+        <TextView
+            android:id="@+id/file_info"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="2dp"
+            android:gravity="center"
+            android:text="Image • 2.4 MB"
+            android:textColor="@color/text_muted_b0aec0"
+            android:textSize="12sp" />
+
+        <!-- File Date -->
+        <TextView
+            android:id="@+id/file_date"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="Dec 06, 2024"
+            android:textColor="@color/text_muted_b0aec0"
+            android:textSize="11sp" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

@@ -23,7 +23,10 @@ data class EncryptedFolderEntity(
     val salt: String, // Salt used for encryption
     val createdAt: Long = System.currentTimeMillis(),
     val lastModified: Long = System.currentTimeMillis(),
-    val itemCount: Int = 0,
-    val folderPath: String, // Internal app directory path for this folder
     val parentFolderId: Long? = null // ID of the parent folder, null for root folders
-)
+) {
+    // Backward compatibility property for old FolderContentsActivity
+    // This is deprecated and should not be used in new code
+    @Deprecated("Use virtual folder system instead")
+    val folderPath: String get() = "/deprecated/virtual/folder/$id"
+}

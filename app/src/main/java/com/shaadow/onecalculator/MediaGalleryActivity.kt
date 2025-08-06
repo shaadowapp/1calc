@@ -27,6 +27,7 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.shaadow.onecalculator.databinding.ActivityMediaGalleryBinding
 import com.shaadow.onecalculator.utils.EncryptionUtils
+import com.shaadow.onecalculator.utils.ExternalStorageManager
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -42,6 +43,7 @@ class MediaGalleryActivity : AppCompatActivity() {
     private lateinit var folderAdapter: EncryptedFolderAdapter
     private lateinit var database: HistoryDatabase
     private lateinit var encryptedFolderDao: EncryptedFolderDao
+    private var currentMasterPassword: String = ""
 
     // No longer needed since fingerprint button is now in keypad
 
@@ -75,6 +77,7 @@ class MediaGalleryActivity : AppCompatActivity() {
 
         setupToolbar()
         initializeDatabase()
+        initializeExternalStorage()
 
         // Register broadcast receiver for fingerprint setting changes
         val filter = IntentFilter(SettingsActivity.ACTION_FINGERPRINT_SETTING_CHANGED)
@@ -113,6 +116,31 @@ class MediaGalleryActivity : AppCompatActivity() {
         encryptedFolderDao = database.encryptedFolderDao()
     }
 
+    private fun initializeExternalStorage() {
+        lifecycleScope.launch {
+            try {
+                android.util.Log.d("MediaGalleryActivity", "Initializing external storage...")
+                val success = withContext(Dispatchers.IO) {
+                    ExternalStorageManager.initializeHiddenDirectory(this@MediaGalleryActivity)
+                }
+                if (success) {
+                    android.util.Log.d("MediaGalleryActivity", "External storage initialized successfully")
+                    val hiddenDir = ExternalStorageManager.getHiddenCalculatorDir(this@MediaGalleryActivity)
+                    android.util.Log.d("MediaGalleryActivity", "Hidden folder location: ${hiddenDir?.absolutePath}")
+                } else {
+                    android.util.Log.w("MediaGalleryActivity", "Failed to initialize external storage")
+                    // Show info to user about the hidden folder location
+                    val hiddenDir = ExternalStorageManager.getHiddenCalculatorDir(this@MediaGalleryActivity)
+                    if (hiddenDir != null) {
+                        android.util.Log.i("MediaGalleryActivity", "Hidden folder will be created at: ${hiddenDir.absolutePath}")
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("MediaGalleryActivity", "Error initializing external storage", e)
+            }
+        }
+    }
+
     private fun checkPermissions() {
         val permissions = mutableListOf<String>()
         
@@ -139,14 +167,14 @@ class MediaGalleryActivity : AppCompatActivity() {
 
     private fun setupFolderList() {
         folderAdapter = EncryptedFolderAdapter(
-            onFolderClick = { folder ->
-                showFolderPinDialog(folder)
+            onFolderClick = { folderWithCount ->
+                showFolderPinDialog(folderWithCount.folder)
             },
-            onFolderLongClick = { folder ->
-                showFolderOptionsDialog(folder)
+            onFolderLongClick = { folderWithCount ->
+                showFolderOptionsDialog(folderWithCount.folder)
             },
-            onFolderMenuClick = { folder, view ->
-                showFolderPopupMenu(folder, view)
+            onFolderMenuClick = { folderWithCount, view ->
+                showFolderPopupMenu(folderWithCount.folder, view)
             },
             onAddFolderClick = {
                 showCreateFolderDialog()
@@ -172,7 +200,14 @@ class MediaGalleryActivity : AppCompatActivity() {
                         createDefaultFolders()
                     }
                 } else {
-                    folderAdapter.submitFoldersWithAddButton(folders)
+                    // Convert to FolderWithCount
+                    val foldersWithCount = withContext(Dispatchers.IO) {
+                        folders.map { folder ->
+                            val fileCount = database.encryptedFileDao().getFileCountInFolder(folder.id)
+                            FolderWithCount(folder, fileCount)
+                        }
+                    }
+                    folderAdapter.submitFoldersWithAddButton(foldersWithCount)
                     updateEmptyState(false)
                 }
             }
@@ -508,6 +543,7 @@ class MediaGalleryActivity : AppCompatActivity() {
             if (storedPasswordHash != null) {
                 val enteredPasswordHash = android.util.Base64.encodeToString(enteredPassword.toByteArray(), android.util.Base64.DEFAULT)
                 if (enteredPasswordHash.trim() == storedPasswordHash.trim()) {
+                    currentMasterPassword = enteredPassword // Store for file encryption
                     hideLockScreen()
                     proceedToGallery()
                 } else {
@@ -528,6 +564,7 @@ class MediaGalleryActivity : AppCompatActivity() {
             if (storedPinHash != null) {
                 val enteredPinHash = android.util.Base64.encodeToString(enteredPin.toByteArray(), android.util.Base64.DEFAULT)
                 if (enteredPinHash.trim() == storedPinHash.trim()) {
+                    currentMasterPassword = enteredPin // Store for file encryption
                     hideLockScreen()
                     proceedToGallery()
                 } else {
@@ -605,6 +642,20 @@ class MediaGalleryActivity : AppCompatActivity() {
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                     super.onAuthenticationSucceeded(result)
                     android.util.Log.d("MediaGalleryActivity", "Biometric authentication succeeded")
+                    // For biometric auth, we need to get the stored password/PIN for encryption
+                    lifecycleScope.launch {
+                        try {
+                            val storedValue = withContext(Dispatchers.IO) {
+                                database.preferenceDao().getPreference("hidden_gallery_security_value")?.value
+                            }
+                            storedValue?.let { encodedValue ->
+                                currentMasterPassword = String(android.util.Base64.decode(encodedValue, android.util.Base64.DEFAULT))
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("MediaGalleryActivity", "Error retrieving master password for biometric auth", e)
+                            currentMasterPassword = "0000" // Fallback to default
+                        }
+                    }
                     hideLockScreen()
                     proceedToGallery()
                     onComplete()
@@ -705,15 +756,11 @@ class MediaGalleryActivity : AppCompatActivity() {
                     val salt = EncryptionUtils.generateSalt()
                     val hashedPassword = EncryptionUtils.hashPassword(defaultPassword, salt)
 
-                    // Create folder directory
-                    val folderPath = createFolderDirectory(folderInfo.name)
-
-                    // Create folder entity
+                    // Create virtual folder entity (no physical folder needed)
                     val folder = EncryptedFolderEntity(
                         name = folderInfo.name,
                         passwordHash = hashedPassword,
-                        salt = salt,
-                        folderPath = folderPath
+                        salt = salt
                     )
 
                     // Save to database
@@ -934,15 +981,11 @@ class MediaGalleryActivity : AppCompatActivity() {
                 val salt = EncryptionUtils.generateSalt()
                 val hashedPassword = EncryptionUtils.hashPassword(password, salt)
 
-                // Create folder directory
-                val folderPath = createFolderDirectory(name)
-
-                // Create folder entity
+                // Create virtual folder entity (no physical folder needed)
                 val folder = EncryptedFolderEntity(
                     name = name,
                     passwordHash = hashedPassword,
-                    salt = salt,
-                    folderPath = folderPath
+                    salt = salt
                 )
 
                 // Save to database
@@ -955,19 +998,8 @@ class MediaGalleryActivity : AppCompatActivity() {
         }
     }
 
-    private fun createFolderDirectory(folderName: String): String {
-        val appDir = File(filesDir, "encrypted_media")
-        if (!appDir.exists()) {
-            appDir.mkdirs()
-        }
-
-        val folderDir = File(appDir, EncryptionUtils.generateSecureFileName())
-        if (!folderDir.exists()) {
-            folderDir.mkdirs()
-        }
-
-        return folderDir.absolutePath
-    }
+    // Removed: No longer need physical folder creation
+    // Virtual folders are managed in database only
 
     private fun showFolderPopupMenu(folder: EncryptedFolderEntity, anchorView: View) {
         val popup = androidx.appcompat.widget.PopupMenu(this, anchorView)
@@ -1640,8 +1672,9 @@ class MediaGalleryActivity : AppCompatActivity() {
     private fun openFolderContents(folder: EncryptedFolderEntity) {
         try {
             android.util.Log.d("MediaGalleryActivity", "Opening folder contents for: ${folder.name}, ID: ${folder.id}")
-            val intent = Intent(this, FolderContentsActivity::class.java)
-            intent.putExtra(FolderContentsActivity.EXTRA_FOLDER_ID, folder.id)
+            val intent = Intent(this, NewFolderContentsActivity::class.java)
+            intent.putExtra(NewFolderContentsActivity.EXTRA_FOLDER_ID, folder.id)
+            intent.putExtra(NewFolderContentsActivity.EXTRA_MASTER_PASSWORD, currentMasterPassword)
             startActivity(intent)
             android.util.Log.d("MediaGalleryActivity", "Intent started successfully")
         } catch (e: Exception) {

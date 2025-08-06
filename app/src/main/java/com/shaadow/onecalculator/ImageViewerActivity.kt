@@ -28,10 +28,12 @@ class ImageViewerActivity : AppCompatActivity() {
     private lateinit var fabShare: FloatingActionButton
     private lateinit var titleTextView: TextView
     private lateinit var currentFile: File
+    private var isTemporaryFile: Boolean = false
 
     companion object {
         const val EXTRA_FILE_PATH = "file_path"
         const val EXTRA_FILE_NAME = "file_name"
+        const val EXTRA_IS_TEMPORARY = "is_temporary"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,6 +62,7 @@ class ImageViewerActivity : AppCompatActivity() {
     private fun loadImage() {
         val filePath = intent.getStringExtra(EXTRA_FILE_PATH)
         val fileName = intent.getStringExtra(EXTRA_FILE_NAME) ?: "Unknown"
+        isTemporaryFile = intent.getBooleanExtra(EXTRA_IS_TEMPORARY, false)
 
         if (filePath == null) {
             Toast.makeText(this, "Error: File path not provided", Toast.LENGTH_SHORT).show()
@@ -146,6 +149,27 @@ class ImageViewerActivity : AppCompatActivity() {
 
     private fun shareImage() {
         try {
+            // For temporary files, warn user about sharing decrypted content
+            if (isTemporaryFile) {
+                android.app.AlertDialog.Builder(this)
+                    .setTitle("Share Decrypted File")
+                    .setMessage("This will share the decrypted version of your file. Continue?")
+                    .setPositiveButton("Share") { _, _ ->
+                        performShare()
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            } else {
+                performShare()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("ImageViewerActivity", "Error sharing file: ${currentFile.name}", e)
+            Toast.makeText(this, "Error sharing file: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun performShare() {
+        try {
             val authority = "${applicationContext.packageName}.fileprovider"
             val uri = FileProvider.getUriForFile(this, authority, currentFile)
             val mimeType = getMimeTypeFromFile(currentFile)
@@ -164,9 +188,9 @@ class ImageViewerActivity : AppCompatActivity() {
                 openWithExternalApp()
             }
         } catch (e: Exception) {
-            android.util.Log.e("ImageViewerActivity", "Error sharing file: ${currentFile.name}", e)
+            android.util.Log.e("ImageViewerActivity", "Error in performShare: ${currentFile.name}", e)
             Toast.makeText(this, "Error sharing file: ${e.message}", Toast.LENGTH_SHORT).show()
-            
+
             // Fallback: try to open with external app
             openWithExternalApp()
         }

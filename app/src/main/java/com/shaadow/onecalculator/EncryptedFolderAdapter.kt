@@ -12,9 +12,9 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class EncryptedFolderAdapter(
-    private val onFolderClick: (EncryptedFolderEntity) -> Unit,
-    private val onFolderLongClick: (EncryptedFolderEntity) -> Unit,
-    private val onFolderMenuClick: (EncryptedFolderEntity, View) -> Unit,
+    private val onFolderClick: (FolderWithCount) -> Unit,
+    private val onFolderLongClick: (FolderWithCount) -> Unit,
+    private val onFolderMenuClick: (FolderWithCount, View) -> Unit,
     private val onAddFolderClick: () -> Unit
 ) : ListAdapter<Any, RecyclerView.ViewHolder>(FolderDiffCallback()) {
 
@@ -50,12 +50,12 @@ class EncryptedFolderAdapter(
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (holder) {
-            is FolderViewHolder -> holder.bind(getItem(position) as EncryptedFolderEntity)
+            is FolderViewHolder -> holder.bind(getItem(position) as FolderWithCount)
             is AddFolderViewHolder -> holder.bind()
         }
     }
 
-    fun submitFoldersWithAddButton(folders: List<EncryptedFolderEntity>) {
+    fun submitFoldersWithAddButton(folders: List<FolderWithCount>) {
         val itemsWithAddButton = folders.toMutableList<Any>().apply {
             add(ADD_BUTTON_ITEM)
         }
@@ -69,25 +69,21 @@ class EncryptedFolderAdapter(
         private val folderItemCount: TextView = itemView.findViewById(R.id.folder_item_count)
         private val folderMenu: ImageView = itemView.findViewById(R.id.folder_menu)
 
-        fun bind(folder: EncryptedFolderEntity) {
-            folderName.text = folder.name
-            folderItemCount.text = when (folder.itemCount) {
-                0 -> "Empty"
-                1 -> "1 item"
-                else -> "${folder.itemCount} items"
-            }
+        fun bind(folderWithCount: FolderWithCount) {
+            folderName.text = folderWithCount.name
+            folderItemCount.text = folderWithCount.itemCountText
 
             itemView.setOnClickListener {
-                onFolderClick(folder)
+                onFolderClick(folderWithCount)
             }
 
             itemView.setOnLongClickListener {
-                onFolderLongClick(folder)
+                onFolderLongClick(folderWithCount)
                 true
             }
 
             folderMenu.setOnClickListener { view ->
-                onFolderMenuClick(folder, view)
+                onFolderMenuClick(folderWithCount, view)
             }
         }
     }

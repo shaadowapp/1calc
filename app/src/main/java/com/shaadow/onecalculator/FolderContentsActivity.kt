@@ -214,7 +214,6 @@ class FolderContentsActivity : AppCompatActivity() {
                         name = name,
                         passwordHash = folder.passwordHash,
                         salt = folder.salt,
-                        folderPath = subfolderFile.absolutePath,
                         parentFolderId = folder.id
                     )
                     withContext(Dispatchers.IO) {
@@ -556,7 +555,6 @@ class FolderContentsActivity : AppCompatActivity() {
                                     folderToUpdate?.let {
                                         val updatedEntity = it.copy(
                                             name = newFile.name,
-                                            folderPath = newFile.absolutePath,
                                             lastModified = System.currentTimeMillis()
                                         )
                                         db.encryptedFolderDao().updateFolder(updatedEntity)

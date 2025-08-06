@@ -34,7 +34,7 @@ interface EncryptedFolderDao {
     
     @Delete
     suspend fun deleteFolder(folder: EncryptedFolderEntity)
-    
-    @Query("UPDATE encrypted_folders SET itemCount = :count, lastModified = :timestamp WHERE id = :id")
-    suspend fun updateItemCount(id: Long, count: Int, timestamp: Long = System.currentTimeMillis())
+
+    // Note: Item counts are now calculated from encrypted_files table
+    // Use EncryptedFileDao.getFileCountInFolder(folderId) instead
 }
