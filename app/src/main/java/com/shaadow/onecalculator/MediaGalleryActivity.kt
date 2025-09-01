@@ -44,6 +44,7 @@ class MediaGalleryActivity : AppCompatActivity() {
     private lateinit var database: HistoryDatabase
     private lateinit var encryptedFolderDao: EncryptedFolderDao
     private var currentMasterPassword: String = ""
+    private var isAllSelected: Boolean = false
 
     companion object {
         const val ACTION_FINGERPRINT_SETTING_CHANGED = "com.shaadow.onecalculator.FINGERPRINT_SETTING_CHANGED"
@@ -326,7 +327,7 @@ class MediaGalleryActivity : AppCompatActivity() {
         binding.toolbar.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.action_select_all -> {
-                    selectAllFolders()
+                    toggleSelectAllFolders(menuItem)
                     true
                 }
                 R.id.action_delete_selected -> {
@@ -1303,12 +1304,23 @@ class MediaGalleryActivity : AppCompatActivity() {
             Toast.makeText(this, "Error opening folder: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
-
-    private fun selectAllFolders() {
+private fun toggleSelectAllFolders(menuItem: android.view.MenuItem) {
+    if (isAllSelected) {
+        // Deselect all
+        folderAdapter.deselectAll()
+        updateMenuVisibility(false)
+        menuItem.title = "Select All"
+        Toast.makeText(this, "All folders deselected", Toast.LENGTH_SHORT).show()
+    } else {
+        // Select all
         folderAdapter.selectAll()
         updateMenuVisibility(true)
+        menuItem.title = "Deselect All"
         Toast.makeText(this, "All folders selected", Toast.LENGTH_SHORT).show()
     }
+    isAllSelected = !isAllSelected
+}
+
     
     private fun deleteSelectedFolders() {
         val selectedFolders = folderAdapter.getSelectedFolders()
@@ -1363,7 +1375,73 @@ class MediaGalleryActivity : AppCompatActivity() {
     }
     
     private fun moveSelectedFolders() {
-        Toast.makeText(this, "Move functionality coming soon", Toast.LENGTH_SHORT).show()
+        val selectedFolders = folderAdapter.getSelectedFolders()
+        if (selectedFolders.isEmpty()) {
+            Toast.makeText(this, "No folders selected", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        // Create a dialog to get the category name
+        val dialogView = layoutInflater.inflate(R.layout.dialog_rename_file, null)
+        val nameInput = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.file_name_input)
+        val nameLayout = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.file_name_input_layout)
+        
+        nameLayout.hint = "Enter category name"
+        
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Move to Category")
+            .setMessage("Enter a category name to prefix selected folders (e.g., 'Work: Folder1')")
+            .setView(dialogView)
+            .setPositiveButton("Move") { _, _ ->
+                val category = nameInput.text?.toString()?.trim() ?: ""
+                if (category.isEmpty()) {
+                    Toast.makeText(this, "Category name cannot be empty", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                performFolderMove(selectedFolders, category)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+    
+    private fun performFolderMove(folders: List<EncryptedFolderEntity>, category: String) {
+        lifecycleScope.launch {
+            try {
+                var successCount = 0
+                
+                withContext(Dispatchers.IO) {
+                    folders.forEach { folder ->
+                        // Create new name with category prefix
+                        val newName = "$category: ${folder.name}"
+                        
+                        // Check if the new name already exists
+                        val existingFolder = database.encryptedFolderDao().getFolderByName(newName)
+                        if (existingFolder != null) {
+                            // Skip this folder if name already exists
+                            return@forEach
+                        }
+                        
+                        // Update folder name
+                        val updatedFolder = folder.copy(name = newName)
+                        database.encryptedFolderDao().updateFolder(updatedFolder)
+                        successCount++
+                    }
+                }
+                
+                // Clear selection and refresh the list
+                folderAdapter.clearSelection()
+                updateMenuVisibility(false)
+                isAllSelected = false
+                
+                // Refresh the folder list
+                setupFolderList()
+                
+                Toast.makeText(this@MediaGalleryActivity, "Moved $successCount folder(s) to '$category' category", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                android.util.Log.e("MediaGalleryActivity", "Error moving folders", e)
+                Toast.makeText(this@MediaGalleryActivity, "Error moving folders: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
     
     private fun exportSelectedFolders() {
@@ -1373,7 +1451,121 @@ class MediaGalleryActivity : AppCompatActivity() {
             return
         }
         
-        Toast.makeText(this, "Export functionality coming soon", Toast.LENGTH_SHORT).show()
+        // Create a confirmation dialog
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Export Folders")
+            .setMessage("Are you sure you want to export ${selectedFolders.size} folder(s)? This will decrypt and save all files to your device.")
+            .setPositiveButton("Export") { _, _ ->
+                performFolderExport(selectedFolders)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+    
+    private fun performFolderExport(folders: List<EncryptedFolderEntity>) {
+        lifecycleScope.launch {
+            try {
+                // Create a parent export directory with timestamp
+                val timestamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault()).format(java.util.Date())
+                val exportParentDir = File(getExternalFilesDir(null), "Exported_Folders_$timestamp")
+                if (!exportParentDir.exists()) {
+                    exportParentDir.mkdirs()
+                }
+                
+                var totalSuccessCount = 0
+                var totalErrorCount = 0
+                
+                // Export each folder
+                for (folder in folders) {
+                    try {
+                        // Create subfolder for this folder
+                        val folderExportDir = File(exportParentDir, folder.name)
+                        if (!folderExportDir.exists()) {
+                            folderExportDir.mkdirs()
+                        }
+                        
+                        // Get all files in the folder
+                        val files = withContext(Dispatchers.IO) {
+                            database.encryptedFileDao().getFilesInFolderSync(folder.id)
+                        }
+                        
+                        if (files.isEmpty()) {
+                            continue // Skip empty folders
+                        }
+                        
+                        var folderSuccessCount = 0
+                        var folderErrorCount = 0
+                        
+                        // Export each file
+                        for (file in files) {
+                            try {
+                                val fileEncryptionService = com.shaadow.onecalculator.services.FileEncryptionService(this@MediaGalleryActivity)
+                                
+                                // Decrypt file
+                                val exportedFile = withContext(Dispatchers.IO) {
+                                    fileEncryptionService.decryptFileForViewing(file, currentMasterPassword, folder.salt)
+                                }
+                                
+                                if (exportedFile != null) {
+                                    // Copy to export directory with original name
+                                    val targetFile = File(folderExportDir, file.originalFileName)
+                                    exportedFile.copyTo(targetFile, overwrite = true)
+                                    
+                                    // Clean up temp file
+                                    exportedFile.delete()
+                                    folderSuccessCount++
+                                    totalSuccessCount++
+                                } else {
+                                    folderErrorCount++
+                                    totalErrorCount++
+                                }
+                            } catch (e: Exception) {
+                                android.util.Log.e("MediaGalleryActivity", "Error exporting file: ${file.originalFileName}", e)
+                                folderErrorCount++
+                                totalErrorCount++
+                            }
+                        }
+                        
+                        android.util.Log.d("MediaGalleryActivity", "Exported folder ${folder.name}: $folderSuccessCount success, $folderErrorCount errors")
+                    } catch (e: Exception) {
+                        android.util.Log.e("MediaGalleryActivity", "Error exporting folder: ${folder.name}", e)
+                        totalErrorCount++
+                    }
+                }
+                
+                // Clear selection
+                folderAdapter.clearSelection()
+                updateMenuVisibility(false)
+                isAllSelected = false
+                
+                // Show result
+                val message = when {
+                    totalSuccessCount > 0 && totalErrorCount == 0 ->
+                        "Successfully exported $totalSuccessCount files from ${folders.size} folder(s) to ${exportParentDir.absolutePath}"
+                    totalSuccessCount > 0 && totalErrorCount > 0 ->
+                        "Exported $totalSuccessCount files, $totalErrorCount failed. Location: ${exportParentDir.absolutePath}"
+                    else ->
+                        "Failed to export files"
+                }
+                
+                Toast.makeText(this@MediaGalleryActivity, message, Toast.LENGTH_LONG).show()
+                
+                // Open export directory in file manager
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(android.net.Uri.fromFile(exportParentDir), "resource/folder")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    android.util.Log.w("MediaGalleryActivity", "Could not open export directory in file manager", e)
+                }
+                
+            } catch (e: Exception) {
+                android.util.Log.e("MediaGalleryActivity", "Error exporting folders", e)
+                Toast.makeText(this@MediaGalleryActivity, "Error exporting folders: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
     
     private fun openSettings() {

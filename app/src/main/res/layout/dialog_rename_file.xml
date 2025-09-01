@@ -10,23 +10,14 @@
         android:id="@+id/file_name_input_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="File name"
-        app:boxBackgroundMode="outline"
-        app:boxBackgroundColor="@color/card_bg_2a2833"
-        app:boxStrokeColor="@color/accent_purple_bb86fc"
-        app:boxStrokeWidth="2dp"
-        app:boxCornerRadiusTopStart="12dp"
-        app:boxCornerRadiusTopEnd="12dp"
-        app:boxCornerRadiusBottomStart="12dp"
-        app:boxCornerRadiusBottomEnd="12dp"
-        app:hintTextColor="@color/accent_purple_bb86fc">
+        android:hint="File Name"
+        app:endIconMode="clear_text"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/file_name_input"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@color/text_light_f2f2f2"
-            android:textColorHint="@color/text_muted_b0aec0"
             android:inputType="text"
             android:maxLines="1" />
 

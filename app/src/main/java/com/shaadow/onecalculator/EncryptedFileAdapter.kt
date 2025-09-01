@@ -53,6 +53,18 @@ class EncryptedFileAdapter(
         selectedFiles.addAll(selected)
         notifyDataSetChanged()
     }
+    
+    fun getSelectedCount(): Int {
+        return selectedFiles.size
+    }
+    
+    fun selectAll() {
+        selectedFiles.clear()
+        currentList.forEach { file ->
+            selectedFiles.add(file.id)
+        }
+        notifyDataSetChanged()
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FileViewHolder {
         val view = LayoutInflater.from(parent.context)

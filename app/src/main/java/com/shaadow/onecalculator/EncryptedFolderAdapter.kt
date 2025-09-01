@@ -46,6 +46,12 @@ class EncryptedFolderAdapter(
     fun selectAllFolders() {
         selectAll()
     }
+    
+    fun deselectAll() {
+        isSelectionMode = false
+        selectedFolders.clear()
+        notifyDataSetChanged()
+    }
 
     fun clearSelection() {
         isSelectionMode = false
