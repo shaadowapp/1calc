@@ -21,6 +21,7 @@
 
     <!-- Biometric permissions for Fingerprint Authentication -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
 
     <application
         android:name=".CalculatorApplication"
@@ -32,13 +33,14 @@
         android:theme="@style/Theme.OneCalculator"
         android:requestLegacyExternalStorage="true">
 
-        <activity android:name=".LauncherActivity" android:exported="true">
+        <activity android:name=".BasicActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
+        <activity android:name=".LauncherActivity" android:exported="true" />
         <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="portrait" />
         <activity android:name=".HomeActivity" android:screenOrientation="portrait" />
         <activity 
@@ -48,8 +50,6 @@
             android:screenOrientation="portrait" />
 
         <activity android:name=".OnboardingActivity" />
-
-        <activity android:name=".BasicActivity" />
 
         <activity android:name=".SettingsActivity" android:screenOrientation="portrait" />
 

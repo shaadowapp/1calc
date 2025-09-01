@@ -54,6 +54,64 @@
 
     </LinearLayout>
 
+    <!-- Selection Toolbar -->
+    <LinearLayout
+        android:id="@+id/selection_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/accent_color"
+        android:elevation="4dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:visibility="gone">
+
+        <!-- Close Selection Button -->
+        <ImageButton
+            android:id="@+id/btn_close_selection"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_close"
+            android:contentDescription="Close selection"
+            app:tint="@color/white_ffffff" />
+
+        <!-- Selection Count -->
+        <TextView
+            android:id="@+id/selection_count_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="0 selected"
+            android:textColor="@color/white_ffffff"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginStart="12dp" />
+
+        <!-- Delete Button -->
+        <ImageButton
+            android:id="@+id/btn_delete_selected"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_delete"
+            android:contentDescription="Delete selected"
+            app:tint="@color/white_ffffff"
+            android:layout_marginEnd="8dp" />
+
+        <!-- Share Button -->
+        <ImageButton
+            android:id="@+id/btn_share_selected"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_share"
+            android:contentDescription="Share selected"
+            app:tint="@color/white_ffffff" />
+
+    </LinearLayout>
+
     <!-- Content Area -->
     <FrameLayout
         android:layout_width="match_parent"
@@ -119,21 +177,21 @@
             android:layout_height="match_parent"
             android:padding="8dp"
             android:clipToPadding="false"
-            tools:listitem="@layout/item_folder_content" />
+            tools:listitem="@layout/item_encrypted_file" />
+
+        <!-- Floating Action Button -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab_add_content"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="16dp"
+            android:src="@drawable/ic_add"
+            android:contentDescription="Add content"
+            app:backgroundTint="@color/brand_blue"
+            app:tint="@color/white_ffffff"
+            app:elevation="8dp" />
 
     </FrameLayout>
-
-    <!-- Floating Action Button -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_add_content"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
-        android:src="@drawable/ic_add"
-        android:contentDescription="Add content"
-        app:backgroundTint="@color/brand_blue"
-        app:tint="@color/white_ffffff"
-        app:elevation="8dp" />
 
 </LinearLayout>

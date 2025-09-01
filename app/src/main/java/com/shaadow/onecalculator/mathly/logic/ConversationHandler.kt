@@ -197,8 +197,8 @@ object ConversationHandler {
             "Let's try some trigonometry!",
             "How about basic arithmetic practice?"
         )
-    )
-    
+    )  
+  
     /**
      * Check if the input is a conversational question that has a predefined answer
      */
@@ -451,56 +451,40 @@ object ConversationHandler {
             lowerInput.contains("geometry") -> lastTopic = "geometry"
             lowerInput.contains("trigonometry") -> lastTopic = "trigonometry"
             lowerInput.contains("statistics") -> lastTopic = "statistics"
-            lowerInput.contains("arithmetic") -> lastTopic = "arithmetic"
+            lowerInput.contains("probability") -> lastTopic = "probability"
+            lowerInput.contains("equation") -> lastTopic = "equations"
+            lowerInput.contains("derivative") -> lastTopic = "calculus"
+            lowerInput.contains("integral") -> lastTopic = "calculus"
+            lowerInput.contains("matrix") -> lastTopic = "linear algebra"
+            else -> {
+                // Keep existing topic if no new topic detected
+            }
         }
         
-        // Store context
+        // Store conversation context
+        conversationContext["lastInput"] = input
         conversationContext["questionCount"] = questionCount
         conversationContext["userMood"] = userMood
         conversationContext["lastTopic"] = lastTopic
-        conversationContext["lastInput"] = input
     }
     
     /**
      * Add contextual follow-up to responses
      */
     private fun addContextualFollowUp(baseResponse: String, input: String): String {
-        val lowerInput = input.lowercase()
-        
-        // Don't add follow-up to thank you messages
-        if (lowerInput.contains("thank") || lowerInput.contains("thanks")) {
-            return baseResponse
-        }
-        
-        // Add follow-up based on context
         val followUp = when {
-            // Greeting follow-ups
-            lowerInput.contains("hi") || lowerInput.contains("hello") || lowerInput.contains("hey") ||
-            lowerInput.contains("good morning") || lowerInput.contains("good afternoon") || lowerInput.contains("good evening") -> {
-                if (questionCount <= 2) {
-                    "\n\n" + dynamicResponses["greeting_followup"]?.random()
-                } else {
-                    "\n\n" + getPersonalizedFollowUp()
-                }
+            questionCount == 1 -> {
+                "\n\n" + dynamicResponses["greeting_followup"]?.random()
             }
-            
-            // Encouragement for frustrated users
             userMood == "frustrated" -> {
-                "\n\n" + dynamicResponses["encouragement"]?.random()
+                "\n\n" + getRandomEncouragement()
             }
-            
-            // Topic suggestions for capability questions
-            lowerInput.contains("what can you") || lowerInput.contains("can you help") || 
-            lowerInput.contains("what do you do") -> {
-                "\n\n" + dynamicResponses["topic_suggestions"]?.random()
-            }
-            
-            // Personalized follow-up for other cases
-            else -> {
+            baseResponse.contains("solve") || baseResponse.contains("calculate") -> {
                 if (questionCount > 3) {
                     "\n\n" + getPersonalizedFollowUp()
                 } else ""
             }
+            else -> ""
         }
         
         return baseResponse + (followUp ?: "")
@@ -556,4 +540,4 @@ object ConversationHandler {
             "contextSize" to conversationContext.size
         )
     }
-} 
+}

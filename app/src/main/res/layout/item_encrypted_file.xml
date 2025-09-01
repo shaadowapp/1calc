@@ -7,36 +7,65 @@
     app:cardCornerRadius="12dp"
     app:cardElevation="2dp"
     app:strokeWidth="0dp"
+    android:foreground="@drawable/bg_file_item_selector"
     app:cardBackgroundColor="@color/card_bg_2a2833">
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="12dp">
 
-        <!-- File Icon -->
+        <!-- Selection Checkbox -->
+        <androidx.appcompat.widget.AppCompatCheckBox
+            android:id="@+id/selection_checkbox"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentStart="true"
+            android:layout_marginTop="4dp"
+            android:layout_marginStart="4dp"
+            android:visibility="gone"
+            app:buttonTint="@color/accent_color" />
+
+        <!-- Menu Button -->
+        <ImageView
+            android:id="@+id/file_menu_button"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentEnd="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="4dp"
+            android:src="@drawable/ic_more_vert"
+            app:tint="@color/text_muted_b0aec0" />
+
+        <!-- File Icon/Thumbnail -->
         <ImageView
             android:id="@+id/file_icon"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_gravity="center_horizontal"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="8dp"
             android:layout_marginBottom="8dp"
-            android:src="@drawable/ic_file"
-            app:tint="@color/accent_purple_bb86fc" />
+            android:background="@drawable/bg_thumbnail_placeholder"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_file" />
 
         <!-- File Name -->
         <TextView
             android:id="@+id/file_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_below="@id/file_icon"
             android:layout_marginBottom="4dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
             android:ellipsize="middle"
             android:gravity="center"
             android:maxLines="2"
             android:text="filename.jpg"
             android:textColor="@color/text_light_f2f2f2"
-            android:textSize="14sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <!-- File Info (Type • Size) -->
@@ -44,22 +73,28 @@
             android:id="@+id/file_info"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_below="@id/file_name"
             android:layout_marginBottom="2dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
             android:gravity="center"
             android:text="Image • 2.4 MB"
             android:textColor="@color/text_muted_b0aec0"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
 
         <!-- File Date -->
         <TextView
             android:id="@+id/file_date"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_below="@id/file_info"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
             android:gravity="center"
             android:text="Dec 06, 2024"
             android:textColor="@color/text_muted_b0aec0"
-            android:textSize="11sp" />
+            android:textSize="10sp" />
 
-    </LinearLayout>
+    </RelativeLayout>
 
 </com.google.android.material.card.MaterialCardView>

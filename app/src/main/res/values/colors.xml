@@ -106,4 +106,10 @@
     <color name="icon_tint">#B388FF</color>
     <color name="green_4caf50">#4CAF50</color>
     <color name="chip_gradient_stroke">#5D2DC8</color>
+    
+    <!-- Selection Colors -->
+    <color name="accent_color">#BB86FC</color>
+    <color name="accent_color_alpha">#33BB86FC</color>
+    
+    <!-- Additional Background Colors -->
 </resources>

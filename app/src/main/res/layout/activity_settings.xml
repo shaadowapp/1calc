@@ -468,7 +468,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Choose password, PIN, or fingerprint protection"
+                                android:text="Fingerprint authentication only"
                                 android:textColor="@color/text_muted_a0a0a0"
                                 android:textSize="14sp"
                                 android:fontFamily="sans-serif"
@@ -604,47 +604,7 @@
                         android:layout_marginStart="16dp"
                         android:layout_marginEnd="16dp" />
 
-                    <!-- Unlock with Fingerprint -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:padding="16dp">
 
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Unlock with Fingerprint"
-                                android:textColor="@color/text_light_e0e0e0"
-                                android:textSize="16sp"
-                                android:fontFamily="sans-serif"
-                                android:textStyle="normal" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Allow fingerprint unlock in addition to PIN/password"
-                                android:textColor="@color/text_muted_a0a0a0"
-                                android:textSize="14sp"
-                                android:fontFamily="sans-serif"
-                                android:layout_marginTop="2dp" />
-                        </LinearLayout>
-
-                        <com.google.android.material.switchmaterial.SwitchMaterial
-                            android:id="@+id/fingerprint_unlock_switch"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:checked="false"
-                            app:thumbTint="@color/switch_thumb_color"
-                            app:trackTint="@color/switch_track_color" />
-                    </LinearLayout>
 
                 </LinearLayout>
 

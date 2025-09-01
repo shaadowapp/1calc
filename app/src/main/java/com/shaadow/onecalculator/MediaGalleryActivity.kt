@@ -45,18 +45,17 @@ class MediaGalleryActivity : AppCompatActivity() {
     private lateinit var encryptedFolderDao: EncryptedFolderDao
     private var currentMasterPassword: String = ""
 
-    // No longer needed since fingerprint button is now in keypad
+    companion object {
+        const val ACTION_FINGERPRINT_SETTING_CHANGED = "com.shaadow.onecalculator.FINGERPRINT_SETTING_CHANGED"
+    }
 
-    // Broadcast receiver for fingerprint setting changes
     private val fingerprintSettingReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == SettingsActivity.ACTION_FINGERPRINT_SETTING_CHANGED) {
-                val enabled = intent.getBooleanExtra(SettingsActivity.EXTRA_FINGERPRINT_ENABLED, false)
-                android.util.Log.d("MediaGalleryActivity", "Received fingerprint setting broadcast: $enabled")
-                updateFingerprintSectionVisibility(enabled)
-            }
+            // Handle fingerprint setting changes if needed
         }
     }
+
+
 
     // Permission launcher for media access
     private val requestPermissionLauncher = registerForActivityResult(
@@ -80,7 +79,7 @@ class MediaGalleryActivity : AppCompatActivity() {
         initializeExternalStorage()
 
         // Register broadcast receiver for fingerprint setting changes
-        val filter = IntentFilter(SettingsActivity.ACTION_FINGERPRINT_SETTING_CHANGED)
+        val filter = IntentFilter(ACTION_FINGERPRINT_SETTING_CHANGED)
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(fingerprintSettingReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
@@ -103,6 +102,14 @@ class MediaGalleryActivity : AppCompatActivity() {
 
         // Hide any open lock screen
         hideLockScreen()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Re-check biometric availability when returning to the activity
+        if (binding.lockScreenOverlay.root.visibility == View.VISIBLE) {
+            checkAuthentication()
+        }
     }
 
     private fun setupToolbar() {
@@ -143,7 +150,7 @@ class MediaGalleryActivity : AppCompatActivity() {
 
     private fun checkPermissions() {
         val permissions = mutableListOf<String>()
-        
+
         // Check for media permissions based on Android version
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
@@ -155,6 +162,9 @@ class MediaGalleryActivity : AppCompatActivity() {
         } else {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+            }
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             }
         }
 
@@ -215,28 +225,33 @@ class MediaGalleryActivity : AppCompatActivity() {
     }
 
     private fun checkAuthentication() {
-        lifecycleScope.launch {
-            val preferenceDao = database.preferenceDao()
-            val securityMethod = withContext(Dispatchers.IO) {
-                preferenceDao.getPreference("hidden_gallery_security_method")?.value
+        // Check if biometric authentication is available
+        val biometricManager = BiometricManager.from(this)
+        when (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK)) {
+            BiometricManager.BIOMETRIC_SUCCESS -> {
+                android.util.Log.d("MediaGalleryActivity", "Biometric authentication is available")
+                showFingerprintLockScreen()
             }
-
-            if (securityMethod != null) {
-                // Security is set up, show lock screen
-                showLockScreen(securityMethod)
-            } else {
-                // No security set up, set default PIN "0000" and show lock screen
-                withContext(Dispatchers.IO) {
-                    preferenceDao.setPreference(PreferenceEntity("hidden_gallery_security_method", "pin"))
-                    val defaultPinHash = android.util.Base64.encodeToString("0000".toByteArray(), android.util.Base64.DEFAULT)
-                    preferenceDao.setPreference(PreferenceEntity("hidden_gallery_security_value", defaultPinHash))
-                }
-                showLockScreen("pin")
+            BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> {
+                android.util.Log.e("MediaGalleryActivity", "No biometric hardware available")
+                showErrorAndExit("Biometric authentication not available on this device")
+            }
+            BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> {
+                android.util.Log.e("MediaGalleryActivity", "Biometric hardware unavailable")
+                showErrorAndExit("Biometric hardware is currently unavailable")
+            }
+            BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> {
+                android.util.Log.e("MediaGalleryActivity", "No biometric credentials enrolled")
+                showErrorAndExit("No fingerprints enrolled. Please set up fingerprint authentication in device settings")
+            }
+            else -> {
+                android.util.Log.e("MediaGalleryActivity", "Biometric authentication not available")
+                showErrorAndExit("Biometric authentication is not available")
             }
         }
     }
 
-    private fun showLockScreen(securityMethod: String) {
+    private fun showFingerprintLockScreen() {
         // Show the lock screen overlay
         val lockScreenOverlay = binding.lockScreenOverlay.root
         lockScreenOverlay.visibility = View.VISIBLE
@@ -249,107 +264,54 @@ class MediaGalleryActivity : AppCompatActivity() {
         window.statusBarColor = android.graphics.Color.TRANSPARENT
         window.navigationBarColor = android.graphics.Color.TRANSPARENT
 
-        // No longer needed since fingerprint button is now in keypad
-
-        // Configure UI based on stored security method
-        lifecycleScope.launch {
-            val storedSecurityMethod = withContext(Dispatchers.IO) {
-                database.preferenceDao().getPreference("hidden_gallery_security_method")?.value
-            }
-
-            when (storedSecurityMethod) {
-                "password" -> setupPasswordLockScreen()
-                "pin" -> setupPinLockScreen()
-                else -> {
-                    // Fallback to PIN (should not happen after our default setup)
-                    setupPinLockScreen()
-                }
-            }
-        }
-
-        // Hide system UI for true full screen
-        try {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                window.insetsController?.let { controller ->
-                    controller.hide(android.view.WindowInsets.Type.statusBars() or android.view.WindowInsets.Type.navigationBars())
-                    controller.systemBarsBehavior = android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                }
-            } else {
-                @Suppress("DEPRECATION")
-                window.decorView.systemUiVisibility = (
-                    android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or
-                    android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                    android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                )
-            }
-        } catch (e: Exception) {
-            android.util.Log.w("MediaGalleryActivity", "Failed to hide system UI: ${e.message}")
-        }
-    }
-
-    private fun setupPasswordLockScreen() {
+        // Hide ALL PIN/password UI elements explicitly
         val overlay = binding.lockScreenOverlay
 
-        // Show password UI, hide PIN UI
-        overlay.passwordInputLayout.visibility = View.VISIBLE
+        android.util.Log.d("MediaGalleryActivity", "Setting up fingerprint-only lock screen")
+
+        // Hide password UI
+        overlay.passwordInputLayout.visibility = View.GONE
+
+        // Hide PIN UI completely
         overlay.pinDisplayLayout.visibility = View.GONE
         overlay.pinKeypadLayout.visibility = View.GONE
-        overlay.actionButtonsLayout.visibility = View.VISIBLE
-        overlay.lockSubtitle.text = "Enter your password to continue"
 
-        // Always show fingerprint button to maintain layout, but enable/disable based on settings
-        lifecycleScope.launch {
-            val fingerprintEnabled = withContext(Dispatchers.IO) {
-                database.preferenceDao().getPreference("hidden_gallery_fingerprint_enabled")?.value?.toBooleanStrictOrNull() ?: false
-            }
+        // Hide action buttons (submit/cancel)
+        overlay.actionButtonsLayout.visibility = View.GONE
 
-            // Always keep button visible to maintain layout
-            overlay.fingerprintButton.visibility = View.VISIBLE
+        // Hide forgot buttons
+        overlay.forgotPasswordButton.visibility = View.GONE
+        overlay.forgotPinButton.visibility = View.GONE
 
-            if (fingerprintEnabled) {
-                // Enable fingerprint button and setup authentication
-                overlay.fingerprintButton.isEnabled = true
-                overlay.fingerprintButton.alpha = 1.0f
-                setupFingerprintAuthentication(overlay.fingerprintButton)
-            } else {
-                // Disable fingerprint button but keep it visible for layout consistency
-                overlay.fingerprintButton.isEnabled = false
-                overlay.fingerprintButton.alpha = 0.3f
-                // Set click listener to show toast when disabled
-                overlay.fingerprintButton.setOnClickListener {
-                    Toast.makeText(this@MediaGalleryActivity, "Fingerprint authentication is disabled", Toast.LENGTH_SHORT).show()
-                }
-            }
+        // Update subtitle for fingerprint authentication
+        overlay.lockSubtitle.text = "Touch the fingerprint sensor to unlock"
+
+        // Setup fingerprint button click listener
+        overlay.fingerprintButton.setOnClickListener {
+            android.util.Log.d("MediaGalleryActivity", "Fingerprint button clicked")
+            showBiometricPrompt()
         }
 
-        overlay.submitButton.setOnClickListener {
-            val enteredPassword = overlay.passwordInput.text.toString()
-            if (enteredPassword.isNotEmpty()) {
-                verifyPassword(enteredPassword)
-            } else {
-                Toast.makeText(this, "Please enter your password", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        overlay.cancelButton.setOnClickListener {
-            hideLockScreen()
-            finish()
-        }
-
+        // Back button to exit
         overlay.backButton.setOnClickListener {
             hideLockScreen()
             finish()
         }
 
-        // Setup forgot password button (for password mode)
-        overlay.forgotPasswordButton.setOnClickListener {
-            showRecoveryDialog()
-        }
+        // Automatically trigger biometric prompt on screen load
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            showBiometricPrompt()
+        }, 500)
 
-        // Show forgot password button, hide forgot PIN button
-        overlay.forgotPasswordButton.visibility = View.VISIBLE
-        overlay.forgotPinButton.visibility = View.GONE
+        // Hide system UI for true full screen
+        hideSystemUI()
+
+        android.util.Log.d("MediaGalleryActivity", "Fingerprint-only lock screen setup complete")
     }
+
+
+
+    // Removed: setupPasswordLockScreen() - no longer needed with fingerprint-only authentication
 
     private fun setupClickListeners() {
         binding.fabCreateFolder.setOnClickListener {
@@ -384,7 +346,11 @@ class MediaGalleryActivity : AppCompatActivity() {
                     true
                 }
                 R.id.action_help -> {
-                    showHelpDialog()
+                    showHelp()
+                    true
+                }
+                R.id.action_storage_info -> {
+                    showStorageInfo()
                     true
                 }
                 else -> false
@@ -397,8 +363,18 @@ class MediaGalleryActivity : AppCompatActivity() {
 
         // Restore normal UI
         window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        
+        // Restore status bar and navigation bar colors
+        window.statusBarColor = ContextCompat.getColor(this, android.R.color.black)
+        window.navigationBarColor = ContextCompat.getColor(this, android.R.color.black)
 
         // Show system UI
+        showSystemUI()
+
+        clearDialogReferences()
+    }
+
+    private fun showSystemUI() {
         try {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
                 window.insetsController?.show(android.view.WindowInsets.Type.statusBars() or android.view.WindowInsets.Type.navigationBars())
@@ -409,124 +385,9 @@ class MediaGalleryActivity : AppCompatActivity() {
         } catch (e: Exception) {
             android.util.Log.w("MediaGalleryActivity", "Failed to show system UI: ${e.message}")
         }
-
-        clearDialogReferences()
     }
 
-    private fun setupPinLockScreen() {
-        val overlay = binding.lockScreenOverlay
-        // Show PIN UI, hide password UI
-        overlay.passwordInputLayout.visibility = View.GONE
-        overlay.pinDisplayLayout.visibility = View.VISIBLE
-        overlay.pinKeypadLayout.visibility = View.VISIBLE
-        overlay.actionButtonsLayout.visibility = View.GONE
-
-        // Check if this is the default PIN and update subtitle accordingly
-        lifecycleScope.launch {
-            val storedPinHash = withContext(Dispatchers.IO) {
-                database.preferenceDao().getPreference("hidden_gallery_security_value")?.value
-            }
-            val defaultPinHash = android.util.Base64.encodeToString("0000".toByteArray(), android.util.Base64.DEFAULT)
-
-            if (storedPinHash == defaultPinHash) {
-                overlay.lockSubtitle.text = "Enter PIN: 0000 (default)"
-            } else {
-                overlay.lockSubtitle.text = "Enter your PIN to continue"
-            }
-        }
-
-        // Always show fingerprint button to maintain layout, but enable/disable based on settings
-        lifecycleScope.launch {
-            val fingerprintEnabled = withContext(Dispatchers.IO) {
-                database.preferenceDao().getPreference("hidden_gallery_fingerprint_enabled")?.value?.toBooleanStrictOrNull() ?: false
-            }
-
-            // Always keep button visible to maintain layout
-            overlay.fingerprintButton.visibility = View.VISIBLE
-
-            if (fingerprintEnabled) {
-                // Enable fingerprint button and setup authentication
-                overlay.fingerprintButton.isEnabled = true
-                overlay.fingerprintButton.alpha = 1.0f
-                setupFingerprintAuthentication(overlay.fingerprintButton)
-            } else {
-                // Disable fingerprint button but keep it visible for layout consistency
-                overlay.fingerprintButton.isEnabled = false
-                overlay.fingerprintButton.alpha = 0.3f
-                // Set click listener to show toast when disabled
-                overlay.fingerprintButton.setOnClickListener {
-                    Toast.makeText(this@MediaGalleryActivity, "Fingerprint authentication is disabled", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-
-        // Setup PIN input
-        var currentPin = ""
-        val pinDigits = arrayOf(
-            overlay.pinDigit1,
-            overlay.pinDigit2,
-            overlay.pinDigit3,
-            overlay.pinDigit4
-        )
-
-        val numberButtons = arrayOf(
-            overlay.pinBtn0,
-            overlay.pinBtn1,
-            overlay.pinBtn2,
-            overlay.pinBtn3,
-            overlay.pinBtn4,
-            overlay.pinBtn5,
-            overlay.pinBtn6,
-            overlay.pinBtn7,
-            overlay.pinBtn8,
-            overlay.pinBtn9
-        )
-
-        numberButtons.forEachIndexed { index, button ->
-            button.setOnClickListener {
-                if (currentPin.length < 4) {
-                    currentPin += index.toString()
-                    updatePinDisplay(pinDigits, currentPin)
-
-                    // Auto-verify when 4 digits are entered
-                    if (currentPin.length == 4) {
-                        verifyPin(currentPin, pinDigits) {
-                            // Clear PIN on failure
-                            currentPin = ""
-                            updatePinDisplay(pinDigits, currentPin)
-                        }
-                    }
-                }
-            }
-        }
-
-        // Backspace button (RIGHT side - id="button_backspace" in your layout)
-        overlay.buttonBackspace.setOnClickListener {
-            if (currentPin.isNotEmpty()) {
-                currentPin = currentPin.dropLast(1)
-                updatePinDisplay(pinDigits, currentPin)
-            }
-        }
-
-        overlay.cancelButton.setOnClickListener {
-            hideLockScreen()
-            finish()
-        }
-
-        overlay.backButton.setOnClickListener {
-            hideLockScreen()
-            finish()
-        }
-
-        // Setup forgot PIN button (for PIN mode)
-        overlay.forgotPinButton.setOnClickListener {
-            showRecoveryDialog()
-        }
-
-        // Show forgot PIN button, hide forgot password button
-        overlay.forgotPinButton.visibility = View.VISIBLE
-        overlay.forgotPasswordButton.visibility = View.GONE
-    }
+    // Removed: setupPinLockScreen() - no longer needed with fingerprint-only authentication
 
     private fun updatePinDisplay(pinDigits: Array<android.widget.TextView>, pin: String) {
         pinDigits.forEachIndexed { index, textView ->
@@ -534,50 +395,9 @@ class MediaGalleryActivity : AppCompatActivity() {
         }
     }
 
-    private fun verifyPassword(enteredPassword: String) {
-        lifecycleScope.launch {
-            val storedPasswordHash = withContext(Dispatchers.IO) {
-                database.preferenceDao().getPreference("hidden_gallery_security_value")?.value
-            }
+    // Removed: verifyPassword() - no longer needed with fingerprint-only authentication
 
-            if (storedPasswordHash != null) {
-                val enteredPasswordHash = android.util.Base64.encodeToString(enteredPassword.toByteArray(), android.util.Base64.DEFAULT)
-                if (enteredPasswordHash.trim() == storedPasswordHash.trim()) {
-                    currentMasterPassword = enteredPassword // Store for file encryption
-                    hideLockScreen()
-                    proceedToGallery()
-                } else {
-                    Toast.makeText(this@MediaGalleryActivity, "Incorrect password", Toast.LENGTH_SHORT).show()
-                }
-            } else {
-                Toast.makeText(this@MediaGalleryActivity, "Authentication error", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    private fun verifyPin(enteredPin: String, pinDigits: Array<android.widget.TextView>, onFailure: () -> Unit) {
-        lifecycleScope.launch {
-            val storedPinHash = withContext(Dispatchers.IO) {
-                database.preferenceDao().getPreference("hidden_gallery_security_value")?.value
-            }
-
-            if (storedPinHash != null) {
-                val enteredPinHash = android.util.Base64.encodeToString(enteredPin.toByteArray(), android.util.Base64.DEFAULT)
-                if (enteredPinHash.trim() == storedPinHash.trim()) {
-                    currentMasterPassword = enteredPin // Store for file encryption
-                    hideLockScreen()
-                    proceedToGallery()
-                } else {
-                    showPinError(pinDigits)
-                    Toast.makeText(this@MediaGalleryActivity, "Incorrect PIN", Toast.LENGTH_SHORT).show()
-                    onFailure()
-                }
-            } else {
-                Toast.makeText(this@MediaGalleryActivity, "Authentication error", Toast.LENGTH_SHORT).show()
-                onFailure()
-            }
-        }
-    }
+    // Removed: verifyPin() - no longer needed with fingerprint-only authentication
 
     private fun showPinError(pinDigits: Array<android.widget.TextView>) {
         // Animate PIN digits to show error
@@ -600,82 +420,71 @@ class MediaGalleryActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupFingerprintAuthentication(fingerprintButton: android.widget.ImageButton) {
-        fingerprintButton.setOnClickListener {
-            android.util.Log.d("MediaGalleryActivity", "Fingerprint button clicked")
+    // Removed: setupFingerprintAuthentication() - no longer needed with fingerprint-only lock screen
 
-            // Add visual feedback
-            fingerprintButton.isEnabled = false
-            fingerprintButton.alpha = 0.5f
-
-            val biometricManager = BiometricManager.from(this)
-            when (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK)) {
-                BiometricManager.BIOMETRIC_SUCCESS -> {
-                    android.util.Log.d("MediaGalleryActivity", "Biometric authentication available, showing prompt")
-                    showBiometricPrompt {
-                        // Reset button state on completion
-                        fingerprintButton.isEnabled = true
-                        fingerprintButton.alpha = 1.0f
-                    }
-                }
-                else -> {
-                    android.util.Log.e("MediaGalleryActivity", "Biometric authentication not available")
-                    Toast.makeText(this, "Biometric authentication not available", Toast.LENGTH_SHORT).show()
-                    fingerprintButton.isEnabled = true
-                    fingerprintButton.alpha = 1.0f
-                }
-            }
-        }
-    }
-
-    private fun showBiometricPrompt(onComplete: () -> Unit) {
+    private fun showBiometricPrompt() {
         val executor: Executor = ContextCompat.getMainExecutor(this)
         val biometricPrompt = BiometricPrompt(this as FragmentActivity, executor,
             object : BiometricPrompt.AuthenticationCallback() {
                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                     super.onAuthenticationError(errorCode, errString)
-                    android.util.Log.e("MediaGalleryActivity", "Biometric authentication error: $errString")
-                    Toast.makeText(this@MediaGalleryActivity, "Authentication error: $errString", Toast.LENGTH_SHORT).show()
-                    onComplete()
+                    android.util.Log.e("MediaGalleryActivity", "Biometric authentication error: $errorCode - $errString")
+                    
+                    when (errorCode) {
+                        BiometricPrompt.ERROR_USER_CANCELED,
+                        BiometricPrompt.ERROR_NEGATIVE_BUTTON -> {
+                            // User cancelled, exit the activity
+                            finish()
+                        }
+                        BiometricPrompt.ERROR_LOCKOUT,
+                        BiometricPrompt.ERROR_LOCKOUT_PERMANENT -> {
+                            showErrorAndExit("Too many failed attempts. Please try again later.")
+                        }
+                        else -> {
+                            Toast.makeText(this@MediaGalleryActivity, "Authentication error: $errString", Toast.LENGTH_LONG).show()
+                            // Allow retry by showing the prompt again after a delay
+                            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                showBiometricPrompt()
+                            }, 2000)
+                        }
+                    }
                 }
 
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                     super.onAuthenticationSucceeded(result)
                     android.util.Log.d("MediaGalleryActivity", "Biometric authentication succeeded")
-                    // For biometric auth, we need to get the stored password/PIN for encryption
-                    lifecycleScope.launch {
-                        try {
-                            val storedValue = withContext(Dispatchers.IO) {
-                                database.preferenceDao().getPreference("hidden_gallery_security_value")?.value
-                            }
-                            storedValue?.let { encodedValue ->
-                                currentMasterPassword = String(android.util.Base64.decode(encodedValue, android.util.Base64.DEFAULT))
-                            }
-                        } catch (e: Exception) {
-                            android.util.Log.e("MediaGalleryActivity", "Error retrieving master password for biometric auth", e)
-                            currentMasterPassword = "0000" // Fallback to default
-                        }
-                    }
+                    
+                    // Set default master password for file encryption since we only use fingerprint
+                    currentMasterPassword = "0000" // Default password for file encryption
+                    
+                    Toast.makeText(this@MediaGalleryActivity, "Authentication successful", Toast.LENGTH_SHORT).show()
+                    
                     hideLockScreen()
                     proceedToGallery()
-                    onComplete()
                 }
 
                 override fun onAuthenticationFailed() {
                     super.onAuthenticationFailed()
-                    android.util.Log.d("MediaGalleryActivity", "Biometric authentication failed")
-                    Toast.makeText(this@MediaGalleryActivity, "Authentication failed", Toast.LENGTH_SHORT).show()
-                    onComplete()
+                    android.util.Log.d("MediaGalleryActivity", "Biometric authentication failed - fingerprint not recognized")
+                    Toast.makeText(this@MediaGalleryActivity, "Fingerprint not recognized. Try again.", Toast.LENGTH_SHORT).show()
+                    // Don't exit on failed recognition, let user try again
                 }
             })
 
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
             .setTitle("Unlock Hidden Gallery")
             .setSubtitle("Use your fingerprint to access the hidden gallery")
+            .setDescription("Place your finger on the fingerprint sensor")
             .setNegativeButtonText("Cancel")
+            .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK)
             .build()
 
-        biometricPrompt.authenticate(promptInfo)
+        try {
+            biometricPrompt.authenticate(promptInfo)
+        } catch (e: Exception) {
+            android.util.Log.e("MediaGalleryActivity", "Error showing biometric prompt", e)
+            showErrorAndExit("Failed to show fingerprint authentication: ${e.message}")
+        }
     }
 
     private fun proceedToGallery() {
@@ -683,46 +492,41 @@ class MediaGalleryActivity : AppCompatActivity() {
         setupClickListeners()
     }
 
-    private fun updateFingerprintSectionVisibility(enabled: Boolean) {
-        android.util.Log.d("MediaGalleryActivity", "Updating fingerprint button visibility: $enabled")
+    private fun showErrorAndExit(message: String) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Authentication Error")
+            .setMessage(message)
+            .setPositiveButton("OK") { _, _ ->
+                finish()
+            }
+            .setCancelable(false)
+            .show()
+    }
 
-        runOnUiThread {
-            if (enabled) {
-                // Check if biometric authentication is actually available
-                val biometricManager = BiometricManager.from(this)
-                when (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK)) {
-                    BiometricManager.BIOMETRIC_SUCCESS -> {
-                        // Enable fingerprint button in keypad (LEFT side)
-                        binding.lockScreenOverlay.fingerprintButton.visibility = View.VISIBLE
-                        binding.lockScreenOverlay.fingerprintButton.isEnabled = true
-                        binding.lockScreenOverlay.fingerprintButton.alpha = 1.0f
-                        setupFingerprintAuthentication(binding.lockScreenOverlay.fingerprintButton)
-                        android.util.Log.d("MediaGalleryActivity", "Fingerprint button enabled on LEFT side")
-                    }
-                    else -> {
-                        // Keep button visible but disabled for layout consistency
-                        binding.lockScreenOverlay.fingerprintButton.visibility = View.VISIBLE
-                        binding.lockScreenOverlay.fingerprintButton.isEnabled = false
-                        binding.lockScreenOverlay.fingerprintButton.alpha = 0.3f
-                        // Set click listener to show toast when disabled
-                        binding.lockScreenOverlay.fingerprintButton.setOnClickListener {
-                            Toast.makeText(this@MediaGalleryActivity, "Biometric authentication not available on this device", Toast.LENGTH_SHORT).show()
-                        }
-                        android.util.Log.d("MediaGalleryActivity", "Biometric not available, fingerprint button disabled")
-                    }
+    private fun hideSystemUI() {
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                window.insetsController?.let { controller ->
+                    controller.hide(android.view.WindowInsets.Type.statusBars() or android.view.WindowInsets.Type.navigationBars())
+                    controller.systemBarsBehavior = android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 }
             } else {
-                // Keep button visible but disabled for layout consistency
-                binding.lockScreenOverlay.fingerprintButton.visibility = View.VISIBLE
-                binding.lockScreenOverlay.fingerprintButton.isEnabled = false
-                binding.lockScreenOverlay.fingerprintButton.alpha = 0.3f
-                // Set click listener to show toast when disabled
-                binding.lockScreenOverlay.fingerprintButton.setOnClickListener {
-                    Toast.makeText(this@MediaGalleryActivity, "Fingerprint authentication is disabled", Toast.LENGTH_SHORT).show()
-                }
-                android.util.Log.d("MediaGalleryActivity", "Fingerprint button disabled")
+                @Suppress("DEPRECATION")
+                window.decorView.systemUiVisibility = (
+                    android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or
+                    android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                    android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                )
             }
+        } catch (e: Exception) {
+            android.util.Log.w("MediaGalleryActivity", "Failed to hide system UI: ${e.message}")
         }
+    }
+
+    private fun updateFingerprintSectionVisibility(enabled: Boolean) {
+        // With fingerprint-only authentication, we don't need to update visibility based on settings
+        // The fingerprint lock screen handles its own UI setup
+        android.util.Log.d("MediaGalleryActivity", "Fingerprint-only mode: ignoring visibility update")
     }
 
     private fun clearDialogReferences() {
@@ -793,8 +597,17 @@ class MediaGalleryActivity : AppCompatActivity() {
     )
 
     private fun showWelcomeMessage() {
+        val hiddenDir = ExternalStorageManager.getHiddenCalculatorDir(this)
+        val storageInfo = if (hiddenDir != null) {
+            "📂 Storage Location: ${hiddenDir.absolutePath}\n\n"
+        } else {
+            "📂 Storage Location: Device external storage\n\n"
+        }
+
         val message = buildString {
             append("🎉 Welcome to Hidden Gallery!\n\n")
+            append("Your encrypted files are stored securely in:\n")
+            append("$storageInfo")
             append("We've created 4 default folders for you:\n\n")
             append("📷 Photos - For your private photos\n")
             append("🎥 Videos - For your private videos\n")
@@ -989,7 +802,8 @@ class MediaGalleryActivity : AppCompatActivity() {
                 )
 
                 // Save to database
-                encryptedFolderDao.insertFolder(folder)
+                val folderId = encryptedFolderDao.insertFolder(folder)
+                android.util.Log.d("MediaGalleryActivity", "Folder '$name' created with ID: $folderId")
 
                 Toast.makeText(this@MediaGalleryActivity, "Folder '$name' created successfully", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
@@ -1050,8 +864,57 @@ class MediaGalleryActivity : AppCompatActivity() {
     }
 
     private fun showRenameFolderDialog(folder: EncryptedFolderEntity) {
-        // TODO: Implement rename functionality
-        Toast.makeText(this, "Rename functionality coming soon", Toast.LENGTH_SHORT).show()
+        val dialogView = layoutInflater.inflate(R.layout.dialog_rename_file, null)
+        val nameInput = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.file_name_input)
+        val nameLayout = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.file_name_input_layout)
+
+        nameInput.setText(folder.name)
+
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setView(dialogView)
+            .setTitle("Rename Folder")
+            .setPositiveButton("Rename") { _, _ ->
+                val newName = nameInput.text?.toString()?.trim()
+                if (newName.isNullOrEmpty()) {
+                    Toast.makeText(this, "Folder name cannot be empty", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                if (newName == folder.name) {
+                    Toast.makeText(this, "Please enter a different name", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                renameFolder(folder, newName)
+            }
+            .setNegativeButton("Cancel", null)
+            .create()
+
+        dialog.show()
+    }
+
+    private fun renameFolder(folder: EncryptedFolderEntity, newName: String) {
+        lifecycleScope.launch {
+            try {
+                // Check if name already exists
+                val existingFolder = database.encryptedFolderDao().getFolderByName(newName)
+                if (existingFolder != null && existingFolder.id != folder.id) {
+                    Toast.makeText(this@MediaGalleryActivity, "Folder name already exists", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+
+                // Update folder name
+                val updatedFolder = folder.copy(name = newName)
+                database.encryptedFolderDao().updateFolder(updatedFolder)
+
+                Toast.makeText(this@MediaGalleryActivity, "Folder renamed successfully", Toast.LENGTH_SHORT).show()
+
+                // Refresh the folder list
+                setupFolderList()
+
+            } catch (e: Exception) {
+                android.util.Log.e("MediaGalleryActivity", "Error renaming folder", e)
+                Toast.makeText(this@MediaGalleryActivity, "Error renaming folder: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun showDeleteFolderDialog(folder: EncryptedFolderEntity) {
@@ -1097,513 +960,33 @@ class MediaGalleryActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showRecoveryDialog() {
-        lifecycleScope.launch {
-            try {
-                // Check recovery attempt limits first
-                if (!checkRecoveryAttemptLimits()) {
-                    return@launch
-                }
+    // Removed: showRecoveryDialog() - no longer needed with fingerprint-only authentication
 
-                val recoveryData = withContext(Dispatchers.IO) {
-                    RecoveryData(
-                        question = database.preferenceDao().getPreference("hidden_gallery_recovery_question")?.value,
-                        pinHint = database.preferenceDao().getPreference("hidden_gallery_pin_hint")?.value,
-                        setupTime = database.preferenceDao().getPreference("hidden_gallery_recovery_setup_time")?.value?.toLongOrNull()
-                    )
-                }
+    // Removed: RecoveryData class and proceedWithRecovery() - no longer needed with fingerprint-only authentication
 
-                android.util.Log.d("MediaGalleryActivity", "Recovery data loaded: ${recoveryData.isValid()}")
+    // Removed: showNoRecoverySetupDialog() - no longer needed with fingerprint-only authentication
 
-                proceedWithRecovery(recoveryData)
-            } catch (e: Exception) {
-                android.util.Log.e("MediaGalleryActivity", "Error loading recovery data", e)
-                showRecoveryError("Unable to load recovery options. Please try again.")
-            }
-        }
-    }
+    // Removed: checkRecoveryAttemptLimits(), incrementRecoveryAttempt(), showRecoveryError() - no longer needed with fingerprint-only authentication
 
-    private data class RecoveryData(
-        val question: String?,
-        val pinHint: String?,
-        val setupTime: Long?
-    ) {
-        fun isValid(): Boolean = !question.isNullOrEmpty() || !pinHint.isNullOrEmpty()
-        fun hasQuestion(): Boolean = !question.isNullOrEmpty()
-        fun hasHint(): Boolean = !pinHint.isNullOrEmpty()
-        fun hasBoth(): Boolean = hasQuestion() && hasHint()
-    }
+    // Removed: CredentialInfo class and getCurrentCredentials() - no longer needed with fingerprint-only authentication
 
-    private fun proceedWithRecovery(recoveryData: RecoveryData) {
-        when {
-            !recoveryData.isValid() -> showNoRecoverySetupDialog()
-            recoveryData.hasBoth() -> showRecoveryOptionsDialog(recoveryData)
-            recoveryData.hasQuestion() -> showRecoveryQuestionDialog(recoveryData)
-            recoveryData.hasHint() -> showPinHintDialog(recoveryData.pinHint!!)
-        }
-    }
+    // Removed: showCurrentCredentials() - no longer needed with fingerprint-only authentication
 
-    private fun showNoRecoverySetupDialog() {
-        androidx.appcompat.app.AlertDialog.Builder(this@MediaGalleryActivity)
-            .setTitle("No Recovery Options Available")
-            .setMessage("No recovery question or PIN hint has been configured for your account.\n\nTo set up account recovery:\n1. Go to Settings\n2. Select Hidden Gallery\n3. Choose 'Setup Recovery Question'\n\nThis will help you regain access if you forget your PIN/password.")
-            .setPositiveButton("Open Settings") { _, _ ->
-                try {
-                    val intent = Intent(this@MediaGalleryActivity, SettingsActivity::class.java)
-                    startActivity(intent)
-                } catch (e: Exception) {
-                    android.util.Log.e("MediaGalleryActivity", "Error opening settings", e)
-                    Toast.makeText(this@MediaGalleryActivity, "Unable to open settings", Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton("Cancel", null)
-            .setCancelable(true)
-            .show()
-    }
+    // Removed: copyToClipboard() - no longer needed with fingerprint-only authentication
 
-    private fun checkRecoveryAttemptLimits(): Boolean {
-        val currentTime = System.currentTimeMillis()
-        val lastAttemptTime = getSharedPreferences("recovery_attempts", MODE_PRIVATE)
-            .getLong("last_attempt_time", 0)
-        val attemptCount = getSharedPreferences("recovery_attempts", MODE_PRIVATE)
-            .getInt("attempt_count", 0)
+    // Removed: autoFillPin() and autoFillPassword() - no longer needed with fingerprint-only authentication
 
-        // Reset attempts after 24 hours
-        if (currentTime - lastAttemptTime > 24 * 60 * 60 * 1000) {
-            getSharedPreferences("recovery_attempts", MODE_PRIVATE)
-                .edit()
-                .putInt("attempt_count", 0)
-                .putLong("last_attempt_time", currentTime)
-                .apply()
-            return true
-        }
+    // Removed: showPinHintDialog() and showAdditionalHelpDialog() - no longer needed with fingerprint-only authentication
 
-        // Limit to 5 recovery attempts per 24 hours
-        if (attemptCount >= 5) {
-            val hoursRemaining = 24 - ((currentTime - lastAttemptTime) / (60 * 60 * 1000))
-            androidx.appcompat.app.AlertDialog.Builder(this@MediaGalleryActivity)
-                .setTitle("Recovery Limit Reached")
-                .setMessage("You have exceeded the maximum number of recovery attempts (5) for today.\n\nPlease try again in $hoursRemaining hours.\n\nThis security measure protects your account from unauthorized access attempts.")
-                .setPositiveButton("OK", null)
-                .setCancelable(false)
-                .show()
-            return false
-        }
+    // Removed: showRecoveryOptionsDialog() - no longer needed with fingerprint-only authentication
 
-        return true
-    }
+    // Removed: showRecoveryQuestionDialog() - no longer needed with fingerprint-only authentication
 
-    private fun incrementRecoveryAttempt() {
-        val prefs = getSharedPreferences("recovery_attempts", MODE_PRIVATE)
-        val currentCount = prefs.getInt("attempt_count", 0)
-        prefs.edit()
-            .putInt("attempt_count", currentCount + 1)
-            .putLong("last_attempt_time", System.currentTimeMillis())
-            .apply()
-    }
+    // Removed: verifyRecoveryAnswer() and hashAnswerWithSalt() - no longer needed with fingerprint-only authentication
 
-    private fun showRecoveryError(message: String) {
-        androidx.appcompat.app.AlertDialog.Builder(this@MediaGalleryActivity)
-            .setTitle("Recovery Error")
-            .setMessage(message)
-            .setPositiveButton("OK", null)
-            .show()
-    }
+    // Removed: showAnswerError(), showMaxAttemptsReached(), showSuccessfulRecovery() - no longer needed with fingerprint-only authentication
 
-    private data class CredentialInfo(
-        val value: String,
-        val type: String,
-        val isDefault: Boolean
-    )
-
-    private suspend fun getCurrentCredentials(): CredentialInfo? {
-        return try {
-            val securityMethod = database.preferenceDao().getPreference("hidden_gallery_security_method")?.value
-            val securityValueHash = database.preferenceDao().getPreference("hidden_gallery_security_value")?.value
-
-            if (securityValueHash != null) {
-                val credentials = String(android.util.Base64.decode(securityValueHash, android.util.Base64.DEFAULT))
-                val credentialType = if (securityMethod == "pin") "PIN" else "Password"
-                val isDefault = credentials == "0000" && securityMethod == "pin"
-
-                CredentialInfo(credentials, credentialType, isDefault)
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("MediaGalleryActivity", "Error retrieving credentials", e)
-            null
-        }
-    }
-
-    private fun showCurrentCredentials(credentials: CredentialInfo) {
-        val message = buildString {
-            append("✅ Recovery Successful!\n\n")
-            append("Your current ${credentials.type} is: ")
-            append("${credentials.value}\n\n")
-
-            if (credentials.isDefault) {
-                append("⚠️ You are using the default PIN. ")
-                append("Consider changing it in Settings for better security.")
-            } else {
-                append("💡 Make sure to remember this ${credentials.type.lowercase()} for future access.")
-            }
-        }
-
-        androidx.appcompat.app.AlertDialog.Builder(this@MediaGalleryActivity)
-            .setTitle("Account Recovery")
-            .setMessage(message)
-            .setPositiveButton("Auto-Fill & Continue") { _, _ ->
-                if (credentials.type == "PIN") {
-                    autoFillPin(credentials.value)
-                } else {
-                    autoFillPassword(credentials.value)
-                }
-            }
-            .setNeutralButton("Copy to Clipboard") { _, _ ->
-                copyToClipboard(credentials.value, credentials.type)
-            }
-            .setNegativeButton("Close", null)
-            .setCancelable(false)
-            .show()
-    }
-
-    private fun copyToClipboard(value: String, type: String) {
-        try {
-            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            val clip = android.content.ClipData.newPlainText("Hidden Gallery $type", value)
-            clipboard.setPrimaryClip(clip)
-
-            Toast.makeText(this, "$type copied to clipboard", Toast.LENGTH_SHORT).show()
-
-            // Clear clipboard after 30 seconds for security
-            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                try {
-                    val emptyClip = android.content.ClipData.newPlainText("", "")
-                    clipboard.setPrimaryClip(emptyClip)
-                } catch (e: Exception) {
-                    // Ignore clipboard clear errors
-                }
-            }, 30000)
-        } catch (e: Exception) {
-            android.util.Log.e("MediaGalleryActivity", "Error copying to clipboard", e)
-            Toast.makeText(this, "Failed to copy to clipboard", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun autoFillPin(pin: String) {
-        val overlay = binding.lockScreenOverlay
-        val pinDigits = arrayOf(
-            overlay.pinDigit1,
-            overlay.pinDigit2,
-            overlay.pinDigit3,
-            overlay.pinDigit4
-        )
-
-        // Clear existing PIN display
-        pinDigits.forEach { it.text = "" }
-
-        // Fill PIN digits
-        pin.forEachIndexed { index, digit ->
-            if (index < pinDigits.size) {
-                pinDigits[index].text = digit.toString()
-            }
-        }
-
-        // Auto-verify after a short delay
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-            verifyPin(pin, pinDigits) {
-                // Clear on failure
-                pinDigits.forEach { it.text = "" }
-            }
-        }, 1000)
-    }
-
-    private fun autoFillPassword(password: String) {
-        val overlay = binding.lockScreenOverlay
-        overlay.passwordInput.setText(password)
-
-        // Auto-verify after a short delay
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-            verifyPassword(password)
-        }, 1000)
-    }
-
-    private fun showPinHintDialog(pinHint: String) {
-        incrementRecoveryAttempt()
-
-        val message = buildString {
-            append("💡 Here's your PIN hint:\n\n")
-            append("\"$pinHint\"\n\n")
-            append("Take your time to think about what this hint means to you. ")
-            append("Your PIN is likely related to this hint in some way.")
-        }
-
-        androidx.appcompat.app.AlertDialog.Builder(this@MediaGalleryActivity)
-            .setTitle("PIN Recovery Hint")
-            .setMessage(message)
-            .setPositiveButton("Got It") { _, _ ->
-                // User understands the hint
-            }
-            .setNeutralButton("Need More Help?") { _, _ ->
-                showAdditionalHelpDialog()
-            }
-            .setNegativeButton("Copy Hint") { _, _ ->
-                copyToClipboard(pinHint, "PIN Hint")
-            }
-            .setCancelable(true)
-            .show()
-    }
-
-    private fun showAdditionalHelpDialog() {
-        val helpMessage = buildString {
-            append("If you still can't remember your PIN after reviewing the hint:\n\n")
-            append("🔹 Try variations of numbers related to the hint\n")
-            append("🔹 Think about significant dates or numbers in your life\n")
-            append("🔹 Consider common PIN patterns you typically use\n\n")
-            append("Security Options:\n")
-            append("• Set up a recovery question in Settings\n")
-            append("• Update your PIN to something more memorable\n")
-            append("• Add a more detailed PIN hint")
-        }
-
-        androidx.appcompat.app.AlertDialog.Builder(this@MediaGalleryActivity)
-            .setTitle("Additional Recovery Help")
-            .setMessage(helpMessage)
-            .setPositiveButton("Open Settings") { _, _ ->
-                try {
-                    val intent = Intent(this@MediaGalleryActivity, SettingsActivity::class.java)
-                    startActivity(intent)
-                } catch (e: Exception) {
-                    android.util.Log.e("MediaGalleryActivity", "Error opening settings", e)
-                    Toast.makeText(this@MediaGalleryActivity, "Unable to open settings", Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton("Close", null)
-            .setCancelable(true)
-            .show()
-    }
-
-    private fun showRecoveryOptionsDialog(recoveryData: RecoveryData) {
-        val options = mutableListOf<String>()
-        val actions = mutableListOf<() -> Unit>()
-
-        if (recoveryData.hasQuestion()) {
-            options.add("🔐 Answer Security Question")
-            actions.add { showRecoveryQuestionDialog(recoveryData) }
-        }
-
-        if (recoveryData.hasHint()) {
-            options.add("💡 View PIN Hint")
-            actions.add { showPinHintDialog(recoveryData.pinHint!!) }
-        }
-
-        options.add("❌ Cancel")
-        actions.add { /* Cancel - do nothing */ }
-
-        androidx.appcompat.app.AlertDialog.Builder(this@MediaGalleryActivity)
-            .setTitle("Account Recovery Options")
-            .setMessage("Choose your preferred recovery method:")
-            .setItems(options.toTypedArray()) { _, which ->
-                if (which < actions.size) {
-                    actions[which].invoke()
-                }
-            }
-            .setCancelable(true)
-            .show()
-    }
-
-    private fun showRecoveryQuestionDialog(recoveryData: RecoveryData) {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_recovery_process, null)
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(this@MediaGalleryActivity)
-            .setView(dialogView)
-            .setCancelable(false)
-            .create()
-
-        val questionText = dialogView.findViewById<TextView>(R.id.security_question_text)
-        val answerInput = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.recovery_answer_input)
-        val pinHintSection = dialogView.findViewById<LinearLayout>(R.id.pin_hint_section)
-        val pinHintText = dialogView.findViewById<TextView>(R.id.pin_hint_text)
-        val errorMessage = dialogView.findViewById<TextView>(R.id.error_message)
-        val cancelButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.cancel_recovery_button)
-        val verifyButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.verify_answer_button)
-
-        questionText.text = recoveryData.question
-
-        // Show PIN hint if available
-        if (recoveryData.hasHint()) {
-            pinHintSection.visibility = View.VISIBLE
-            pinHintText.text = recoveryData.pinHint
-        }
-
-        var attemptCount = 0
-        val maxAttempts = 3
-
-        cancelButton.setOnClickListener {
-            incrementRecoveryAttempt()
-            dialog.dismiss()
-        }
-
-        verifyButton.setOnClickListener {
-            val userAnswer = answerInput.text.toString().trim()
-
-            // Validate input
-            if (userAnswer.isEmpty()) {
-                showAnswerError(errorMessage, "Please enter your answer")
-                return@setOnClickListener
-            }
-
-            if (userAnswer.length < 2) {
-                showAnswerError(errorMessage, "Answer must be at least 2 characters")
-                return@setOnClickListener
-            }
-
-            attemptCount++
-            verifyButton.isEnabled = false
-            verifyButton.text = "Verifying..."
-
-            lifecycleScope.launch {
-                try {
-                    val isCorrect = withContext(Dispatchers.IO) {
-                        verifyRecoveryAnswer(userAnswer)
-                    }
-
-                    if (isCorrect) {
-                        dialog.dismiss()
-                        showSuccessfulRecovery()
-                    } else {
-                        incrementRecoveryAttempt()
-
-                        if (attemptCount >= maxAttempts) {
-                            dialog.dismiss()
-                            showMaxAttemptsReached()
-                        } else {
-                            val remainingAttempts = maxAttempts - attemptCount
-                            showAnswerError(errorMessage, "Incorrect answer. $remainingAttempts attempts remaining.")
-                            answerInput.text?.clear()
-
-                            // Add delay before allowing next attempt
-                            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                                verifyButton.isEnabled = true
-                                verifyButton.text = "Verify Answer"
-                            }, 2000)
-                        }
-                    }
-                } catch (e: Exception) {
-                    android.util.Log.e("MediaGalleryActivity", "Error verifying answer", e)
-                    showAnswerError(errorMessage, "Verification failed. Please try again.")
-                    verifyButton.isEnabled = true
-                    verifyButton.text = "Verify Answer"
-                }
-            }
-        }
-
-        dialog.show()
-    }
-
-    private suspend fun verifyRecoveryAnswer(userAnswer: String): Boolean {
-        return try {
-            val storedAnswerHash = database.preferenceDao().getPreference("hidden_gallery_recovery_answer")?.value
-            val storedSalt = database.preferenceDao().getPreference("hidden_gallery_recovery_salt")?.value
-
-            if (storedAnswerHash == null) {
-                android.util.Log.e("MediaGalleryActivity", "No stored answer hash found")
-                return false
-            }
-
-            if (storedSalt != null) {
-                // Use salt-based verification (new method)
-                val userAnswerHash = hashAnswerWithSalt(userAnswer.lowercase().trim(), storedSalt)
-                userAnswerHash.trim() == storedAnswerHash.trim()
-            } else {
-                // Fallback to old method for backward compatibility
-                val userAnswerHash = android.util.Base64.encodeToString(userAnswer.lowercase().toByteArray(), android.util.Base64.DEFAULT)
-                userAnswerHash.trim() == storedAnswerHash.trim()
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("MediaGalleryActivity", "Error in answer verification", e)
-            false
-        }
-    }
-
-    private fun hashAnswerWithSalt(answer: String, salt: String): String {
-        return try {
-            val saltBytes = android.util.Base64.decode(salt, android.util.Base64.DEFAULT)
-            val answerBytes = answer.toByteArray(Charsets.UTF_8)
-            val combined = saltBytes + answerBytes
-
-            val digest = java.security.MessageDigest.getInstance("SHA-256")
-            val hash = digest.digest(combined)
-            android.util.Base64.encodeToString(hash, android.util.Base64.DEFAULT)
-        } catch (e: Exception) {
-            android.util.Log.e("MediaGalleryActivity", "Error hashing answer", e)
-            android.util.Base64.encodeToString(answer.toByteArray(), android.util.Base64.DEFAULT)
-        }
-    }
-
-    private fun showAnswerError(errorMessage: TextView, message: String) {
-        errorMessage.text = message
-        errorMessage.visibility = View.VISIBLE
-
-        // Auto-hide error after 5 seconds
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-            errorMessage.visibility = View.GONE
-        }, 5000)
-    }
-
-    private fun showMaxAttemptsReached() {
-        androidx.appcompat.app.AlertDialog.Builder(this@MediaGalleryActivity)
-            .setTitle("Maximum Attempts Reached")
-            .setMessage("You have exceeded the maximum number of answer attempts for this session.\n\nFor security reasons, please wait before trying again or contact support if you continue to have issues.")
-            .setPositiveButton("OK", null)
-            .setCancelable(false)
-            .show()
-    }
-
-    private fun showSuccessfulRecovery() {
-        lifecycleScope.launch {
-            val credentials = withContext(Dispatchers.IO) {
-                getCurrentCredentials()
-            }
-
-            if (credentials != null) {
-                showCurrentCredentials(credentials)
-            } else {
-                showRecoveryError("Unable to retrieve credentials. Please contact support.")
-            }
-        }
-    }
-
-    // Toolbar menu actions
-    private fun selectAllFolders() {
-        // TODO: Implement multi-select functionality
-        Toast.makeText(this, "Select All functionality coming soon", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun deleteSelectedFolders() {
-        // TODO: Implement bulk delete functionality
-        Toast.makeText(this, "Delete Selected functionality coming soon", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun moveSelectedFolders() {
-        // TODO: Implement bulk move functionality
-        Toast.makeText(this, "Move Selected functionality coming soon", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun exportSelectedFolders() {
-        // TODO: Implement bulk export functionality
-        Toast.makeText(this, "Export Selected functionality coming soon", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun openSettings() {
-        try {
-            val intent = Intent(this, SettingsActivity::class.java)
-            startActivity(intent)
-        } catch (e: Exception) {
-            android.util.Log.e("MediaGalleryActivity", "Error opening settings", e)
-            Toast.makeText(this, "Unable to open settings", Toast.LENGTH_SHORT).show()
-        }
-    }
+    // Removed duplicate toolbar menu actions - keeping the implementations below
 
     private fun showHelpDialog() {
         val helpMessage = buildString {
@@ -1637,13 +1020,247 @@ class MediaGalleryActivity : AppCompatActivity() {
 
     // Folder-specific actions
     private fun showChangePinDialog(folder: EncryptedFolderEntity) {
-        // TODO: Implement change PIN functionality
-        Toast.makeText(this, "Change PIN for ${folder.name} coming soon", Toast.LENGTH_SHORT).show()
+        val dialogView = layoutInflater.inflate(R.layout.dialog_create_folder_pin, null)
+
+        // Hide the folder name input since we're changing PIN for existing folder
+        val folderNameLayout = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.folder_name_input_layout)
+        folderNameLayout?.visibility = View.GONE
+
+        // Update title
+        val titleText = dialogView.findViewById<android.widget.TextView>(android.R.id.text1)
+        if (titleText != null) {
+            titleText.text = "Change PIN for ${folder.name}"
+        }
+
+        // Update button text
+        val createButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.create_button)
+        createButton?.text = "Change PIN"
+
+        // Use existing PIN fields
+        val currentPinInput = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.folder_pin_input)
+        val newPinInput = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.folder_confirm_pin_input)
+        val currentPinLayout = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.folder_pin_input_layout)
+        val newPinLayout = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.folder_confirm_pin_input_layout)
+
+        // Update hints
+        currentPinLayout?.hint = "Current PIN"
+        newPinLayout?.hint = "New PIN"
+
+        // Add a third field for confirming new PIN
+        val confirmPinLayout = com.google.android.material.textfield.TextInputLayout(this).apply {
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(0, 20, 0, 0)
+            }
+            boxBackgroundMode = com.google.android.material.textfield.TextInputLayout.BOX_BACKGROUND_OUTLINE
+            boxBackgroundColor = resources.getColor(R.color.card_bg_2a2833, null)
+            boxStrokeColor = resources.getColor(R.color.accent_purple_bb86fc, null)
+            boxStrokeWidth = 2
+            setBoxCornerRadii(12f, 12f, 12f, 12f)
+            hintTextColor = resources.getColorStateList(R.color.accent_purple_bb86fc, null)
+            setStartIconDrawable(R.drawable.ic_lock)
+            setStartIconTintList(resources.getColorStateList(R.color.accent_purple_bb86fc, null))
+            isPasswordVisibilityToggleEnabled = true
+        }
+
+        val confirmPinInput = com.google.android.material.textfield.TextInputEditText(this).apply {
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            hint = "Confirm New PIN"
+            setTextColor(resources.getColor(R.color.white_ffffff, null))
+            setHintTextColor(resources.getColor(R.color.text_muted_b0aec0, null))
+            textSize = 16f
+            maxLines = 1
+            filters = arrayOf(android.text.InputFilter.LengthFilter(4))
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            setPadding(resources.getDimensionPixelSize(R.dimen.padding_large), resources.getDimensionPixelSize(R.dimen.padding_large), resources.getDimensionPixelSize(R.dimen.padding_large), resources.getDimensionPixelSize(R.dimen.padding_large))
+        }
+
+        confirmPinLayout.addView(confirmPinInput)
+
+        // Add the confirm PIN field to the layout
+        // Find the input fields container and add the confirm PIN field
+        val rootView = dialogView as? android.widget.LinearLayout
+        if (rootView != null) {
+            // The input fields are in the second child (index 1)
+            val inputContainer = rootView.getChildAt(1) as? android.widget.LinearLayout
+            if (inputContainer != null) {
+                inputContainer.addView(confirmPinLayout, 2) // Add after the existing PIN fields
+            }
+        }
+
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setView(dialogView)
+            .create()
+
+        createButton?.setOnClickListener {
+            val currentPin = currentPinInput?.text?.toString() ?: ""
+            val newPin = newPinInput?.text?.toString() ?: ""
+            val confirmPin = confirmPinInput?.text?.toString() ?: ""
+
+            // Clear previous errors
+            currentPinLayout?.error = null
+            newPinLayout?.error = null
+            confirmPinLayout?.error = null
+
+            var hasError = false
+
+            // Validate current PIN
+            if (currentPin.isEmpty()) {
+                currentPinLayout?.error = "Current PIN is required"
+                hasError = true
+            } else if (currentPin.length != 4 || !currentPin.all { it.isDigit() }) {
+                currentPinLayout?.error = "Current PIN must be 4 digits"
+                hasError = true
+            }
+
+            // Validate new PIN
+            if (newPin.isEmpty()) {
+                newPinLayout?.error = "New PIN is required"
+                hasError = true
+            } else if (newPin.length != 4 || !newPin.all { it.isDigit() }) {
+                newPinLayout?.error = "New PIN must be 4 digits"
+                hasError = true
+            }
+
+            // Validate confirm PIN
+            if (confirmPin != newPin) {
+                confirmPinLayout?.error = "PINs do not match"
+                hasError = true
+            }
+
+            if (!hasError) {
+                changeFolderPin(folder, currentPin, newPin)
+                dialog.dismiss()
+            }
+        }
+
+        val cancelButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.cancel_button)
+        cancelButton?.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun changeFolderPin(folder: EncryptedFolderEntity, currentPin: String, newPin: String) {
+        lifecycleScope.launch {
+            try {
+                // Verify current PIN
+                val isCurrentPinValid = withContext(Dispatchers.IO) {
+                    val storedHash = folder.passwordHash
+                    val salt = folder.salt
+                    val currentHash = EncryptionUtils.hashPassword(currentPin, salt)
+                    storedHash == currentHash
+                }
+
+                if (!isCurrentPinValid) {
+                    Toast.makeText(this@MediaGalleryActivity, "Current PIN is incorrect", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+
+                // Generate new salt and hash for new PIN
+                val newSalt = EncryptionUtils.generateSalt()
+                val newHash = EncryptionUtils.hashPassword(newPin, newSalt)
+
+                // Update folder with new PIN
+                val updatedFolder = folder.copy(
+                    passwordHash = newHash,
+                    salt = newSalt
+                )
+
+                withContext(Dispatchers.IO) {
+                    database.encryptedFolderDao().updateFolder(updatedFolder)
+                }
+
+                Toast.makeText(this@MediaGalleryActivity, "PIN changed successfully for ${folder.name}", Toast.LENGTH_SHORT).show()
+
+            } catch (e: Exception) {
+                android.util.Log.e("MediaGalleryActivity", "Error changing folder PIN", e)
+                Toast.makeText(this@MediaGalleryActivity, "Error changing PIN: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun exportFolder(folder: EncryptedFolderEntity) {
-        // TODO: Implement export functionality
-        Toast.makeText(this, "Export ${folder.name} coming soon", Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            try {
+                // Get all files in the folder
+                val files = withContext(Dispatchers.IO) {
+                    database.encryptedFileDao().getFilesInFolderSync(folder.id)
+                }
+
+                if (files.isEmpty()) {
+                    Toast.makeText(this@MediaGalleryActivity, "Folder is empty, nothing to export", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+
+                // Create export directory
+                val exportDir = File(getExternalFilesDir(null), "Exported_${folder.name}_${System.currentTimeMillis()}")
+                if (!exportDir.exists()) {
+                    exportDir.mkdirs()
+                }
+
+                var successCount = 0
+                var errorCount = 0
+
+                // Export each file
+                for (file in files) {
+                    try {
+                        val fileEncryptionService = com.shaadow.onecalculator.services.FileEncryptionService(this@MediaGalleryActivity)
+
+                        // Decrypt file to export directory
+                        val exportedFile = withContext(Dispatchers.IO) {
+                            fileEncryptionService.decryptFileForViewing(file, "0000", folder.salt)
+                        }
+
+                        if (exportedFile != null) {
+                            // Copy to export directory with original name
+                            val targetFile = File(exportDir, file.originalFileName)
+                            exportedFile.copyTo(targetFile, overwrite = true)
+
+                            // Clean up temp file
+                            exportedFile.delete()
+                            successCount++
+                        } else {
+                            errorCount++
+                        }
+
+                    } catch (e: Exception) {
+                        android.util.Log.e("MediaGalleryActivity", "Error exporting file: ${file.originalFileName}", e)
+                        errorCount++
+                    }
+                }
+
+                // Show result
+                val message = when {
+                    successCount > 0 && errorCount == 0 -> "Successfully exported $successCount files to ${exportDir.absolutePath}"
+                    successCount > 0 && errorCount > 0 -> "Exported $successCount files, $errorCount failed. Location: ${exportDir.absolutePath}"
+                    else -> "Failed to export files"
+                }
+
+                Toast.makeText(this@MediaGalleryActivity, message, Toast.LENGTH_LONG).show()
+
+                // Open export directory in file manager
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(android.net.Uri.parse(exportDir.parent), "resource/folder")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    android.util.Log.w("MediaGalleryActivity", "Could not open export directory in file manager", e)
+                }
+
+            } catch (e: Exception) {
+                android.util.Log.e("MediaGalleryActivity", "Error exporting folder", e)
+                Toast.makeText(this@MediaGalleryActivity, "Error exporting folder: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun verifyFolderPin(folder: EncryptedFolderEntity, enteredPin: String, callback: (Boolean) -> Unit) {
@@ -1672,9 +1289,13 @@ class MediaGalleryActivity : AppCompatActivity() {
     private fun openFolderContents(folder: EncryptedFolderEntity) {
         try {
             android.util.Log.d("MediaGalleryActivity", "Opening folder contents for: ${folder.name}, ID: ${folder.id}")
+            android.util.Log.d("MediaGalleryActivity", "Using master password: ${currentMasterPassword.isNotEmpty()}")
+            
             val intent = Intent(this, NewFolderContentsActivity::class.java)
-            intent.putExtra(NewFolderContentsActivity.EXTRA_FOLDER_ID, folder.id)
-            intent.putExtra(NewFolderContentsActivity.EXTRA_MASTER_PASSWORD, currentMasterPassword)
+            intent.putExtra("folder_id", folder.id)
+            intent.putExtra("master_password", currentMasterPassword)
+            
+            android.util.Log.d("MediaGalleryActivity", "Starting NewFolderContentsActivity with folder ID: ${folder.id}")
             startActivity(intent)
             android.util.Log.d("MediaGalleryActivity", "Intent started successfully")
         } catch (e: Exception) {
@@ -1682,4 +1303,154 @@ class MediaGalleryActivity : AppCompatActivity() {
             Toast.makeText(this, "Error opening folder: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
+
+    private fun selectAllFolders() {
+        folderAdapter.selectAll()
+        updateMenuVisibility(true)
+        Toast.makeText(this, "All folders selected", Toast.LENGTH_SHORT).show()
+    }
+    
+    private fun deleteSelectedFolders() {
+        val selectedFolders = folderAdapter.getSelectedFolders()
+        if (selectedFolders.isEmpty()) {
+            Toast.makeText(this, "No folders selected", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Delete Folders")
+            .setMessage("Are you sure you want to delete ${selectedFolders.size} folder(s)? This will permanently delete all files in these folders.")
+            .setPositiveButton("Delete") { _, _ ->
+                performFolderDeletion(selectedFolders)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+    
+    private fun performFolderDeletion(folders: List<EncryptedFolderEntity>) {
+        lifecycleScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    folders.forEach { folder ->
+                        // Delete all files in the folder first
+                        val files = database.encryptedFileDao().getFilesInFolderSync(folder.id)
+                        files.forEach { file ->
+                            // Delete encrypted file from storage
+                            val hiddenDir = ExternalStorageManager.getHiddenCalculatorDir(this@MediaGalleryActivity)
+                            if (hiddenDir != null) {
+                                val encryptedFile = File(hiddenDir, file.encryptedFileName)
+                                if (encryptedFile.exists()) {
+                                    encryptedFile.delete()
+                                }
+                            }
+                            // Delete from database
+                            database.encryptedFileDao().deleteFile(file)
+                        }
+                        
+                        // Delete the folder from database
+                        database.encryptedFolderDao().deleteFolder(folder)
+                    }
+                }
+                
+                folderAdapter.clearSelection()
+                updateMenuVisibility(false)
+                Toast.makeText(this@MediaGalleryActivity, "${folders.size} folder(s) deleted", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                android.util.Log.e("MediaGalleryActivity", "Error deleting folders", e)
+                Toast.makeText(this@MediaGalleryActivity, "Error deleting folders", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    
+    private fun moveSelectedFolders() {
+        Toast.makeText(this, "Move functionality coming soon", Toast.LENGTH_SHORT).show()
+    }
+    
+    private fun exportSelectedFolders() {
+        val selectedFolders = folderAdapter.getSelectedFolders()
+        if (selectedFolders.isEmpty()) {
+            Toast.makeText(this, "No folders selected", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        Toast.makeText(this, "Export functionality coming soon", Toast.LENGTH_SHORT).show()
+    }
+    
+    private fun openSettings() {
+        val intent = Intent(this, SettingsActivity::class.java)
+        startActivity(intent)
+    }
+    
+    private fun showHelp() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Hidden Gallery Help")
+            .setMessage("• Create folders to organize your private media\n• Use fingerprint to unlock the gallery\n• Files are encrypted and stored securely\n• Long press folders for more options")
+            .setPositiveButton("OK", null)
+            .show()
+    }
+
+    private fun showStorageInfo() {
+        val hiddenDir = ExternalStorageManager.getHiddenCalculatorDir(this)
+        val encryptedDir = ExternalStorageManager.getEncryptedFilesDir(this)
+
+        val message = buildString {
+            append("📂 Storage Information\n\n")
+            append("🔒 Hidden Directory:\n")
+            append("${hiddenDir?.absolutePath ?: "Not available"}\n\n")
+            append("🔐 Encrypted Files:\n")
+            append("${encryptedDir?.absolutePath ?: "Not available"}\n\n")
+            append("💡 This folder is visible in your file manager.\n")
+            append("All files are encrypted and can only be accessed through this app.\n\n")
+            append("⚠️ Do not modify or delete files directly from the file manager!")
+        }
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Storage Location")
+            .setMessage(message)
+            .setPositiveButton("OK", null)
+            .setNeutralButton("Open in File Manager") { _, _ ->
+                openInFileManager()
+            }
+            .show()
+    }
+
+    private fun openInFileManager() {
+        try {
+            val hiddenDir = ExternalStorageManager.getHiddenCalculatorDir(this)
+            if (hiddenDir != null && hiddenDir.exists()) {
+                // Try to open the specific directory
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(android.net.Uri.fromFile(hiddenDir), "resource/folder")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+
+                // If direct file URI doesn't work, try opening the parent directory
+                try {
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    android.util.Log.w("MediaGalleryActivity", "Direct directory opening failed, trying parent", e)
+                    val parentIntent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(android.net.Uri.fromFile(hiddenDir.parentFile), "resource/folder")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    startActivity(parentIntent)
+                }
+
+                Toast.makeText(this, "Opening file manager at: ${hiddenDir.absolutePath}", Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(this, "Storage directory not found. Try adding a file first.", Toast.LENGTH_LONG).show()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MediaGalleryActivity", "Error opening file manager", e)
+            Toast.makeText(this, "Cannot open file manager: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    private fun updateMenuVisibility(hasSelection: Boolean) {
+        val menu = binding.toolbar.menu
+        menu.findItem(R.id.action_delete_selected)?.isVisible = hasSelection
+        menu.findItem(R.id.action_move_selected)?.isVisible = hasSelection
+        menu.findItem(R.id.action_export_selected)?.isVisible = hasSelection
+    }
+
 }

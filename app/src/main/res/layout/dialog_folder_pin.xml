@@ -128,7 +128,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_1"
-                style="@style/Widget.Material3.Button.TextButton"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="64dp"
                 android:layout_height="64dp"
                 android:text="1"
@@ -139,7 +139,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_2"
-                style="@style/Widget.Material3.Button.TextButton"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="64dp"
                 android:layout_height="64dp"
                 android:text="2"
@@ -150,7 +150,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_3"
-                style="@style/Widget.Material3.Button.TextButton"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="64dp"
                 android:layout_height="64dp"
                 android:text="3"
@@ -170,7 +170,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_4"
-                style="@style/Widget.Material3.Button.TextButton"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="64dp"
                 android:layout_height="64dp"
                 android:text="4"
@@ -181,7 +181,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_5"
-                style="@style/Widget.Material3.Button.TextButton"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="64dp"
                 android:layout_height="64dp"
                 android:text="5"

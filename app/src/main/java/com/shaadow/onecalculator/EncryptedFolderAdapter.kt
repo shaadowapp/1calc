@@ -11,12 +11,67 @@ import androidx.recyclerview.widget.RecyclerView
 import java.text.SimpleDateFormat
 import java.util.*
 
+data class FolderWithCount(
+    val folder: EncryptedFolderEntity,
+    val fileCount: Int
+) {
+    val id: Long get() = folder.id
+    val name: String get() = folder.name
+    val itemCountText: String get() = if (fileCount == 1) "1 item" else "$fileCount items"
+    
+    fun toEncryptedFolderEntity(): EncryptedFolderEntity = folder
+}
+
 class EncryptedFolderAdapter(
     private val onFolderClick: (FolderWithCount) -> Unit,
     private val onFolderLongClick: (FolderWithCount) -> Unit,
     private val onFolderMenuClick: (FolderWithCount, View) -> Unit,
     private val onAddFolderClick: () -> Unit
 ) : ListAdapter<Any, RecyclerView.ViewHolder>(FolderDiffCallback()) {
+
+    private var isSelectionMode = false
+    private val selectedFolders = mutableSetOf<Long>()
+
+    fun selectAll() {
+        isSelectionMode = true
+        selectedFolders.clear()
+        currentList.forEach { item ->
+            if (item is FolderWithCount) {
+                selectedFolders.add(item.id)
+            }
+        }
+        notifyDataSetChanged()
+    }
+    
+    fun selectAllFolders() {
+        selectAll()
+    }
+
+    fun clearSelection() {
+        isSelectionMode = false
+        selectedFolders.clear()
+        notifyDataSetChanged()
+    }
+
+    fun getSelectedFolders(): List<EncryptedFolderEntity> {
+        return currentList.filterIsInstance<FolderWithCount>()
+            .filter { selectedFolders.contains(it.id) }
+            .map { it.toEncryptedFolderEntity() }
+    }
+
+    private fun toggleFolderSelection(folderId: Long) {
+        if (selectedFolders.contains(folderId)) {
+            selectedFolders.remove(folderId)
+        } else {
+            selectedFolders.add(folderId)
+        }
+        
+        if (selectedFolders.isEmpty()) {
+            isSelectionMode = false
+        }
+        
+        notifyDataSetChanged()
+    }
 
     companion object {
         private const val TYPE_FOLDER = 0
@@ -73,11 +128,30 @@ class EncryptedFolderAdapter(
             folderName.text = folderWithCount.name
             folderItemCount.text = folderWithCount.itemCountText
 
+            // Handle selection state
+            val isSelected = selectedFolders.contains(folderWithCount.id)
+            itemView.isSelected = isSelected
+            
+            // Update background based on selection
+            if (isSelected) {
+                itemView.setBackgroundResource(R.drawable.bg_folder_selected)
+            } else {
+                itemView.setBackgroundResource(R.drawable.bg_folder_normal)
+            }
+
             itemView.setOnClickListener {
-                onFolderClick(folderWithCount)
+                if (isSelectionMode) {
+                    toggleFolderSelection(folderWithCount.id)
+                } else {
+                    onFolderClick(folderWithCount)
+                }
             }
 
             itemView.setOnLongClickListener {
+                if (!isSelectionMode) {
+                    isSelectionMode = true
+                    toggleFolderSelection(folderWithCount.id)
+                }
                 onFolderLongClick(folderWithCount)
                 true
             }
@@ -99,7 +173,7 @@ class EncryptedFolderAdapter(
     private class FolderDiffCallback : DiffUtil.ItemCallback<Any>() {
         override fun areItemsTheSame(oldItem: Any, newItem: Any): Boolean {
             return when {
-                oldItem is EncryptedFolderEntity && newItem is EncryptedFolderEntity ->
+                oldItem is FolderWithCount && newItem is FolderWithCount ->
                     oldItem.id == newItem.id
                 oldItem == ADD_BUTTON_ITEM && newItem == ADD_BUTTON_ITEM -> true
                 else -> false
@@ -108,7 +182,7 @@ class EncryptedFolderAdapter(
 
         override fun areContentsTheSame(oldItem: Any, newItem: Any): Boolean {
             return when {
-                oldItem is EncryptedFolderEntity && newItem is EncryptedFolderEntity ->
+                oldItem is FolderWithCount && newItem is FolderWithCount ->
                     oldItem == newItem
                 oldItem == ADD_BUTTON_ITEM && newItem == ADD_BUTTON_ITEM -> true
                 else -> false

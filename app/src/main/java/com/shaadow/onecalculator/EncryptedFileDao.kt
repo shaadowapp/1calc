@@ -66,4 +66,11 @@ interface EncryptedFileDao {
     
     @Query("SELECT COUNT(*) FROM encrypted_files WHERE isVideo = 1")
     suspend fun getTotalVideoCount(): Int
+    
+    // Synchronous methods for batch operations
+    @Query("SELECT * FROM encrypted_files WHERE folderId = :folderId ORDER BY dateAdded DESC")
+    suspend fun getFilesInFolderSync(folderId: Long): List<EncryptedFileEntity>
+    
+    @Query("SELECT COUNT(*) FROM encrypted_files WHERE folderId = :folderId")
+    fun getFileCountInFolderSync(folderId: Long): Int
 }

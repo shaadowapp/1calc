@@ -1,73 +1,85 @@
 package com.shaadow.onecalculator
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.os.Environment
-import android.provider.Settings
+import android.provider.OpenableColumns
 import android.view.View
+import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.textfield.TextInputEditText
-import com.shaadow.onecalculator.services.FileEncryptionService
+
 import com.shaadow.onecalculator.utils.EncryptionUtils
 import com.shaadow.onecalculator.utils.ExternalStorageManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 
 class NewFolderContentsActivity : AppCompatActivity() {
 
     private lateinit var database: HistoryDatabase
-    private lateinit var fileEncryptionService: FileEncryptionService
-    private lateinit var recyclerView: RecyclerView
-    private lateinit var emptyStateView: View
-    private lateinit var btnAddFiles: MaterialButton
+    private lateinit var encryptedFileDao: EncryptedFileDao
+    private lateinit var filesRecyclerView: RecyclerView
+    private lateinit var emptyStateLayout: View
+    private lateinit var fabAddFile: com.google.android.material.floatingactionbutton.FloatingActionButton
     private lateinit var fileAdapter: EncryptedFileAdapter
-    
+
     private var folderId: Long = -1
-    private var folderEntity: EncryptedFolderEntity? = null
     private var masterPassword: String = ""
-    private var salt: String = ""
+    private var folderName: String = ""
+    private var folderSalt: String = ""
 
     companion object {
-        const val EXTRA_FOLDER_ID = "folder_id"
-        const val EXTRA_MASTER_PASSWORD = "master_password"
-        private const val STORAGE_PERMISSION_REQUEST_CODE = 1001
+        const val REQUEST_CODE_PICK_FILES = 1001
     }
 
+    // Activity result launcher for file picker
     private val filePickerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            result.data?.let { data ->
-                handleSelectedFiles(data)
+            result.data?.let { intent ->
+                val uris = mutableListOf<Uri>()
+
+                // Handle multiple files
+                intent.clipData?.let { clipData ->
+                    for (i in 0 until clipData.itemCount) {
+                        uris.add(clipData.getItemAt(i).uri)
+                    }
+                } ?: intent.data?.let { uri ->
+                    // Handle single file
+                    uris.add(uri)
+                }
+
+                if (uris.isNotEmpty()) {
+                    encryptAndStoreFiles(uris)
+                }
             }
         }
     }
 
-    private val manageStoragePermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            if (Environment.isExternalStorageManager()) {
-                android.util.Log.d("NewFolderContentsActivity", "MANAGE_EXTERNAL_STORAGE permission granted")
-                initializeStorageAfterPermission()
-            } else {
-                android.util.Log.w("NewFolderContentsActivity", "MANAGE_EXTERNAL_STORAGE permission denied")
-                // Permission denied handled silently (removed toast message)
-            }
+    // Permission request launcher
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val allGranted = permissions.values.all { it }
+        if (allGranted) {
+            android.util.Log.d("NewFolderContentsActivity", "All permissions granted")
+        } else {
+            Toast.makeText(this, "Media permissions are required to add files", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -75,86 +87,162 @@ class NewFolderContentsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_folder_contents)
 
-        // Get folder info from intent
-        folderId = intent.getLongExtra(EXTRA_FOLDER_ID, -1)
-        masterPassword = intent.getStringExtra(EXTRA_MASTER_PASSWORD) ?: ""
+        android.util.Log.d("NewFolderContentsActivity", "onCreate started")
 
-        if (folderId == -1L || masterPassword.isEmpty()) {
-            Toast.makeText(this, "Invalid folder access", Toast.LENGTH_SHORT).show()
+        // Get folder ID and master password from intent
+        folderId = intent.getLongExtra("folder_id", -1L)
+        masterPassword = intent.getStringExtra("master_password") ?: ""
+
+        android.util.Log.d("NewFolderContentsActivity", "Folder ID: $folderId, Password provided: ${masterPassword.isNotEmpty()}")
+
+        if (folderId == -1L) {
+            Toast.makeText(this, "Error: Invalid folder ID", Toast.LENGTH_SHORT).show()
+            android.util.Log.e("NewFolderContentsActivity", "Invalid folder ID received: $folderId")
             finish()
             return
         }
 
-        initializeComponents()
-        setupUI()
+        if (masterPassword.isEmpty()) {
+            Toast.makeText(this, "Error: No password provided", Toast.LENGTH_SHORT).show()
+            android.util.Log.e("NewFolderContentsActivity", "No master password provided")
+            finish()
+            return
+        }
+
+        initializeDatabase()
+        setupToolbar()
+        setupRecyclerView()
+        setupFab()
         loadFolderData()
     }
 
-    private fun initializeComponents() {
+    private fun initializeDatabase() {
         database = HistoryDatabase.getInstance(this)
-        fileEncryptionService = FileEncryptionService(this)
-
-        recyclerView = findViewById(R.id.contents_recycler_view)
-        emptyStateView = findViewById(R.id.empty_state_layout)
-        btnAddFiles = findViewById(R.id.btn_add_files)
-
-        fileAdapter = EncryptedFileAdapter { fileEntity ->
-            openFile(fileEntity)
+        encryptedFileDao = database.encryptedFileDao()
+        
+        // Initialize storage directory structure - CRITICAL for production
+        android.util.Log.d("NewFolderContentsActivity", "Initializing storage directory...")
+        
+        // Check external storage state first
+        val storageState = android.os.Environment.getExternalStorageState()
+        android.util.Log.d("NewFolderContentsActivity", "External storage state: $storageState")
+        
+        if (storageState != android.os.Environment.MEDIA_MOUNTED) {
+            Toast.makeText(this, "Error: External storage not available. State: $storageState", Toast.LENGTH_LONG).show()
+            android.util.Log.e("NewFolderContentsActivity", "External storage not mounted: $storageState")
         }
-
-        recyclerView.apply {
-            layoutManager = GridLayoutManager(this@NewFolderContentsActivity, 2)
-            adapter = fileAdapter
+        
+        // Check storage permissions
+        val hasStoragePermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_MEDIA_IMAGES) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        } else {
+            androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+        
+        android.util.Log.d("NewFolderContentsActivity", "Storage permission granted: $hasStoragePermission")
+        
+        if (!ExternalStorageManager.isHiddenDirectoryReady(this)) {
+            android.util.Log.w("NewFolderContentsActivity", "Hidden directory not ready, initializing...")
+            
+            // Get the target directory path for debugging
+            val targetDir = ExternalStorageManager.getHiddenCalculatorDir(this)
+            android.util.Log.d("NewFolderContentsActivity", "Target directory: ${targetDir?.absolutePath}")
+            
+            val initialized = ExternalStorageManager.initializeHiddenDirectory(this)
+            if (!initialized) {
+                Toast.makeText(this, "Error: Cannot initialize storage. Please check app permissions and storage space.", Toast.LENGTH_LONG).show()
+                android.util.Log.e("NewFolderContentsActivity", "CRITICAL: Failed to initialize hidden directory")
+                
+                // Show detailed error information
+                val encryptedDir = ExternalStorageManager.getEncryptedFilesDir(this)
+                android.util.Log.e("NewFolderContentsActivity", "Encrypted dir path: ${encryptedDir?.absolutePath}")
+                android.util.Log.e("NewFolderContentsActivity", "Encrypted dir exists: ${encryptedDir?.exists()}")
+                android.util.Log.e("NewFolderContentsActivity", "Encrypted dir writable: ${encryptedDir?.canWrite()}")
+                
+            } else {
+                android.util.Log.d("NewFolderContentsActivity", "Storage directory initialized successfully")
+            }
+        } else {
+            android.util.Log.d("NewFolderContentsActivity", "Storage directory already ready")
         }
     }
 
-    private fun setupUI() {
-        btnAddFiles.setOnClickListener {
-            openFilePicker()
-        }
-
-        // Setup toolbar back button
-        findViewById<android.widget.ImageButton>(R.id.btn_back)?.setOnClickListener {
+    private fun setupToolbar() {
+        findViewById<android.widget.ImageButton>(R.id.btn_back).setOnClickListener {
             finish()
         }
+    }
 
-        // Setup FAB as alternative add button
-        findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(R.id.fab_add_content)?.setOnClickListener {
-            openFilePicker()
+    private fun setupRecyclerView() {
+        // This will be called after loadFolderData, so folderSalt will be available
+        // For now, we'll initialize with a placeholder and update later
+        filesRecyclerView = findViewById(R.id.contents_recycler_view)
+        filesRecyclerView.apply {
+            layoutManager = GridLayoutManager(this@NewFolderContentsActivity, 2)
+        }
+    }
+
+    private fun initializeAdapter() {
+        try {
+            android.util.Log.d("NewFolderContentsActivity", "Initializing adapter with salt: ${folderSalt.take(10)}...")
+            
+            val fileEncryptionService = com.shaadow.onecalculator.services.FileEncryptionService(this)
+            
+            fileAdapter = EncryptedFileAdapter(
+                context = this,
+                fileEncryptionService = fileEncryptionService,
+                masterPassword = masterPassword,
+                salt = folderSalt,
+                onFileClick = { file -> openFile(file) },
+                onFileLongClick = { file, view -> showFileOptions(file) },
+                onFileDelete = { file -> deleteFile(file) },
+                onFileRename = { file -> renameFile(file) },
+                onFileShare = { file -> shareFile(file) }
+            )
+
+            filesRecyclerView.adapter = fileAdapter
+            android.util.Log.d("NewFolderContentsActivity", "Adapter initialized successfully")
+            
+        } catch (e: Exception) {
+            android.util.Log.e("NewFolderContentsActivity", "Error initializing adapter", e)
+            Toast.makeText(this, "Error initializing file view: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun setupFab() {
+        fabAddFile = findViewById(R.id.fab_add_content)
+        fabAddFile.setOnClickListener {
+            android.util.Log.d("NewFolderContentsActivity", "FAB clicked")
+            showAddFileOptions()
+        }
+        
+        // Also setup the empty state button
+        val btnAddFiles = findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_add_files)
+        btnAddFiles?.setOnClickListener {
+            android.util.Log.d("NewFolderContentsActivity", "Empty state add button clicked")
+            showAddFileOptions()
         }
     }
 
     private fun loadFolderData() {
         lifecycleScope.launch {
             try {
-                // Load folder entity
-                folderEntity = withContext(Dispatchers.IO) {
+                val folder = withContext(Dispatchers.IO) {
                     database.encryptedFolderDao().getFolderById(folderId)
                 }
 
-                folderEntity?.let { folder ->
-                    salt = folder.salt
-
-                    android.util.Log.d("NewFolderContentsActivity", "Folder loaded: ${folder.name}")
-                    android.util.Log.d("NewFolderContentsActivity", "Folder salt: ${folder.salt}")
-                    android.util.Log.d("NewFolderContentsActivity", "Master password available: ${masterPassword.isNotEmpty()}")
-
-                    // Test encryption/decryption with the current password and salt
-                    testEncryptionDecryption()
-
-                    // Set folder name in toolbar
-                    findViewById<android.widget.TextView>(R.id.folder_name_title)?.text = folder.name
-
-                    // Load files in folder
-                    database.encryptedFileDao().getFilesInFolder(folderId).collect { files ->
-                        android.util.Log.d("NewFolderContentsActivity", "Loaded ${files.size} files from database")
-                        fileAdapter.submitList(files)
-                        updateEmptyState(files.isEmpty())
-                    }
-                } ?: run {
+                if (folder == null) {
                     Toast.makeText(this@NewFolderContentsActivity, "Folder not found", Toast.LENGTH_SHORT).show()
                     finish()
+                    return@launch
                 }
+
+                folderName = folder.name
+                folderSalt = folder.salt
+                findViewById<android.widget.TextView>(R.id.folder_name_title).text = folderName
+                initializeAdapter()
+                loadFiles()
+
             } catch (e: Exception) {
                 android.util.Log.e("NewFolderContentsActivity", "Error loading folder data", e)
                 Toast.makeText(this@NewFolderContentsActivity, "Error loading folder", Toast.LENGTH_SHORT).show()
@@ -163,280 +251,459 @@ class NewFolderContentsActivity : AppCompatActivity() {
         }
     }
 
-    private fun openFilePicker() {
-        // Check permissions first
-        if (!checkStoragePermissions()) {
-            android.util.Log.w("NewFolderContentsActivity", "Storage permissions not granted, requesting...")
-            requestStoragePermissions()
-            return
-        }
-
-        // Check storage before opening picker
-        lifecycleScope.launch {
-            val storageReady = withContext(Dispatchers.IO) {
-                ExternalStorageManager.isHiddenDirectoryReady(this@NewFolderContentsActivity)
-            }
-
-            if (!storageReady) {
-                android.util.Log.e("NewFolderContentsActivity", "Storage not ready, attempting to initialize...")
-                val initialized = withContext(Dispatchers.IO) {
-                    ExternalStorageManager.initializeHiddenDirectory(this@NewFolderContentsActivity)
-                }
-                if (!initialized) {
-                    android.util.Log.e("NewFolderContentsActivity", "Failed to initialize storage")
-                    return@launch
-                }
-            }
-
-            android.util.Log.d("NewFolderContentsActivity", "Opening file picker...")
-            val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
-                type = "*/*"
-                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-                addCategory(Intent.CATEGORY_OPENABLE)
-            }
-            filePickerLauncher.launch(Intent.createChooser(intent, "Select files"))
-        }
-    }
-
-    private fun handleSelectedFiles(data: Intent) {
+    private fun loadFiles() {
         lifecycleScope.launch {
             try {
-                // Check if external storage is ready
-                if (!ExternalStorageManager.isHiddenDirectoryReady(this@NewFolderContentsActivity)) {
-                    android.util.Log.e("NewFolderContentsActivity", "Hidden directory not ready, attempting to initialize...")
-                    val initialized = withContext(Dispatchers.IO) {
-                        ExternalStorageManager.initializeHiddenDirectory(this@NewFolderContentsActivity)
-                    }
-                    if (!initialized) {
-                        Toast.makeText(this@NewFolderContentsActivity, "Error: Storage not available", Toast.LENGTH_LONG).show()
+                android.util.Log.d("NewFolderContentsActivity", "Loading files for folder ID: $folderId")
+                android.util.Log.d("NewFolderContentsActivity", "Master password available: ${masterPassword.isNotEmpty()}")
+                android.util.Log.d("NewFolderContentsActivity", "Folder salt available: ${folderSalt.isNotEmpty()}")
+
+                // Ensure adapter is initialized before loading files
+                if (!::fileAdapter.isInitialized) {
+                    android.util.Log.w("NewFolderContentsActivity", "Adapter not initialized yet, waiting...")
+                    // Wait a bit and try again
+                    kotlinx.coroutines.delay(100)
+                    if (!::fileAdapter.isInitialized) {
+                        android.util.Log.e("NewFolderContentsActivity", "Adapter still not initialized, skipping file load")
                         return@launch
                     }
                 }
 
-                val uris = mutableListOf<Uri>()
-
-                // Handle multiple files
-                data.clipData?.let { clipData ->
-                    for (i in 0 until clipData.itemCount) {
-                        clipData.getItemAt(i).uri?.let { uri ->
-                            uris.add(uri)
-                        }
-                    }
-                } ?: data.data?.let { uri ->
-                    // Handle single file
-                    uris.add(uri)
+                val files = withContext(Dispatchers.IO) {
+                    encryptedFileDao.getFilesInFolderSync(folderId)
                 }
 
-                if (uris.isEmpty()) {
-                    Toast.makeText(this@NewFolderContentsActivity, "No files selected", Toast.LENGTH_SHORT).show()
-                    return@launch
+                android.util.Log.d("NewFolderContentsActivity", "Loaded ${files.size} files from database")
+
+                // Log each file for debugging
+                files.forEachIndexed { index, file ->
+                    android.util.Log.d("NewFolderContentsActivity", "File $index: ${file.originalFileName} (${file.encryptedFileName})")
                 }
 
-                // Show progress (removed toast message)
-
-                var successCount = 0
-                val fileDao = database.encryptedFileDao()
-
-                withContext(Dispatchers.IO) {
-                    uris.forEach { uri ->
-                        try {
-                            android.util.Log.d("NewFolderContentsActivity", "Processing file: $uri")
-
-                            val encryptedFile = fileEncryptionService.encryptAndStoreFile(
-                                uri = uri,
-                                folderId = folderId,
-                                masterPassword = masterPassword,
-                                salt = salt
-                            )
-
-                            if (encryptedFile != null) {
-                                fileDao.insertFile(encryptedFile)
-                                successCount++
-                                android.util.Log.d("NewFolderContentsActivity", "Successfully encrypted and stored: ${encryptedFile.originalFileName}")
-                            } else {
-                                android.util.Log.e("NewFolderContentsActivity", "Encryption service returned null for: $uri")
+                // Verify that encrypted files still exist on disk, but be more lenient
+                val validFiles = withContext(Dispatchers.IO) {
+                    val encryptedDir = ExternalStorageManager.getEncryptedFilesDir(this@NewFolderContentsActivity)
+                    if (encryptedDir == null) {
+                        android.util.Log.w("NewFolderContentsActivity", "Cannot access encrypted files directory for verification")
+                        // Return all files if we can't check - better to show all files than none
+                        files
+                    } else {
+                        files.filter { file ->
+                            val encryptedFile = File(encryptedDir, file.encryptedFileName)
+                            val exists = encryptedFile.exists()
+                            if (!exists) {
+                                android.util.Log.w("NewFolderContentsActivity", "Encrypted file missing: ${file.encryptedFileName}")
                             }
-                        } catch (e: Exception) {
-                            android.util.Log.e("NewFolderContentsActivity", "Error encrypting file: $uri", e)
-                            android.util.Log.e("NewFolderContentsActivity", "Error details: ${e.message}")
-                            e.printStackTrace()
+                            exists
+                        }.also { filteredFiles ->
+                            if (filteredFiles.size < files.size) {
+                                val missingCount = files.size - filteredFiles.size
+                                android.util.Log.w("NewFolderContentsActivity", "$missingCount files are missing from storage")
+                            }
                         }
                     }
                 }
 
-                // Files added silently (removed toast messages)
+                android.util.Log.d("NewFolderContentsActivity", "Files to display: ${validFiles.size}")
+
+                fileAdapter.submitList(validFiles)
+                updateEmptyState(validFiles.isEmpty())
 
             } catch (e: Exception) {
-                android.util.Log.e("NewFolderContentsActivity", "Error handling selected files", e)
-                // Error handled silently (removed toast message)
+                android.util.Log.e("NewFolderContentsActivity", "Error loading files for folder $folderId", e)
+                Toast.makeText(this@NewFolderContentsActivity, "Error loading files: ${e.message}", Toast.LENGTH_SHORT).show()
+                updateEmptyState(true)
             }
-        }
-    }
-
-    private fun openFile(fileEntity: EncryptedFileEntity) {
-        lifecycleScope.launch {
-            try {
-                android.util.Log.d("NewFolderContentsActivity", "Opening file: ${fileEntity.originalFileName}")
-                android.util.Log.d("NewFolderContentsActivity", "Master password length: ${masterPassword.length}")
-                android.util.Log.d("NewFolderContentsActivity", "Salt: $salt")
-                android.util.Log.d("NewFolderContentsActivity", "Encrypted filename: ${fileEntity.encryptedFileName}")
-
-                // Decrypting silently (removed toast message)
-
-                val tempFile = withContext(Dispatchers.IO) {
-                    fileEncryptionService.decryptFileForViewing(fileEntity, masterPassword, salt)
-                }
-
-                if (tempFile != null && tempFile.exists()) {
-                    android.util.Log.d("NewFolderContentsActivity", "Decryption successful, temp file: ${tempFile.absolutePath}")
-                    val intent = Intent(this@NewFolderContentsActivity, ImageViewerActivity::class.java).apply {
-                        putExtra(ImageViewerActivity.EXTRA_FILE_PATH, tempFile.absolutePath)
-                        putExtra(ImageViewerActivity.EXTRA_FILE_NAME, fileEntity.originalFileName)
-                        putExtra(ImageViewerActivity.EXTRA_IS_TEMPORARY, true)
-                    }
-                    startActivity(intent)
-                } else {
-                    android.util.Log.e("NewFolderContentsActivity", "Decryption failed - temp file is null or doesn't exist")
-                    // Failed silently (removed toast message)
-                }
-
-            } catch (e: Exception) {
-                android.util.Log.e("NewFolderContentsActivity", "Error opening file: ${fileEntity.originalFileName}", e)
-                android.util.Log.e("NewFolderContentsActivity", "Error details: ${e.message}")
-                e.printStackTrace()
-                // Error handled silently (removed toast message)
-            }
-        }
-    }
-
-    private fun testEncryptionDecryption() {
-        try {
-            android.util.Log.d("NewFolderContentsActivity", "Testing encryption/decryption...")
-
-            // Test data
-            val testData = "Hello, this is a test file content!".toByteArray()
-
-            // Generate a test file key
-            val testFileKey = EncryptionUtils.generateFileEncryptionKey()
-            android.util.Log.d("NewFolderContentsActivity", "Generated test file key")
-
-            // Encrypt the file key with master password and salt
-            val encryptedFileKey = EncryptionUtils.encryptFileKey(testFileKey, masterPassword, salt)
-            android.util.Log.d("NewFolderContentsActivity", "Encrypted file key with master password")
-
-            // Encrypt the test data
-            val encryptedData = EncryptionUtils.encryptFileWithKey(testData, testFileKey)
-            android.util.Log.d("NewFolderContentsActivity", "Encrypted test data")
-
-            // Now try to decrypt
-            val decryptedFileKey = EncryptionUtils.decryptFileKey(encryptedFileKey, masterPassword, salt)
-            android.util.Log.d("NewFolderContentsActivity", "Decrypted file key")
-
-            val decryptedData = EncryptionUtils.decryptFileWithKey(encryptedData, decryptedFileKey)
-            android.util.Log.d("NewFolderContentsActivity", "Decrypted test data")
-
-            val decryptedString = String(decryptedData)
-            android.util.Log.d("NewFolderContentsActivity", "Test result: $decryptedString")
-
-            if (decryptedString == "Hello, this is a test file content!") {
-                android.util.Log.d("NewFolderContentsActivity", "✅ Encryption/decryption test PASSED")
-            } else {
-                android.util.Log.e("NewFolderContentsActivity", "❌ Encryption/decryption test FAILED")
-            }
-
-        } catch (e: Exception) {
-            android.util.Log.e("NewFolderContentsActivity", "❌ Encryption/decryption test ERROR", e)
         }
     }
 
     private fun updateEmptyState(isEmpty: Boolean) {
-        if (isEmpty) {
-            recyclerView.visibility = View.GONE
-            emptyStateView.visibility = View.VISIBLE
-        } else {
-            recyclerView.visibility = View.VISIBLE
-            emptyStateView.visibility = View.GONE
-        }
+        emptyStateLayout = findViewById(R.id.empty_state_layout)
+        emptyStateLayout.visibility = if (isEmpty) View.VISIBLE else View.GONE
+        filesRecyclerView.visibility = if (isEmpty) View.GONE else View.VISIBLE
     }
 
-    private fun checkStoragePermissions(): Boolean {
-        return when {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
-                // Android 13+ - For creating folder in external storage root, we need MANAGE_EXTERNAL_STORAGE
-                Environment.isExternalStorageManager()
-            }
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
-                // Android 11+ - Need MANAGE_EXTERNAL_STORAGE to create folders in external storage root
-                Environment.isExternalStorageManager()
-            }
-            else -> {
-                // Below Android 11 - Check for general storage permission
-                ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
-            }
+    private fun showAddFileOptions() {
+        // Check permissions before showing file picker options
+        if (!hasMediaPermissions()) {
+            requestMediaPermissions()
+            return
         }
-    }
 
-    private fun requestStoragePermissions() {
-        when {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
-                // Android 11+ - Request MANAGE_EXTERNAL_STORAGE
-                try {
-                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                        data = Uri.parse("package:$packageName")
-                    }
-                    manageStoragePermissionLauncher.launch(intent)
-                } catch (e: Exception) {
-                    android.util.Log.e("NewFolderContentsActivity", "Error requesting MANAGE_EXTERNAL_STORAGE", e)
-                    Toast.makeText(this, "Please grant storage permission in settings", Toast.LENGTH_LONG).show()
+        val options = arrayOf("Add Photos", "Add Videos", "Add Documents", "Add Any File")
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Add Files to $folderName")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> openFilePicker("image/*")
+                    1 -> openFilePicker("video/*")
+                    2 -> openFilePicker("application/*")
+                    3 -> openFilePicker("*/*")
                 }
             }
-            else -> {
-                // Below Android 11 - Request traditional storage permissions
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(
-                        android.Manifest.permission.READ_EXTERNAL_STORAGE,
-                        android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-                    ),
-                    STORAGE_PERMISSION_REQUEST_CODE
-                )
-            }
+            .show()
+    }
+
+    private fun openFilePicker(mimeType: String) {
+        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+            type = mimeType
+            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+            addCategory(Intent.CATEGORY_OPENABLE)
+        }
+
+        try {
+            filePickerLauncher.launch(Intent.createChooser(intent, "Select Files"))
+        } catch (e: Exception) {
+            Toast.makeText(this, "No file manager found", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun initializeStorageAfterPermission() {
+
+    private fun encryptAndStoreFiles(uris: List<Uri>) {
         lifecycleScope.launch {
-            val initialized = withContext(Dispatchers.IO) {
-                ExternalStorageManager.initializeHiddenDirectory(this@NewFolderContentsActivity)
+            try {
+                // Ensure storage is ready - CRITICAL check before file operations
+                android.util.Log.d("NewFolderContentsActivity", "Checking storage readiness before encryption...")
+                android.util.Log.d("NewFolderContentsActivity", "Processing ${uris.size} files")
+                
+                if (!ExternalStorageManager.isHiddenDirectoryReady(this@NewFolderContentsActivity)) {
+                    android.util.Log.w("NewFolderContentsActivity", "Storage not ready, attempting to initialize...")
+                    val initialized = ExternalStorageManager.initializeHiddenDirectory(this@NewFolderContentsActivity)
+                    if (!initialized) {
+                        Toast.makeText(this@NewFolderContentsActivity, "Error: Cannot access storage. Please check app permissions and storage space.", Toast.LENGTH_LONG).show()
+                        android.util.Log.e("NewFolderContentsActivity", "CRITICAL: Cannot initialize storage for file encryption")
+                        return@launch
+                    } else {
+                        android.util.Log.d("NewFolderContentsActivity", "Storage initialized successfully")
+
+                        // Force media scanner to refresh
+                        val hiddenDir = ExternalStorageManager.getHiddenCalculatorDir(this@NewFolderContentsActivity)
+                        if (hiddenDir != null) {
+                            android.media.MediaScannerConnection.scanFile(
+                                this@NewFolderContentsActivity,
+                                arrayOf(hiddenDir.absolutePath),
+                                null,
+                                null
+                            )
+                            android.util.Log.d("NewFolderContentsActivity", "Media scanner notified about new directory: ${hiddenDir.absolutePath}")
+                        }
+                    }
+                } else {
+                    android.util.Log.d("NewFolderContentsActivity", "Storage is ready for file operations")
+                }
+                
+                // Double-check that we have valid folder data
+                if (folderSalt.isEmpty()) {
+                    android.util.Log.e("NewFolderContentsActivity", "CRITICAL: Folder salt is empty")
+                    Toast.makeText(this@NewFolderContentsActivity, "Error: Folder data is invalid. Please try reopening the folder.", Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+                
+                if (masterPassword.isEmpty()) {
+                    android.util.Log.e("NewFolderContentsActivity", "CRITICAL: Master password is empty")
+                    Toast.makeText(this@NewFolderContentsActivity, "Error: Authentication data is missing. Please try reopening the folder.", Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+
+                val fileEncryptionService = com.shaadow.onecalculator.services.FileEncryptionService(this@NewFolderContentsActivity)
+                var successCount = 0
+                var errorCount = 0
+
+                for (uri in uris) {
+                    try {
+                        android.util.Log.d("NewFolderContentsActivity", "Processing file: $uri")
+                        
+                        // Get file name for better logging
+                        val fileName = getFileName(uri)
+                        android.util.Log.d("NewFolderContentsActivity", "File name: $fileName")
+                        
+                        val fileEntity = withContext(Dispatchers.IO) {
+                            fileEncryptionService.encryptAndStoreFile(uri, folderId, masterPassword, folderSalt)
+                        }
+
+                        if (fileEntity != null) {
+                            android.util.Log.d("NewFolderContentsActivity", "File entity created: ${fileEntity.originalFileName}")
+                            android.util.Log.d("NewFolderContentsActivity", "Encrypted filename: ${fileEntity.encryptedFileName}")
+                            android.util.Log.d("NewFolderContentsActivity", "File size: ${fileEntity.fileSize} bytes")
+                            
+                            val insertedId = withContext(Dispatchers.IO) {
+                                encryptedFileDao.insertFile(fileEntity)
+                            }
+                            
+                            android.util.Log.d("NewFolderContentsActivity", "File inserted with ID: $insertedId")
+                            successCount++
+                            android.util.Log.d("NewFolderContentsActivity", "Successfully encrypted: ${fileEntity.originalFileName}")
+                        } else {
+                            errorCount++
+                            android.util.Log.e("NewFolderContentsActivity", "Failed to encrypt file: $uri (fileEntity is null)")
+                        }
+
+                    } catch (e: Exception) {
+                        android.util.Log.e("NewFolderContentsActivity", "Error encrypting file: $uri", e)
+                        android.util.Log.e("NewFolderContentsActivity", "Error details: ${e.message}")
+                        e.printStackTrace()
+                        errorCount++
+                    }
+                }
+
+                // Show result
+                val message = when {
+                    successCount > 0 && errorCount == 0 -> "$successCount file(s) added successfully"
+                    successCount > 0 && errorCount > 0 -> "$successCount file(s) added, $errorCount failed"
+                    else -> "Failed to add files"
+                }
+                Toast.makeText(this@NewFolderContentsActivity, message, Toast.LENGTH_SHORT).show()
+
+                // Reload files
+                loadFiles()
+
+            } catch (e: Exception) {
+                android.util.Log.e("NewFolderContentsActivity", "Error in encryptAndStoreFiles", e)
+                Toast.makeText(this@NewFolderContentsActivity, "Error adding files", Toast.LENGTH_SHORT).show()
             }
-            // Storage initialization handled silently (removed toast messages)
-            android.util.Log.d("NewFolderContentsActivity", "Storage initialization result: $initialized")
         }
     }
 
+    private fun getFileName(uri: Uri): String {
+        var fileName = "unknown_file"
+        
+        contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (nameIndex != -1) {
+                    fileName = cursor.getString(nameIndex) ?: fileName
+                }
+            }
+        }
+        
+        return fileName
+    }
 
+    private fun openFile(file: EncryptedFileEntity) {
+        lifecycleScope.launch {
+            try {
+                android.util.Log.d("NewFolderContentsActivity", "Opening file: ${file.originalFileName}, MIME: ${file.mimeType}")
+                val fileEncryptionService = com.shaadow.onecalculator.services.FileEncryptionService(this@NewFolderContentsActivity)
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == STORAGE_PERMISSION_REQUEST_CODE) {
-            if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-                android.util.Log.d("NewFolderContentsActivity", "Storage permissions granted")
-                initializeStorageAfterPermission()
-            } else {
-                android.util.Log.w("NewFolderContentsActivity", "Storage permissions denied")
-                // Permission denied handled silently (removed toast message)
+                val tempFile = withContext(Dispatchers.IO) {
+                    fileEncryptionService.decryptFileForViewing(file, masterPassword, folderSalt)
+                }
+
+                if (tempFile == null || !tempFile.exists()) {
+                    android.util.Log.e("NewFolderContentsActivity", "Failed to decrypt file: ${file.originalFileName}")
+                    Toast.makeText(this@NewFolderContentsActivity, "Error: Cannot decrypt file", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+
+                android.util.Log.d("NewFolderContentsActivity", "File decrypted successfully: ${tempFile.absolutePath}")
+
+                // Get proper MIME type for the file
+                val mimeType = getProperMimeType(file, tempFile)
+                android.util.Log.d("NewFolderContentsActivity", "Using MIME type: $mimeType")
+
+                // Open file with appropriate app
+                val uri = FileProvider.getUriForFile(
+                    this@NewFolderContentsActivity,
+                    "${packageName}.fileprovider",
+                    tempFile
+                )
+
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, mimeType)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    // Add additional flags for better compatibility
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+
+                try {
+                    // For video files, try to find a video player specifically
+                    if (file.isVideo) {
+                        android.util.Log.d("NewFolderContentsActivity", "Opening video file")
+                        // Try to find video player apps
+                        val videoApps = packageManager.queryIntentActivities(intent, 0)
+                        if (videoApps.isNotEmpty()) {
+                            val chooser = Intent.createChooser(intent, "Open video with")
+                            startActivity(chooser)
+                        } else {
+                            // Fallback to default viewer
+                            startActivity(intent)
+                        }
+                    } else {
+                        startActivity(intent)
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("NewFolderContentsActivity", "Error starting activity for file", e)
+                    Toast.makeText(this@NewFolderContentsActivity, "No app found to open this file type", Toast.LENGTH_SHORT).show()
+                }
+
+            } catch (e: Exception) {
+                android.util.Log.e("NewFolderContentsActivity", "Error opening file: ${file.originalFileName}", e)
+                Toast.makeText(this@NewFolderContentsActivity, "Error opening file: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        // Clean up temporary files
-        fileEncryptionService.cleanupTempFiles()
+    private fun getProperMimeType(file: EncryptedFileEntity, tempFile: File): String {
+        // First try to get MIME type from file extension
+        val extension = tempFile.name.substringAfterLast('.', "").lowercase()
+        val mimeFromExtension = when (extension) {
+            "mp4" -> "video/mp4"
+            "avi" -> "video/avi"
+            "mkv" -> "video/x-matroska"
+            "mov" -> "video/quicktime"
+            "wmv" -> "video/x-ms-wmv"
+            "flv" -> "video/x-flv"
+            "webm" -> "video/webm"
+            "m4v" -> "video/mp4"
+            "3gp" -> "video/3gpp"
+            "jpg", "jpeg" -> "image/jpeg"
+            "png" -> "image/png"
+            "gif" -> "image/gif"
+            "bmp" -> "image/bmp"
+            "webp" -> "image/webp"
+            else -> null
+        }
+
+        // Return MIME type from extension if available, otherwise use stored MIME type
+        return mimeFromExtension ?: file.mimeType
+    }
+
+    private fun showFileOptions(file: EncryptedFileEntity) {
+        val options = arrayOf("Open", "Share", "Rename", "Delete")
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(file.originalFileName)
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> openFile(file)
+                    1 -> shareFile(file)
+                    2 -> renameFile(file)
+                    3 -> deleteFile(file)
+                }
+            }
+            .show()
+    }
+
+    private fun shareFile(file: EncryptedFileEntity) {
+        lifecycleScope.launch {
+            try {
+                val fileEncryptionService = com.shaadow.onecalculator.services.FileEncryptionService(this@NewFolderContentsActivity)
+                
+                val tempFile = withContext(Dispatchers.IO) {
+                    fileEncryptionService.decryptFileForViewing(file, masterPassword, folderSalt)
+                }
+
+                if (tempFile == null || !tempFile.exists()) {
+                    Toast.makeText(this@NewFolderContentsActivity, "Error: Cannot decrypt file for sharing", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+
+                // Share file
+                val uri = FileProvider.getUriForFile(
+                    this@NewFolderContentsActivity,
+                    "${packageName}.fileprovider",
+                    tempFile
+                )
+
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = file.mimeType
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+
+                startActivity(Intent.createChooser(shareIntent, "Share ${file.originalFileName}"))
+
+            } catch (e: Exception) {
+                android.util.Log.e("NewFolderContentsActivity", "Error sharing file", e)
+                Toast.makeText(this@NewFolderContentsActivity, "Error sharing file: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun renameFile(file: EncryptedFileEntity) {
+        // TODO: Implement rename functionality
+        Toast.makeText(this, "Rename functionality coming soon", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun deleteFile(file: EncryptedFileEntity) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Delete File")
+            .setMessage("Are you sure you want to delete '${file.originalFileName}'?")
+            .setPositiveButton("Delete") { _, _ ->
+                performFileDelete(file)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun performFileDelete(file: EncryptedFileEntity) {
+        lifecycleScope.launch {
+            try {
+                android.util.Log.d("NewFolderContentsActivity", "Deleting file: ${file.originalFileName}")
+
+                // Delete encrypted file from storage using proper path
+                val encryptedDir = ExternalStorageManager.getEncryptedFilesDir(this@NewFolderContentsActivity)
+                if (encryptedDir != null) {
+                    val encryptedFile = File(encryptedDir, file.encryptedFileName)
+                    android.util.Log.d("NewFolderContentsActivity", "Looking for encrypted file at: ${encryptedFile.absolutePath}")
+
+                    if (encryptedFile.exists()) {
+                        val deleted = encryptedFile.delete()
+                        android.util.Log.d("NewFolderContentsActivity", "File deleted from storage: $deleted")
+                    } else {
+                        android.util.Log.w("NewFolderContentsActivity", "Encrypted file not found in storage: ${encryptedFile.absolutePath}")
+                    }
+                } else {
+                    android.util.Log.e("NewFolderContentsActivity", "Cannot access encrypted files directory")
+                }
+
+                // Delete from database
+                withContext(Dispatchers.IO) {
+                    encryptedFileDao.deleteFile(file)
+                }
+
+                Toast.makeText(this@NewFolderContentsActivity, "File deleted successfully", Toast.LENGTH_SHORT).show()
+                loadFiles()
+
+            } catch (e: Exception) {
+                android.util.Log.e("NewFolderContentsActivity", "Error deleting file: ${file.originalFileName}", e)
+                Toast.makeText(this@NewFolderContentsActivity, "Error deleting file: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun hasMediaPermissions(): Boolean {
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VIDEO) == PackageManager.PERMISSION_GRANTED
+        } else {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    private fun requestMediaPermissions() {
+        val permissions = mutableListOf<String>()
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
+                permissions.add(Manifest.permission.READ_MEDIA_IMAGES)
+            }
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED) {
+                permissions.add(Manifest.permission.READ_MEDIA_VIDEO)
+            }
+        } else {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+            }
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            }
+        }
+
+        if (permissions.isNotEmpty()) {
+            requestPermissionLauncher.launch(permissions.toTypedArray())
+        }
     }
 }
