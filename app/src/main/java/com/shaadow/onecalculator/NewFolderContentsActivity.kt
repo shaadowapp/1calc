@@ -230,6 +230,9 @@ class NewFolderContentsActivity : AppCompatActivity() {
     private fun showFolderOptionsMenu(anchorView: View) {
         val popup = androidx.appcompat.widget.PopupMenu(this, anchorView)
         popup.menuInflater.inflate(R.menu.menu_folder_header, popup.menu)
+        
+        // Add import option to the menu
+        popup.menu.add(0, 100, 7, "Import Files")
 
         popup.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
@@ -265,6 +268,11 @@ class NewFolderContentsActivity : AppCompatActivity() {
 
                 R.id.action_folder_info -> {
                     showFolderInfo()
+                    true
+                }
+                
+                100 -> { // Import Files action
+                    importFiles()
                     true
                 }
 
@@ -1128,6 +1136,56 @@ class NewFolderContentsActivity : AppCompatActivity() {
                 android.util.Log.e("NewFolderContentsActivity", "Error showing folder info", e)
                 Toast.makeText(this@NewFolderContentsActivity, "Error retrieving folder information", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+    
+    // Add these methods at the class level, not inside another method
+    // Activity result launcher for importing files
+    private val importFilesLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.let { intent ->
+                val uris = mutableListOf<Uri>()
+                
+                // Handle multiple files
+                intent.clipData?.let { clipData ->
+                    for (i in 0 until clipData.itemCount) {
+                        uris.add(clipData.getItemAt(i).uri)
+                    }
+                } ?: intent.data?.let { uri ->
+                    // Handle single file
+                    uris.add(uri)
+                }
+                
+                if (uris.isNotEmpty()) {
+                    // Process the selected files - use the existing encryptAndStoreFiles method
+                    encryptAndStoreFiles(uris)
+                }
+            }
+        }
+    }
+    
+    // Add this method to the NewFolderContentsActivity class
+    fun importFiles() {
+        // Check permissions before showing file picker
+        if (!hasMediaPermissions()) {
+            requestMediaPermissions()
+            return
+        }
+        
+        // Launch file picker for importing files
+        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+            type = "*/*"
+            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+            addCategory(Intent.CATEGORY_OPENABLE)
+        }
+        
+        try {
+            importFilesLauncher.launch(Intent.createChooser(intent, "Select Files to Import"))
+        } catch (e: Exception) {
+            Toast.makeText(this, "No file manager found", Toast.LENGTH_SHORT).show()
+            android.util.Log.e("NewFolderContentsActivity", "Error launching file picker", e)
         }
     }
     

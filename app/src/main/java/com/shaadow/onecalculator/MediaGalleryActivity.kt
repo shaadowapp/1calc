@@ -1,13 +1,16 @@
 package com.shaadow.onecalculator
 
 import android.Manifest
+import android.app.Activity
 import android.app.AlertDialog
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.view.View
 import android.view.WindowManager
 import android.widget.LinearLayout
@@ -67,6 +70,32 @@ class MediaGalleryActivity : AppCompatActivity() {
             setupFolderList()
         } else {
             showPermissionDeniedDialog()
+        }
+    }
+
+    // Activity result launcher for importing files
+    private val importFilesLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.let { intent ->
+                val uris = mutableListOf<Uri>()
+
+                // Handle multiple files
+                intent.clipData?.let { clipData ->
+                    for (i in 0 until clipData.itemCount) {
+                        uris.add(clipData.getItemAt(i).uri)
+                    }
+                } ?: intent.data?.let { uri ->
+                    // Handle single file
+                    uris.add(uri)
+                }
+
+                if (uris.isNotEmpty()) {
+                    // Process the selected files
+                    processImportedFiles(uris)
+                }
+            }
         }
     }
 
@@ -214,7 +243,8 @@ class MediaGalleryActivity : AppCompatActivity() {
                     // Convert to FolderWithCount
                     val foldersWithCount = withContext(Dispatchers.IO) {
                         folders.map { folder ->
-                            val fileCount = database.encryptedFileDao().getFileCountInFolder(folder.id)
+                            val fileCount = database.encryptedFileDao().getFileCountInFolderSync(folder.id)
+                            android.util.Log.d("MediaGalleryActivity", "Folder ${folder.name} has $fileCount files")
                             FolderWithCount(folder, fileCount)
                         }
                     }
@@ -704,82 +734,6 @@ class MediaGalleryActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun showFolderPinDialog(folder: EncryptedFolderEntity) {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_folder_pin, null)
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(this, R.style.DialogStyle_Todo)
-            .setView(dialogView)
-            .setCancelable(true)
-            .create()
-
-        // Set folder name
-        dialogView.findViewById<TextView>(R.id.folder_name_text).text = folder.name
-
-        val pinDigits = arrayOf(
-            dialogView.findViewById<TextView>(R.id.pin_digit_1),
-            dialogView.findViewById<TextView>(R.id.pin_digit_2),
-            dialogView.findViewById<TextView>(R.id.pin_digit_3),
-            dialogView.findViewById<TextView>(R.id.pin_digit_4)
-        )
-
-        var currentPin = ""
-        val errorMessage = dialogView.findViewById<TextView>(R.id.error_message)
-
-        // Number buttons with null checks
-        val numberButtons = arrayOf(
-            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_1),
-            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_2),
-            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_3),
-            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_4),
-            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_5),
-            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_6),
-            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_7),
-            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_8),
-            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_9),
-            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_0)
-        )
-
-        numberButtons.forEachIndexed { index, button ->
-            button?.setOnClickListener {
-                if (currentPin.length < 4) {
-                    currentPin += if (index == 9) "0" else (index + 1).toString()
-                    updatePinDisplay(pinDigits, currentPin)
-                    errorMessage?.visibility = View.GONE
-
-                    if (currentPin.length == 4) {
-                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                            verifyFolderPin(folder, currentPin) { success ->
-                                if (success) {
-                                    dialog.dismiss()
-                                    openFolderContents(folder)
-                                } else {
-                                    showPinError(pinDigits)
-                                    errorMessage?.visibility = View.VISIBLE
-                                    currentPin = ""
-                                    updatePinDisplay(pinDigits, currentPin)
-                                }
-                            }
-                        }, 300)
-                    }
-                }
-            }
-        }
-
-        // Backspace button with null check
-        dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_backspace)?.setOnClickListener {
-            if (currentPin.isNotEmpty()) {
-                currentPin = currentPin.dropLast(1)
-                updatePinDisplay(pinDigits, currentPin)
-                errorMessage?.visibility = View.GONE
-            }
-        }
-
-        // Cancel button with null check
-        dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.cancel_button)?.setOnClickListener {
-            dialog.dismiss()
-        }
-
-        dialog.show()
-    }
 
     private fun createFolder(name: String, password: String) {
         lifecycleScope.launch {
@@ -820,6 +774,10 @@ class MediaGalleryActivity : AppCompatActivity() {
         val popup = androidx.appcompat.widget.PopupMenu(this, anchorView)
         popup.menuInflater.inflate(R.menu.menu_folder_options, popup.menu)
 
+        // Add import option to the menu
+        val importId = 1001 // Use a unique ID that won't conflict with existing menu items
+        popup.menu.add(0, importId, 4, "Import Files")
+
         popup.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.action_open_folder -> {
@@ -836,6 +794,10 @@ class MediaGalleryActivity : AppCompatActivity() {
                 }
                 R.id.action_export_folder -> {
                     exportFolder(folder)
+                    true
+                }
+                importId -> {
+                    importFilesToFolder(folder)
                     true
                 }
                 R.id.action_delete_folder -> {
@@ -1643,6 +1605,214 @@ private fun toggleSelectAllFolders(menuItem: android.view.MenuItem) {
         menu.findItem(R.id.action_delete_selected)?.isVisible = hasSelection
         menu.findItem(R.id.action_move_selected)?.isVisible = hasSelection
         menu.findItem(R.id.action_export_selected)?.isVisible = hasSelection
+    }
+
+    private fun importFilesToFolder(folder: EncryptedFolderEntity) {
+        // Verify PIN before importing
+        showFolderPinDialog(folder, onSuccess = {
+            // Launch file picker for importing files
+            val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                type = "*/*"
+                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                addCategory(Intent.CATEGORY_OPENABLE)
+            }
+
+            try {
+                importFilesLauncher.launch(Intent.createChooser(intent, "Select Files to Import"))
+            } catch (e: Exception) {
+                Toast.makeText(this, "No file manager found", Toast.LENGTH_SHORT).show()
+                android.util.Log.e("MediaGalleryActivity", "Error launching file picker", e)
+            }
+        })
+    }
+
+    private fun processImportedFiles(uris: List<Uri>) {
+        // Show folder selection dialog
+        lifecycleScope.launch {
+            try {
+                val folders: List<EncryptedFolderEntity> = withContext(Dispatchers.IO) {
+                    database.encryptedFolderDao().getAllFoldersSync()
+                }
+
+                if (folders.isEmpty()) {
+                    Toast.makeText(this@MediaGalleryActivity, "No folders available", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+
+                val folderNames = folders.map { folder: EncryptedFolderEntity -> folder.name }.toTypedArray()
+
+                MaterialAlertDialogBuilder(this@MediaGalleryActivity)
+                    .setTitle("Select Folder")
+                    .setItems(folderNames) { dialog: android.content.DialogInterface, which: Int ->
+                        val selectedFolder = folders[which]
+                        importFilesToExistingFolder(selectedFolder, uris)
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            } catch (e: Exception) {
+                android.util.Log.e("MediaGalleryActivity", "Error loading folders", e)
+                Toast.makeText(this@MediaGalleryActivity, "Error loading folders", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun importFilesToExistingFolder(folder: EncryptedFolderEntity, uris: List<Uri>) {
+        lifecycleScope.launch {
+            try {
+                android.util.Log.d("MediaGalleryActivity", "Importing ${uris.size} files to folder: ${folder.name}")
+
+                // Ensure storage is ready
+                if (!ExternalStorageManager.isHiddenDirectoryReady(this@MediaGalleryActivity)) {
+                    val initialized = ExternalStorageManager.initializeHiddenDirectory(this@MediaGalleryActivity)
+                    if (!initialized) {
+                        Toast.makeText(this@MediaGalleryActivity, "Error: Cannot access storage", Toast.LENGTH_LONG).show()
+                        return@launch
+                    }
+                }
+
+                val fileEncryptionService = com.shaadow.onecalculator.services.FileEncryptionService(this@MediaGalleryActivity)
+                var successCount = 0
+                var errorCount = 0
+
+                for (uri in uris) {
+                    try {
+                        // Get file name for better logging
+                        val fileName = getFileName(uri)
+                        android.util.Log.d("MediaGalleryActivity", "Importing file: $fileName")
+
+                        val fileEntity = withContext(Dispatchers.IO) {
+                            fileEncryptionService.encryptAndStoreFile(uri, folder.id, currentMasterPassword, folder.salt)
+                        }
+
+                        if (fileEntity != null) {
+                            val insertedId = withContext(Dispatchers.IO) {
+                                database.encryptedFileDao().insertFile(fileEntity)
+                            }
+
+                            android.util.Log.d("MediaGalleryActivity", "File imported with ID: $insertedId")
+                            successCount++
+                        } else {
+                            errorCount++
+                            android.util.Log.e("MediaGalleryActivity", "Failed to import file: $uri")
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("MediaGalleryActivity", "Error importing file", e)
+                        errorCount++
+                    }
+                }
+
+                // Show result
+                val message = when {
+                    successCount > 0 && errorCount == 0 -> "$successCount file(s) imported successfully"
+                    successCount > 0 && errorCount > 0 -> "$successCount file(s) imported, $errorCount failed"
+                    else -> "Failed to import files"
+                }
+
+                Toast.makeText(this@MediaGalleryActivity, message, Toast.LENGTH_SHORT).show()
+
+                // Refresh folder list to update counts
+                setupFolderList()
+
+            } catch (e: Exception) {
+                android.util.Log.e("MediaGalleryActivity", "Error importing files", e)
+                Toast.makeText(this@MediaGalleryActivity, "Error importing files", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun getFileName(uri: Uri): String {
+        var fileName = "unknown_file"
+
+        contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (nameIndex != -1) {
+                    fileName = cursor.getString(nameIndex) ?: fileName
+                }
+            }
+        }
+
+        return fileName
+    }
+
+    // Modified version of showFolderPinDialog that takes a success callback
+    private fun showFolderPinDialog(folder: EncryptedFolderEntity, onSuccess: () -> Unit = {
+        openFolderContents(folder)
+    }) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_folder_pin, null)
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this, R.style.DialogStyle_Todo)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        // Set folder name
+        dialogView.findViewById<TextView>(R.id.folder_name_text).text = folder.name
+
+        val pinDigits = arrayOf(
+            dialogView.findViewById<TextView>(R.id.pin_digit_1),
+            dialogView.findViewById<TextView>(R.id.pin_digit_2),
+            dialogView.findViewById<TextView>(R.id.pin_digit_3),
+            dialogView.findViewById<TextView>(R.id.pin_digit_4)
+        )
+
+        var currentPin = ""
+        val errorMessage = dialogView.findViewById<TextView>(R.id.error_message)
+
+        // Number buttons with null checks
+        val numberButtons = arrayOf(
+            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_1),
+            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_2),
+            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_3),
+            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_4),
+            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_5),
+            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_6),
+            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_7),
+            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_8),
+            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_9),
+            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_0)
+        )
+
+        numberButtons.forEachIndexed { index, button ->
+            button?.setOnClickListener {
+                if (currentPin.length < 4) {
+                    currentPin += if (index == 9) "0" else (index + 1).toString()
+                    updatePinDisplay(pinDigits, currentPin)
+                    errorMessage?.visibility = View.GONE
+
+                    if (currentPin.length == 4) {
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            verifyFolderPin(folder, currentPin) { success ->
+                                if (success) {
+                                    dialog.dismiss()
+                                    onSuccess()
+                                } else {
+                                    showPinError(pinDigits)
+                                    errorMessage?.visibility = View.VISIBLE
+                                    currentPin = ""
+                                    updatePinDisplay(pinDigits, currentPin)
+                                }
+                            }
+                        }, 300)
+                    }
+                }
+            }
+        }
+
+        // Backspace button with null check
+        dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_backspace)?.setOnClickListener {
+            if (currentPin.isNotEmpty()) {
+                currentPin = currentPin.dropLast(1)
+                updatePinDisplay(pinDigits, currentPin)
+                errorMessage?.visibility = View.GONE
+            }
+        }
+
+        // Cancel button with null check
+        dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.cancel_button)?.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 
 }
