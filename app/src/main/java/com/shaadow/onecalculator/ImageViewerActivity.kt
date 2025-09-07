@@ -236,4 +236,17 @@ class ImageViewerActivity : AppCompatActivity() {
         val digitGroups = (log10(size.toDouble()) / log10(1024.0)).toInt()
         return String.format("%.1f %s", size / 1024.0.pow(digitGroups.toDouble()), units[digitGroups])
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Clean up temporary file if needed
+        if (isTemporaryFile && ::currentFile.isInitialized && currentFile.exists()) {
+            try {
+                val deleted = currentFile.delete()
+                android.util.Log.d("ImageViewerActivity", "Temporary file cleaned up: ${currentFile.name}, deleted: $deleted")
+            } catch (e: Exception) {
+                android.util.Log.w("ImageViewerActivity", "Failed to clean up temporary file", e)
+            }
+        }
+    }
 }

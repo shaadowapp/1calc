@@ -22,6 +22,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.common.util.concurrent.ListenableFuture
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.shaadow.onecalculator.HistoryDatabase
 import com.shaadow.onecalculator.R
@@ -82,7 +83,7 @@ class MathlyScannerFragment : Fragment() {
 
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
-        cameraProviderFuture.addListener({
+        cameraProviderFuture.addListener(Runnable {
             try {
                 val cameraProvider = cameraProviderFuture.get()
                 val preview = Preview.Builder().build().also {

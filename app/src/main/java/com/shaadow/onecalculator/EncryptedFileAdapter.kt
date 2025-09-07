@@ -209,6 +209,8 @@ class EncryptedFileAdapter(
                 val tempFile = fileEncryptionService.decryptFileForViewing(file, masterPassword, salt)
                 if (tempFile != null && tempFile.exists()) {
                     android.util.Log.d("EncryptedFileAdapter", "Temp file created: ${tempFile.absolutePath}, size: ${tempFile.length()}")
+
+                    // Use BitmapFactory for thumbnail generation
                     val options = BitmapFactory.Options().apply {
                         inJustDecodeBounds = true
                     }

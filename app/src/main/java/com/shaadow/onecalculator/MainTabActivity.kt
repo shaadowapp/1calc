@@ -36,11 +36,12 @@ class MainTabActivity : AppCompatActivity() {
         lifecycleScope.launch {
             dao.observeAllPreferences().collect { prefs ->
                 val enabledTabs = mutableListOf("home")
-                val mathlyVoice = prefs.find { it.key == "mathly_voice" }?.value?.toBooleanStrictOrNull() != false
-                val mathlyChat = prefs.find { it.key == "mathly_chat" }?.value?.toBooleanStrictOrNull() != false
+                // Mathly features are hidden for launch - they are in development
+                // val mathlyVoice = prefs.find { it.key == "mathly_voice" }?.value?.toBooleanStrictOrNull() != false
+                // val mathlyChat = prefs.find { it.key == "mathly_chat" }?.value?.toBooleanStrictOrNull() != false
                 val mathlyScanner = prefs.find { it.key == "mathly_scanner" }?.value?.toBooleanStrictOrNull() != false
-                if (mathlyVoice) enabledTabs.add("mathly_voice")
-                if (mathlyChat) enabledTabs.add("chat")
+                // if (mathlyVoice) enabledTabs.add("mathly_voice")
+                // if (mathlyChat) enabledTabs.add("chat")
                 if (mathlyScanner) enabledTabs.add("scanner")
                 setupTabs(enabledTabs)
             }

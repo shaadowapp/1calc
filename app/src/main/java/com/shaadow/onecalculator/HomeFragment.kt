@@ -254,21 +254,15 @@ class HomeFragment : Fragment() {
 
         // Hot Apps
         binding.cardHotApps.setOnClickListener {
-            // TODO: Navigate to hot apps section
-            Toast.makeText(requireContext(), getString(R.string.toast_hot_apps_coming_soon), Toast.LENGTH_SHORT).show()
+            val intent = Intent(requireContext(), HotAppsActivity::class.java)
+            startActivity(intent)
         }
 
-        // Mathly Voice
-        binding.cardMathlyVoice.setOnClickListener {
-            // TODO: Navigate to Mathly Voice section
-            Toast.makeText(requireContext(), getString(R.string.toast_mathly_voice_coming_soon), Toast.LENGTH_SHORT).show()
-        }
+        // Mathly Voice - HIDDEN for launch (in development)
+        binding.cardMathlyVoice.visibility = View.GONE
 
-        // Mathly Chat
-        binding.cardMathlyChat.setOnClickListener {
-            // TODO: Navigate to Mathly Chat section
-            Toast.makeText(requireContext(), getString(R.string.toast_mathly_chat_coming_soon), Toast.LENGTH_SHORT).show()
-        }
+        // Mathly Chat - HIDDEN for launch (in development)
+        binding.cardMathlyChat.visibility = View.GONE
 
         // Scan to Invoice
         binding.cardScanInvoice.setOnClickListener {

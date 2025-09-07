@@ -5,6 +5,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("kotlin-kapt")
+    alias(libs.plugins.google.gms.google.services)
+    alias(libs.plugins.google.firebase.crashlytics)
 }
 
 // Load MATHLY_API_KEY from local.properties securely
@@ -23,13 +25,13 @@ kapt {
 
 android {
     namespace = "com.shaadow.onecalculator"
-    compileSdk = 35
+    compileSdk = 36
     buildToolsVersion = "35.0.0"
 
     defaultConfig {
         applicationId = "com.shaadow.onecalculator"
-        minSdk = 24
-        targetSdk = 35
+        minSdk = 31
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0.1"
 
@@ -68,6 +70,10 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.messaging)
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.analytics)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -88,8 +94,8 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.androidx.activity.ktx)
-    implementation("androidx.biometric:biometric:1.1.0")
-    implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation(libs.androidx.biometric)
+    implementation(libs.okhttp)
     implementation("io.noties.markwon:core:4.6.2") {
         exclude(group = "org.jetbrains", module = "annotations-java5")
     }
@@ -99,6 +105,29 @@ dependencies {
     implementation("io.noties.markwon:syntax-highlight:4.6.2") {
         exclude(group = "org.jetbrains", module = "annotations-java5")
     }
+
+    // Google ML Kit for scanner functionality
+    implementation(libs.text.recognition)
+    implementation(libs.play.services.mlkit.text.recognition)
+
+    // Additional Google Play Services
+    implementation(libs.play.services.tasks)
+
+    // For ListenableFuture in CameraX
+    implementation(libs.guava)
+
+    // Coil for image loading
+    implementation("io.coil-kt:coil:2.6.0")
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
+    // Media3 (ExoPlayer) for video and audio playback
+    val media3Version = "1.3.1"
+    implementation("androidx.media3:media3-exoplayer:$media3Version")
+    implementation("androidx.media3:media3-ui:$media3Version")
+
+    // PDF Viewer Fragment - Using working alpha version
+    implementation("androidx.pdf:pdf-viewer-fragment:1.0.0-alpha10")
+
 }
 
 configurations.all {

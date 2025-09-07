@@ -44,6 +44,7 @@ class NewFolderContentsActivity : AppCompatActivity() {
     private var masterPassword: String = ""
     private var folderName: String = ""
     private var folderSalt: String = ""
+    private var isShortcutAccess: Boolean = false
 
     companion object {
         const val REQUEST_CODE_PICK_FILES = 1001
@@ -96,6 +97,7 @@ class NewFolderContentsActivity : AppCompatActivity() {
         // Get folder ID and master password from intent
         folderId = intent.getLongExtra("folder_id", -1L)
         masterPassword = intent.getStringExtra("master_password") ?: ""
+        isShortcutAccess = intent.getBooleanExtra("is_shortcut_access", false)
 
         android.util.Log.d(
             "NewFolderContentsActivity",
@@ -218,7 +220,16 @@ class NewFolderContentsActivity : AppCompatActivity() {
 
     private fun setupToolbar() {
         findViewById<android.widget.ImageButton>(R.id.btn_back).setOnClickListener {
-            finish()
+            if (isShortcutAccess) {
+                // For shortcut access, go directly to calculator
+                val intent = Intent(this, BasicActivity::class.java)
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                startActivity(intent)
+                finish()
+            } else {
+                // Normal navigation - go back to gallery
+                finish()
+            }
         }
 
         // Set up the menu button click listener
@@ -755,47 +766,53 @@ class NewFolderContentsActivity : AppCompatActivity() {
                 val mimeType = getProperMimeType(file, tempFile)
                 android.util.Log.d("NewFolderContentsActivity", "Using MIME type: $mimeType")
 
-                // Open file with appropriate app
-                val uri = FileProvider.getUriForFile(
-                    this@NewFolderContentsActivity,
-                    "${packageName}.fileprovider",
-                    tempFile
-                )
-
-                val intent = Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(uri, mimeType)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    // Add additional flags for better compatibility
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-
-                try {
-                    // For video files, try to find a video player specifically
-                    if (file.isVideo) {
-                        android.util.Log.d("NewFolderContentsActivity", "Opening video file")
-                        // Try to find video player apps
-                        val videoApps = packageManager.queryIntentActivities(intent, 0)
-                        if (videoApps.isNotEmpty()) {
-                            val chooser = Intent.createChooser(intent, "Open video with")
-                            startActivity(chooser)
-                        } else {
-                            // Fallback to default viewer
-                            startActivity(intent)
+                // Open file with appropriate app or built-in viewer
+                when {
+                    file.isImage -> {
+                        // Open images with built-in ImageViewerActivity
+                        android.util.Log.d("NewFolderContentsActivity", "Opening image file with built-in viewer")
+                        val intent = Intent(this@NewFolderContentsActivity, ImageViewerActivity::class.java).apply {
+                            putExtra(ImageViewerActivity.EXTRA_FILE_PATH, tempFile.absolutePath)
+                            putExtra(ImageViewerActivity.EXTRA_FILE_NAME, file.originalFileName)
+                            putExtra(ImageViewerActivity.EXTRA_IS_TEMPORARY, true)
                         }
-                    } else {
                         startActivity(intent)
                     }
-                } catch (e: Exception) {
-                    android.util.Log.e(
-                        "NewFolderContentsActivity",
-                        "Error starting activity for file",
-                        e
-                    )
-                    Toast.makeText(
-                        this@NewFolderContentsActivity,
-                        "No app found to open this file type",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    file.isVideo || mimeType.startsWith("audio/") -> {
+                        // Open videos and audio with built-in MediaPlayerActivity (ExoPlayer)
+                        android.util.Log.d("NewFolderContentsActivity", "Opening media file with ExoPlayer")
+                        val intent = Intent(this@NewFolderContentsActivity, MediaPlayerActivity::class.java).apply {
+                            putExtra(MediaPlayerActivity.EXTRA_FILE_PATH, tempFile.absolutePath)
+                            putExtra(MediaPlayerActivity.EXTRA_FILE_NAME, file.originalFileName)
+                            putExtra(MediaPlayerActivity.EXTRA_IS_TEMPORARY, true)
+                            putExtra(MediaPlayerActivity.EXTRA_MIME_TYPE, mimeType)
+                        }
+                        startActivity(intent)
+                    }
+                    mimeType == "application/pdf" -> {
+                        // Open PDFs with built-in PDF viewer
+                        android.util.Log.d("NewFolderContentsActivity", "Opening PDF file with built-in viewer")
+                        val intent = Intent(this@NewFolderContentsActivity, PdfViewerActivity::class.java).apply {
+                            putExtra(PdfViewerActivity.EXTRA_FILE_PATH, tempFile.absolutePath)
+                            putExtra(PdfViewerActivity.EXTRA_FILE_NAME, file.originalFileName)
+                            putExtra(PdfViewerActivity.EXTRA_IS_TEMPORARY, true)
+                        }
+                        startActivity(intent)
+                    }
+                    else -> {
+                        // Open other files with external apps
+                        android.util.Log.d("NewFolderContentsActivity", "Opening file with external app")
+                        val uri = FileProvider.getUriForFile(
+                            this@NewFolderContentsActivity,
+                            "${packageName}.fileprovider",
+                            tempFile
+                        )
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(uri, mimeType)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        startActivity(intent)
+                    }
                 }
 
             } catch (e: Exception) {
@@ -1109,13 +1126,19 @@ class NewFolderContentsActivity : AppCompatActivity() {
                 val files = withContext(Dispatchers.IO) {
                     encryptedFileDao.getFilesInFolderSync(folderId)
                 }
-                
+
+                // Get folder position for shortcut info
+                val folders = withContext(Dispatchers.IO) {
+                    database.encryptedFolderDao().getAllFoldersSync()
+                }
+                val folderPosition = folders.indexOfFirst { it.id == folderId }
+
                 val totalSize = files.sumOf { it.fileSize }
                 val imageCount = files.count { it.isImage }
                 val videoCount = files.count { it.isVideo }
                 val audioCount = files.count { it.mimeType.startsWith("audio/") }
                 val otherCount = files.size - imageCount - videoCount - audioCount
-                
+
                 val message = buildString {
                     append("📁 Folder: $folderName\n\n")
                     append("📊 Total Files: ${files.size}\n")
@@ -1123,15 +1146,19 @@ class NewFolderContentsActivity : AppCompatActivity() {
                     append("📷 Images: $imageCount\n")
                     append("🎬 Videos: $videoCount\n")
                     append("🎵 Audio: $audioCount\n")
-                    append("📄 Other: $otherCount\n")
+                    append("📄 Other: $otherCount\n\n")
+                    if (folderPosition >= 0) {
+                        append("⚡ Calculator Shortcut: Press '$folderPosition' then long-press =\n")
+                        append("💡 Tip: Opens this folder directly from calculator")
+                    }
                 }
-                
+
                 MaterialAlertDialogBuilder(this@NewFolderContentsActivity)
                     .setTitle("Folder Information")
                     .setMessage(message)
                     .setPositiveButton("OK", null)
                     .show()
-                
+
             } catch (e: Exception) {
                 android.util.Log.e("NewFolderContentsActivity", "Error showing folder info", e)
                 Toast.makeText(this@NewFolderContentsActivity, "Error retrieving folder information", Toast.LENGTH_SHORT).show()

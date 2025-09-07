@@ -495,10 +495,8 @@ class SettingsActivity : androidx.fragment.app.FragmentActivity() {
         try {
             val intent = Intent(this, MediaGalleryActivity::class.java)
             startActivity(intent)
-            Toast.makeText(this, "Opening Hidden Gallery...", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             android.util.Log.e("SettingsActivity", "Error opening hidden gallery", e)
-            Toast.makeText(this, "Error opening Hidden Gallery", Toast.LENGTH_SHORT).show()
         }
     }
 

@@ -26,9 +26,15 @@ import android.widget.RelativeLayout
 import android.widget.FrameLayout
 import android.view.Gravity
 import android.widget.ImageView
+import com.shaadow.onecalculator.utils.AnalyticsHelper
+import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.shaadow.onecalculator.MediaGalleryActivity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class BasicActivity : AppCompatActivity() {
     private var isResultShown = false
+    private lateinit var analyticsHelper: AnalyticsHelper
 
     private lateinit var expressionTv: EditText
     private lateinit var solutionTv: TextView
@@ -47,6 +53,10 @@ class BasicActivity : AppCompatActivity() {
         expressionTv = findViewById(R.id.expression_tv)
         solutionTv = findViewById(R.id.solution_tv)
         resultTv = findViewById(R.id.result_tv)
+
+        // Initialize Analytics
+        analyticsHelper = AnalyticsHelper(this)
+        analyticsHelper.logScreenView("Basic Calculator", "BasicActivity")
 
         // Prevent soft keyboard from showing up
         expressionTv.showSoftInputOnFocus = false
@@ -179,8 +189,18 @@ class BasicActivity : AppCompatActivity() {
             }
         }
 
-        findViewById<MaterialButton>(R.id.button_equals).setOnClickListener {
+        val equalsButton = findViewById<MaterialButton>(R.id.button_equals)
+
+        // Handle normal click (short press)
+        equalsButton.setOnClickListener {
             val expression = expressionTv.text.toString()
+
+            // Check if it's a single digit for potential shortcut
+            if (isSingleDigitShortcut(expression)) {
+                // For single digits, we could show a hint or just proceed with calculation
+                // For now, proceed with normal calculation
+            }
+
             val formattedExpression = getExpressionForCalculation()
             try {
                 val result = safeCalculate(formattedExpression)
@@ -198,14 +218,42 @@ class BasicActivity : AppCompatActivity() {
                     val db = HistoryDatabase.getInstance(this@BasicActivity)
                     db.historyDao().insert(HistoryEntity(expression = expr, result = res))
                 }
+
+                // Track calculation in Analytics
+                analyticsHelper.logCalculation(expr, res)
+
                 adjustSolutionTextSize()
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                // Track error in Crashlytics
+                FirebaseCrashlytics.getInstance().recordException(e)
+                analyticsHelper.logError("calculation_error", e.message ?: "Unknown calculation error")
+
                 resultTv.text = getString(R.string.error_text)
                 resultTv.visibility = View.VISIBLE
                 expressionTv.visibility = View.GONE
                 solutionTv.visibility = View.GONE
                 adjustSolutionTextSize()
             }
+        }
+
+        // Handle long press (4 seconds) for gallery shortcut
+        equalsButton.setOnLongClickListener {
+            val expression = expressionTv.text.toString()
+
+            if (isSingleDigitShortcut(expression)) {
+                val position = expression.toInt()
+                // Clear the calculator input immediately when shortcut is triggered
+                expressionTv.setText("")
+                solutionTv.text = ""
+                resultTv.text = ""
+                resultTv.visibility = View.GONE
+                solutionTv.visibility = View.VISIBLE
+                isResultShown = false
+                startGalleryShortcutFlow(position)
+                return@setOnLongClickListener true // Consume the long click
+            }
+
+            false // Don't consume if not a shortcut
         }
 
         // Use the included custom_toolbar in the layout
@@ -564,4 +612,56 @@ class BasicActivity : AppCompatActivity() {
     private fun dpToPx(dp: Int): Int {
         return (dp * resources.displayMetrics.density).toInt()
     }
-} 
+
+    // Test method for Crashlytics (remove in production)
+    private fun testCrashlytics() {
+        // This will cause a test crash to verify Crashlytics is working
+        throw RuntimeException("Test Crash for Crashlytics")
+    }
+
+    // Gallery shortcut helper methods
+    private fun isSingleDigitShortcut(expression: String): Boolean {
+        // Only allow pure single digits (0-9) without any mathematical operators
+        if (expression.length != 1) return false
+        if (!expression[0].isDigit() || expression[0] !in '0'..'9') return false
+
+        // Check if expression contains any mathematical operators that would indicate a calculation
+        val hasOperators = expression.contains(Regex("[+\\-×÷^%!√πe\\(\\)]"))
+        return !hasOperators
+    }
+
+    private fun startGalleryShortcutFlow(position: Int) {
+        lifecycleScope.launch {
+            try {
+                // Get database instance
+                val db = HistoryDatabase.getInstance(this@BasicActivity)
+                val folderDao = db.encryptedFolderDao()
+
+                // Get all folders ordered by creation time (position 0 = first folder, 1 = second, etc.)
+                val folders = withContext(Dispatchers.IO) {
+                    folderDao.getAllFoldersSync()
+                }
+
+                if (position >= folders.size) {
+                    Toast.makeText(this@BasicActivity, "No folder at position $position", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+
+                val targetFolder = folders[position]
+
+                // Start gallery activity with shortcut intent
+                val intent = Intent(this@BasicActivity, MediaGalleryActivity::class.java).apply {
+                    putExtra("shortcut_folder_id", targetFolder.id)
+                    putExtra("shortcut_position", position)
+                    putExtra("is_shortcut_access", true)
+                }
+
+                startActivity(intent)
+
+            } catch (e: Exception) {
+                android.util.Log.e("BasicActivity", "Error starting gallery shortcut", e)
+                Toast.makeText(this@BasicActivity, "Error accessing gallery", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+}

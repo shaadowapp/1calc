@@ -49,6 +49,11 @@ class MediaGalleryActivity : AppCompatActivity() {
     private var currentMasterPassword: String = ""
     private var isAllSelected: Boolean = false
 
+    // Shortcut-related variables
+    private var isShortcutAccess: Boolean = false
+    private var shortcutFolderId: Long = -1
+    private var shortcutPosition: Int = -1
+
     companion object {
         const val ACTION_FINGERPRINT_SETTING_CHANGED = "com.shaadow.onecalculator.FINGERPRINT_SETTING_CHANGED"
     }
@@ -107,6 +112,9 @@ class MediaGalleryActivity : AppCompatActivity() {
         setupToolbar()
         initializeDatabase()
         initializeExternalStorage()
+
+        // Check for shortcut access
+        checkShortcutIntent()
 
         // Register broadcast receiver for fingerprint setting changes
         val filter = IntentFilter(ACTION_FINGERPRINT_SETTING_CHANGED)
@@ -175,6 +183,16 @@ class MediaGalleryActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 android.util.Log.e("MediaGalleryActivity", "Error initializing external storage", e)
             }
+        }
+    }
+
+    private fun checkShortcutIntent() {
+        isShortcutAccess = intent.getBooleanExtra("is_shortcut_access", false)
+        shortcutFolderId = intent.getLongExtra("shortcut_folder_id", -1)
+        shortcutPosition = intent.getIntExtra("shortcut_position", -1)
+
+        if (isShortcutAccess) {
+            android.util.Log.d("MediaGalleryActivity", "Shortcut access detected - Position: $shortcutPosition, Folder ID: $shortcutFolderId")
         }
     }
 
@@ -484,14 +502,21 @@ class MediaGalleryActivity : AppCompatActivity() {
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                     super.onAuthenticationSucceeded(result)
                     android.util.Log.d("MediaGalleryActivity", "Biometric authentication succeeded")
-                    
+
                     // Set default master password for file encryption since we only use fingerprint
                     currentMasterPassword = "0000" // Default password for file encryption
-                    
+
                     Toast.makeText(this@MediaGalleryActivity, "Authentication successful", Toast.LENGTH_SHORT).show()
-                    
+
                     hideLockScreen()
-                    proceedToGallery()
+
+                    if (isShortcutAccess && shortcutPosition >= 0) {
+                        // Handle shortcut access - directly open target folder
+                        handleShortcutAccess()
+                    } else {
+                        // Normal gallery access
+                        proceedToGallery()
+                    }
                 }
 
                 override fun onAuthenticationFailed() {
@@ -502,13 +527,25 @@ class MediaGalleryActivity : AppCompatActivity() {
                 }
             })
 
-        val promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Unlock Hidden Gallery")
-            .setSubtitle("Use your fingerprint to access the hidden gallery")
-            .setDescription("Place your finger on the fingerprint sensor")
-            .setNegativeButtonText("Cancel")
-            .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK)
-            .build()
+        val promptInfo = if (isShortcutAccess && shortcutPosition >= 0) {
+            // For shortcut access, show generic prompt since we can't get folder name synchronously
+            BiometricPrompt.PromptInfo.Builder()
+                .setTitle("Unlock Folder")
+                .setSubtitle("Calculator shortcut to position ${shortcutPosition + 1}")
+                .setDescription("Place your finger on the fingerprint sensor")
+                .setNegativeButtonText("Cancel")
+                .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK)
+                .build()
+        } else {
+            // Normal gallery access
+            BiometricPrompt.PromptInfo.Builder()
+                .setTitle("Unlock Hidden Gallery")
+                .setSubtitle("Use your fingerprint to access the hidden gallery")
+                .setDescription("Place your finger on the fingerprint sensor")
+                .setNegativeButtonText("Cancel")
+                .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK)
+                .build()
+        }
 
         try {
             biometricPrompt.authenticate(promptInfo)
@@ -521,6 +558,55 @@ class MediaGalleryActivity : AppCompatActivity() {
     private fun proceedToGallery() {
         checkPermissions()
         setupClickListeners()
+    }
+
+    private fun handleShortcutAccess() {
+        lifecycleScope.launch {
+            try {
+                android.util.Log.d("MediaGalleryActivity", "Handling shortcut access for position: $shortcutPosition")
+
+                val folders = withContext(Dispatchers.IO) {
+                    encryptedFolderDao.getAllFoldersSync()
+                }
+
+                if (shortcutPosition >= 0 && shortcutPosition < folders.size) {
+                    val targetFolder = folders[shortcutPosition]
+                    android.util.Log.d("MediaGalleryActivity", "Opening shortcut folder: ${targetFolder.name} (ID: ${targetFolder.id})")
+
+                    // For shortcuts, finish this activity before opening folder to prevent it from staying in back stack
+                    openFolderContentsForShortcut(targetFolder)
+                    finish() // Close MediaGalleryActivity so back from folder goes directly to calculator
+                } else {
+                    android.util.Log.e("MediaGalleryActivity", "Invalid shortcut position: $shortcutPosition, available folders: ${folders.size}")
+                    Toast.makeText(this@MediaGalleryActivity, "Invalid folder position", Toast.LENGTH_SHORT).show()
+                    // Fall back to normal gallery
+                    proceedToGallery()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("MediaGalleryActivity", "Error handling shortcut access", e)
+                Toast.makeText(this@MediaGalleryActivity, "Error accessing folder", Toast.LENGTH_SHORT).show()
+                // Fall back to normal gallery
+                proceedToGallery()
+            }
+        }
+    }
+
+    private fun openFolderContentsForShortcut(folder: EncryptedFolderEntity) {
+        try {
+            android.util.Log.d("MediaGalleryActivity", "Opening folder contents for shortcut: ${folder.name}, ID: ${folder.id}")
+
+            val intent = Intent(this, NewFolderContentsActivity::class.java)
+            intent.putExtra("folder_id", folder.id)
+            intent.putExtra("master_password", currentMasterPassword)
+            intent.putExtra("is_shortcut_access", true) // Flag for shortcut navigation
+
+            android.util.Log.d("MediaGalleryActivity", "Starting NewFolderContentsActivity with folder ID: ${folder.id}")
+            startActivity(intent)
+            android.util.Log.d("MediaGalleryActivity", "Intent started successfully")
+        } catch (e: Exception) {
+            android.util.Log.e("MediaGalleryActivity", "Error opening folder contents for shortcut", e)
+            Toast.makeText(this, "Error opening folder: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun showErrorAndExit(message: String) {
@@ -965,10 +1051,16 @@ class MediaGalleryActivity : AppCompatActivity() {
             append("• Each folder has its own PIN\n")
             append("• Set up recovery questions in Settings\n")
             append("• Default PIN is 0000 (change recommended)\n\n")
+            append("⚡ Calculator Shortcuts:\n")
+            append("• Enter digit 0-9 in calculator\n")
+            append("• Long-press = button for 4 seconds\n")
+            append("• Opens folder at that position\n")
+            append("• Example: Enter '2' → long-press = → opens folder at position 2\n\n")
             append("💡 Tips:\n")
             append("• Use ⋮ menu in header for bulk operations\n")
             append("• Export folders to backup your data\n")
-            append("• Change PINs regularly for better security")
+            append("• Change PINs regularly for better security\n")
+            append("• Check folder info to see shortcut position")
         }
 
         androidx.appcompat.app.AlertDialog.Builder(this)
@@ -1590,9 +1682,9 @@ private fun toggleSelectAllFolders(menuItem: android.view.MenuItem) {
                     startActivity(parentIntent)
                 }
 
-                Toast.makeText(this, "Opening file manager at: ${hiddenDir.absolutePath}", Toast.LENGTH_LONG).show()
+                // File manager opened silently
             } else {
-                Toast.makeText(this, "Storage directory not found. Try adding a file first.", Toast.LENGTH_LONG).show()
+                // Storage directory not found - handled silently
             }
         } catch (e: Exception) {
             android.util.Log.e("MediaGalleryActivity", "Error opening file manager", e)

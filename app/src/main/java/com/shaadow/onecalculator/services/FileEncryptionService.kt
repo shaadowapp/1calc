@@ -215,12 +215,27 @@ class FileEncryptionService(private val context: Context) {
             if (tempDir.exists()) {
                 tempDir.listFiles()?.forEach { file ->
                     if (file.isFile) {
-                        file.delete()
+                        val deleted = file.delete()
+                        android.util.Log.d("FileEncryptionService", "Cleaned up temp file: ${file.name}, deleted: $deleted")
                     }
                 }
             }
         } catch (e: Exception) {
             android.util.Log.w("FileEncryptionService", "Error cleaning up temp files", e)
+        }
+    }
+
+    /**
+     * Clean up specific temporary file
+     */
+    fun cleanupTempFile(file: File) {
+        try {
+            if (file.exists() && file.isFile) {
+                val deleted = file.delete()
+                android.util.Log.d("FileEncryptionService", "Cleaned up temp file: ${file.name}, deleted: $deleted")
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("FileEncryptionService", "Error cleaning up temp file: ${file.name}", e)
         }
     }
     

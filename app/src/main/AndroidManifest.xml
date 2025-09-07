@@ -23,6 +23,9 @@
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.USE_FINGERPRINT" />
 
+    <!-- FCM Notification permission -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:name=".CalculatorApplication"
         android:allowBackup="true"
@@ -68,6 +71,8 @@
         <activity android:name=".FolderContentsActivity" android:screenOrientation="portrait" />
         <activity android:name=".NewFolderContentsActivity" android:screenOrientation="portrait" />
         <activity android:name=".ImageViewerActivity" android:screenOrientation="portrait" />
+        <activity android:name=".MediaPlayerActivity" android:screenOrientation="portrait" />
+        <activity android:name=".PdfViewerActivity" android:screenOrientation="portrait" />
 
         <receiver android:name=".CalculatorWidgetBlack" android:exported="false">
             <intent-filter>
@@ -80,6 +85,14 @@
         <service
             android:name=".FloatingMicService"
             android:exported="false" />
+
+        <service
+            android:name=".services.FirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
         <receiver
             android:name=".TabBarVisibilityReceiver"

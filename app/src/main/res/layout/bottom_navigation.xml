@@ -30,17 +30,20 @@
         <!-- Chat Tab -->
         <include
             android:id="@+id/category_tab"
-            layout="@layout/bottom_nav_item" />
+            layout="@layout/bottom_nav_item"
+            android:visibility="gone" />
 
-        <!-- Mathly Tab -->
+        <!-- Mathly Tab - HIDDEN for launch (in development) -->
         <include
             android:id="@+id/mathly_tab"
-            layout="@layout/bottom_nav_item" />
+            layout="@layout/bottom_nav_item"
+            android:visibility="gone" />
 
         <!-- Scanner Tab -->
         <include
             android:id="@+id/scanner_tab"
-            layout="@layout/bottom_nav_item" />
+            layout="@layout/bottom_nav_item"
+            android:visibility="gone" />
 
     </LinearLayout>
 
