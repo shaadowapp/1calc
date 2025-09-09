@@ -19,5 +19,5 @@ sealed class FolderContentItem {
 }
 
 enum class FileType {
-    IMAGE, VIDEO, PDF, DOCUMENT, OTHER
+    IMAGE, VIDEO, AUDIO, OTHER
 }

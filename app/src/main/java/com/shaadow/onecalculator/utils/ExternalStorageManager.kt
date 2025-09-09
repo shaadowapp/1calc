@@ -6,40 +6,34 @@ import java.io.File
 import java.io.IOException
 
 object ExternalStorageManager {
-    
-    private const val HIDDEN_FOLDER_NAME = ".1calculator"
+
+    private const val HIDDEN_FOLDER_NAME = ".1Calculator"
     private const val ENCRYPTED_FILES_FOLDER = "encrypted_files"
     private const val THUMBNAILS_FOLDER = "thumbnails"
     private const val NOMEDIA_FILE = ".nomedia"
     
     /**
      * Get the hidden calculator directory on external storage
-     * Creates .1calculator folder directly in device external storage root for visibility in file manager
+     * Creates .1Calculator folder directly in device external storage root for visibility in file manager
      */
     fun getHiddenCalculatorDir(context: Context): File? {
         return try {
             android.util.Log.d("ExternalStorageManager", "Getting hidden calculator directory...")
             android.util.Log.d("ExternalStorageManager", "Android version: ${android.os.Build.VERSION.SDK_INT}")
 
-            // Try external storage root first for all Android versions to make folder visible in file manager
-            if (isExternalStorageWritable()) {
-                val externalDir = Environment.getExternalStorageDirectory()
-                val hiddenDir = File(externalDir, HIDDEN_FOLDER_NAME)
-                android.util.Log.d("ExternalStorageManager", "External storage directory: ${hiddenDir.absolutePath}")
-
-                // Check if we can actually write to this location
-                if (hiddenDir.exists() || hiddenDir.mkdirs()) {
-                    if (hiddenDir.canWrite()) {
-                        android.util.Log.d("ExternalStorageManager", "External storage directory is writable")
-                        return hiddenDir
-                    } else {
-                        android.util.Log.w("ExternalStorageManager", "External storage directory not writable")
-                    }
+            // For Android 11+ (API 30+), try to use MANAGE_EXTERNAL_STORAGE permission
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                if (android.os.Environment.isExternalStorageManager()) {
+                    android.util.Log.d("ExternalStorageManager", "MANAGE_EXTERNAL_STORAGE permission granted")
+                    return createHiddenDirInExternalStorage(context)
                 } else {
-                    android.util.Log.w("ExternalStorageManager", "Cannot create external storage directory")
+                    android.util.Log.w("ExternalStorageManager", "MANAGE_EXTERNAL_STORAGE permission not granted, using fallback")
                 }
-            } else {
-                android.util.Log.e("ExternalStorageManager", "External storage is not writable")
+            }
+
+            // For Android 10 and below, or when MANAGE_EXTERNAL_STORAGE is not available
+            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R || !android.os.Environment.isExternalStorageManager()) {
+                return createHiddenDirInExternalStorageLegacy(context)
             }
 
             // Fallback to app's external files directory
@@ -67,6 +61,69 @@ object ExternalStorageManager {
                 android.util.Log.e("ExternalStorageManager", "Critical error: Cannot access any storage", e2)
                 return null
             }
+        }
+    }
+
+    /**
+     * Create hidden directory in external storage for Android 11+ with MANAGE_EXTERNAL_STORAGE
+     */
+    private fun createHiddenDirInExternalStorage(context: Context): File? {
+        return try {
+            val externalDir = Environment.getExternalStorageDirectory()
+            val hiddenDir = File(externalDir, HIDDEN_FOLDER_NAME)
+            android.util.Log.d("ExternalStorageManager", "Attempting to create hidden dir: ${hiddenDir.absolutePath}")
+
+            if (!hiddenDir.exists()) {
+                val created = hiddenDir.mkdirs()
+                android.util.Log.d("ExternalStorageManager", "Hidden directory creation result: $created")
+                if (!created) {
+                    android.util.Log.e("ExternalStorageManager", "Failed to create hidden directory with mkdirs()")
+                    return null
+                }
+            }
+
+            if (hiddenDir.exists() && hiddenDir.canWrite()) {
+                android.util.Log.d("ExternalStorageManager", "Hidden directory is ready and writable")
+                return hiddenDir
+            } else {
+                android.util.Log.e("ExternalStorageManager", "Hidden directory exists but is not writable")
+                return null
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("ExternalStorageManager", "Error creating hidden directory in external storage", e)
+            null
+        }
+    }
+
+    /**
+     * Create hidden directory in external storage for Android 10 and below
+     */
+    private fun createHiddenDirInExternalStorageLegacy(context: Context): File? {
+        return try {
+            // Try external storage root first for all Android versions to make folder visible in file manager
+            if (isExternalStorageWritable()) {
+                val externalDir = Environment.getExternalStorageDirectory()
+                val hiddenDir = File(externalDir, HIDDEN_FOLDER_NAME)
+                android.util.Log.d("ExternalStorageManager", "External storage directory: ${hiddenDir.absolutePath}")
+
+                // Check if we can actually write to this location
+                if (hiddenDir.exists() || hiddenDir.mkdirs()) {
+                    if (hiddenDir.canWrite()) {
+                        android.util.Log.d("ExternalStorageManager", "External storage directory is writable")
+                        return hiddenDir
+                    } else {
+                        android.util.Log.w("ExternalStorageManager", "External storage directory not writable")
+                    }
+                } else {
+                    android.util.Log.w("ExternalStorageManager", "Cannot create external storage directory")
+                }
+            } else {
+                android.util.Log.e("ExternalStorageManager", "External storage is not writable")
+            }
+            null
+        } catch (e: Exception) {
+            android.util.Log.e("ExternalStorageManager", "Error in legacy external storage creation", e)
+            null
         }
     }
     
@@ -331,6 +388,105 @@ object ExternalStorageManager {
         }
     }
     
+    /**
+     * Ensure the hidden directory always exists and is accessible
+     * This method should be called at key app lifecycle points
+     */
+    fun ensureHiddenDirectoryExists(context: Context): Boolean {
+        try {
+            android.util.Log.d("ExternalStorageManager", "Ensuring hidden directory exists...")
+
+            // First check if it's already ready
+            if (isHiddenDirectoryReady(context)) {
+                android.util.Log.d("ExternalStorageManager", "Hidden directory is already ready")
+                return true
+            }
+
+            // If not ready, try to initialize it
+            android.util.Log.d("ExternalStorageManager", "Hidden directory not ready, attempting to initialize...")
+            val initialized = initializeHiddenDirectory(context)
+
+            if (initialized) {
+                android.util.Log.d("ExternalStorageManager", "Hidden directory successfully initialized")
+                return true
+            } else {
+                android.util.Log.e("ExternalStorageManager", "Failed to initialize hidden directory")
+
+                // Try alternative approaches
+                val hiddenDir = getHiddenCalculatorDir(context)
+                if (hiddenDir != null) {
+                    android.util.Log.d("ExternalStorageManager", "Attempting manual directory creation...")
+
+                    // Try to create the directory manually
+                    if (!hiddenDir.exists()) {
+                        val created = hiddenDir.mkdirs()
+                        android.util.Log.d("ExternalStorageManager", "Manual directory creation: $created")
+
+                        if (created) {
+                            // Try to create subdirectories
+                            val encryptedDir = getEncryptedFilesDir(context)
+                            val thumbnailsDir = getThumbnailsDir(context)
+
+                            encryptedDir?.mkdirs()
+                            thumbnailsDir?.mkdirs()
+
+                            // Create .nomedia files
+                            createNoMediaFile(hiddenDir)
+                            encryptedDir?.let { createNoMediaFile(it) }
+                            thumbnailsDir?.let { createNoMediaFile(it) }
+
+                            // Test write access
+                            if (hiddenDir.canWrite()) {
+                                android.util.Log.d("ExternalStorageManager", "Manual directory creation successful")
+                                return true
+                            }
+                        }
+                    }
+                }
+
+                android.util.Log.e("ExternalStorageManager", "All attempts to create hidden directory failed")
+                return false
+            }
+
+        } catch (e: Exception) {
+            android.util.Log.e("ExternalStorageManager", "Error ensuring hidden directory exists", e)
+            return false
+        }
+    }
+
+    /**
+     * Get the Downloads directory for saving exported files
+     */
+    fun getDownloadsDirectory(context: Context): File? {
+        return try {
+            // Try to get the standard Downloads directory
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                // For Android 10+, use MediaStore or Environment.DIRECTORY_DOWNLOADS
+                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                if (downloadsDir != null && downloadsDir.exists()) {
+                    return downloadsDir
+                }
+            }
+
+            // Fallback for older versions
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            if (downloadsDir != null) {
+                if (!downloadsDir.exists()) {
+                    downloadsDir.mkdirs()
+                }
+                return downloadsDir
+            }
+
+            // Final fallback to app's external files directory
+            context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+
+        } catch (e: Exception) {
+            android.util.Log.e("ExternalStorageManager", "Error getting downloads directory", e)
+            // Final fallback
+            context.getExternalFilesDir("Downloads")
+        }
+    }
+
     /**
      * Check if the hidden directory is properly set up
      */

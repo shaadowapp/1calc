@@ -181,7 +181,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:layout_marginBottom="32dp">
+                android:layout_marginBottom="32dp"
+                android:visibility="gone">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -847,6 +848,43 @@
         android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/feedback"
+                            android:textColor="@color/text_light_e0e0e0"
+                            android:textSize="16sp"
+                            android:fontFamily="sans-serif"
+                            android:textStyle="normal" />
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_back"
+                            android:rotation="180"
+                            android:contentDescription="Arrow"
+                            app:tint="@color/text_muted_a0a0a0" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/white_ffffff"
+                        android:alpha="0.1"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="16dp" />
+
+                    <!-- Report Bug -->
+                    <LinearLayout
+                        android:id="@+id/report_bug_item"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="16dp"
+                        android:background="?attr/selectableItemBackground">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Report Bug"
                             android:textColor="@color/text_light_e0e0e0"
                             android:textSize="16sp"
                             android:fontFamily="sans-serif"

@@ -28,7 +28,7 @@ import android.widget.CompoundButton
 import java.io.File
 import java.text.DecimalFormat
 
-class SettingsActivity : androidx.fragment.app.FragmentActivity() {
+class SettingsActivity : BaseActivity() {
 
     private lateinit var binding: ActivitySettingsBinding
     private lateinit var sharedPreferences: SharedPreferences
@@ -212,8 +212,14 @@ class SettingsActivity : androidx.fragment.app.FragmentActivity() {
         }
         // Feedback
         binding.feedbackItem.setOnClickListener {
-            startActivity(Intent(this, FeedbackActivity::class.java))
+            showFeedback()
         }
+
+        // Report Bug
+        binding.reportBugItem.setOnClickListener {
+            showBugReport()
+        }
+
         // Rate Us
         binding.rateUsItem.setOnClickListener {
             startActivity(Intent(this, RateUsActivity::class.java))
@@ -804,5 +810,15 @@ class SettingsActivity : androidx.fragment.app.FragmentActivity() {
             // Fallback to simple encoding (not recommended for production)
             android.util.Base64.encodeToString(answer.toByteArray(), android.util.Base64.DEFAULT)
         }
+    }
+
+    private fun showFeedback() {
+        val feedbackSheet = FeedbackBottomSheet.newInstance()
+        feedbackSheet.show(supportFragmentManager, FeedbackBottomSheet.TAG)
+    }
+
+    private fun showBugReport() {
+        val bugReportSheet = BugReportBottomSheet.newInstance()
+        bugReportSheet.show(supportFragmentManager, BugReportBottomSheet.TAG)
     }
 }

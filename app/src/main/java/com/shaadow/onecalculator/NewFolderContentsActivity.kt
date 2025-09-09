@@ -167,10 +167,10 @@ class NewFolderContentsActivity : AppCompatActivity() {
             "Storage permission granted: $hasStoragePermission"
         )
 
-        if (!ExternalStorageManager.isHiddenDirectoryReady(this)) {
+        if (!ExternalStorageManager.ensureHiddenDirectoryExists(this)) {
             android.util.Log.w(
                 "NewFolderContentsActivity",
-                "Hidden directory not ready, initializing..."
+                "Hidden directory not ready and could not be created"
             )
 
             // Get the target directory path for debugging
@@ -180,41 +180,35 @@ class NewFolderContentsActivity : AppCompatActivity() {
                 "Target directory: ${targetDir?.absolutePath}"
             )
 
-            val initialized = ExternalStorageManager.initializeHiddenDirectory(this)
-            if (!initialized) {
-                Toast.makeText(
-                    this,
-                    "Error: Cannot initialize storage. Please check app permissions and storage space.",
-                    Toast.LENGTH_LONG
-                ).show()
-                android.util.Log.e(
-                    "NewFolderContentsActivity",
-                    "CRITICAL: Failed to initialize hidden directory"
-                )
+            Toast.makeText(
+                this,
+                "Error: Cannot access storage directory. Please check app permissions and storage space.",
+                Toast.LENGTH_LONG
+            ).show()
+            android.util.Log.e(
+                "NewFolderContentsActivity",
+                "CRITICAL: Failed to ensure hidden directory exists"
+            )
 
-                // Show detailed error information
-                val encryptedDir = ExternalStorageManager.getEncryptedFilesDir(this)
-                android.util.Log.e(
-                    "NewFolderContentsActivity",
-                    "Encrypted dir path: ${encryptedDir?.absolutePath}"
-                )
-                android.util.Log.e(
-                    "NewFolderContentsActivity",
-                    "Encrypted dir exists: ${encryptedDir?.exists()}"
-                )
-                android.util.Log.e(
-                    "NewFolderContentsActivity",
-                    "Encrypted dir writable: ${encryptedDir?.canWrite()}"
-                )
+            // Show detailed error information
+            val encryptedDir = ExternalStorageManager.getEncryptedFilesDir(this)
+            android.util.Log.e(
+                "NewFolderContentsActivity",
+                "Encrypted dir path: ${encryptedDir?.absolutePath}"
+            )
+            android.util.Log.e(
+                "NewFolderContentsActivity",
+                "Encrypted dir exists: ${encryptedDir?.exists()}"
+            )
+            android.util.Log.e(
+                "NewFolderContentsActivity",
+                "Encrypted dir writable: ${encryptedDir?.canWrite()}"
+            )
 
-            } else {
-                android.util.Log.d(
-                    "NewFolderContentsActivity",
-                    "Storage directory initialized successfully"
-                )
-            }
+            finish()
+            return
         } else {
-            android.util.Log.d("NewFolderContentsActivity", "Storage directory already ready")
+            android.util.Log.d("NewFolderContentsActivity", "Storage directory is ready")
         }
     }
 
@@ -507,7 +501,7 @@ class NewFolderContentsActivity : AppCompatActivity() {
             return
         }
 
-        val options = arrayOf("Add Photos", "Add Videos", "Add Documents", "Add Any File")
+        val options = arrayOf("Add Photos", "Add Videos", "Add Audio")
 
         MaterialAlertDialogBuilder(this)
             .setTitle("Add Files to $folderName")
@@ -515,8 +509,7 @@ class NewFolderContentsActivity : AppCompatActivity() {
                 when (which) {
                     0 -> openFilePicker("image/*")
                     1 -> openFilePicker("video/*")
-                    2 -> openFilePicker("application/*")
-                    3 -> openFilePicker("*/*")
+                    2 -> openFilePicker("audio/*")
                 }
             }
             .show()
@@ -547,51 +540,42 @@ class NewFolderContentsActivity : AppCompatActivity() {
                 )
                 android.util.Log.d("NewFolderContentsActivity", "Processing ${uris.size} files")
 
-                if (!ExternalStorageManager.isHiddenDirectoryReady(this@NewFolderContentsActivity)) {
+                if (!ExternalStorageManager.ensureHiddenDirectoryExists(this@NewFolderContentsActivity)) {
                     android.util.Log.w(
                         "NewFolderContentsActivity",
-                        "Storage not ready, attempting to initialize..."
+                        "Storage not ready and could not be created"
                     )
-                    val initialized =
-                        ExternalStorageManager.initializeHiddenDirectory(this@NewFolderContentsActivity)
-                    if (!initialized) {
-                        Toast.makeText(
-                            this@NewFolderContentsActivity,
-                            "Error: Cannot access storage. Please check app permissions and storage space.",
-                            Toast.LENGTH_LONG
-                        ).show()
-                        android.util.Log.e(
-                            "NewFolderContentsActivity",
-                            "CRITICAL: Cannot initialize storage for file encryption"
-                        )
-                        return@launch
-                    } else {
-                        android.util.Log.d(
-                            "NewFolderContentsActivity",
-                            "Storage initialized successfully"
-                        )
-
-                        // Force media scanner to refresh
-                        val hiddenDir =
-                            ExternalStorageManager.getHiddenCalculatorDir(this@NewFolderContentsActivity)
-                        if (hiddenDir != null) {
-                            android.media.MediaScannerConnection.scanFile(
-                                this@NewFolderContentsActivity,
-                                arrayOf(hiddenDir.absolutePath),
-                                null,
-                                null
-                            )
-                            android.util.Log.d(
-                                "NewFolderContentsActivity",
-                                "Media scanner notified about new directory: ${hiddenDir.absolutePath}"
-                            )
-                        }
-                    }
+                    Toast.makeText(
+                        this@NewFolderContentsActivity,
+                        "Error: Cannot access storage. Please check app permissions and storage space.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    android.util.Log.e(
+                        "NewFolderContentsActivity",
+                        "CRITICAL: Cannot initialize storage for file encryption"
+                    )
+                    return@launch
                 } else {
                     android.util.Log.d(
                         "NewFolderContentsActivity",
-                        "Storage is ready for file operations"
+                        "Storage initialized successfully"
                     )
+
+                    // Force media scanner to refresh
+                    val hiddenDir =
+                        ExternalStorageManager.getHiddenCalculatorDir(this@NewFolderContentsActivity)
+                    if (hiddenDir != null) {
+                        android.media.MediaScannerConnection.scanFile(
+                            this@NewFolderContentsActivity,
+                            arrayOf(hiddenDir.absolutePath),
+                            null,
+                            null
+                        )
+                        android.util.Log.d(
+                            "NewFolderContentsActivity",
+                            "Media scanner notified about new directory: ${hiddenDir.absolutePath}"
+                        )
+                    }
                 }
 
                 // Double-check that we have valid folder data
@@ -630,9 +614,16 @@ class NewFolderContentsActivity : AppCompatActivity() {
                     try {
                         android.util.Log.d("NewFolderContentsActivity", "Processing file: $uri")
 
-                        // Get file name for better logging
+                        // Get file name and check if it's a supported media file
                         val fileName = getFileName(uri)
-                        android.util.Log.d("NewFolderContentsActivity", "File name: $fileName")
+                        android.util.Log.d("NewFolderContentsActivity", "Processing file: $fileName")
+
+                        // Filter out non-media files (only allow images, videos, and audio)
+                        if (!isMediaFile(uri)) {
+                            android.util.Log.w("NewFolderContentsActivity", "Skipping non-media file: $fileName")
+                            errorCount++
+                            continue
+                        }
 
                         val fileEntity = withContext(Dispatchers.IO) {
                             fileEncryptionService.encryptAndStoreFile(
@@ -695,8 +686,9 @@ class NewFolderContentsActivity : AppCompatActivity() {
 
                 // Show result
                 val message = when {
-                    successCount > 0 && errorCount == 0 -> "$successCount file(s) added successfully"
-                    successCount > 0 && errorCount > 0 -> "$successCount file(s) added, $errorCount failed"
+                    successCount > 0 && errorCount == 0 -> "$successCount media file(s) added successfully"
+                    successCount > 0 && errorCount > 0 -> "$successCount media file(s) added, $errorCount non-media files skipped"
+                    errorCount > 0 && successCount == 0 -> "No media files found. Only images, videos, and audio files are supported."
                     else -> "Failed to add files"
                 }
                 Toast.makeText(this@NewFolderContentsActivity, message, Toast.LENGTH_SHORT).show()
@@ -789,18 +781,8 @@ class NewFolderContentsActivity : AppCompatActivity() {
                         }
                         startActivity(intent)
                     }
-                    mimeType == "application/pdf" -> {
-                        // Open PDFs with built-in PDF viewer
-                        android.util.Log.d("NewFolderContentsActivity", "Opening PDF file with built-in viewer")
-                        val intent = Intent(this@NewFolderContentsActivity, PdfViewerActivity::class.java).apply {
-                            putExtra(PdfViewerActivity.EXTRA_FILE_PATH, tempFile.absolutePath)
-                            putExtra(PdfViewerActivity.EXTRA_FILE_NAME, file.originalFileName)
-                            putExtra(PdfViewerActivity.EXTRA_IS_TEMPORARY, true)
-                        }
-                        startActivity(intent)
-                    }
                     else -> {
-                        // Open other files with external apps
+                        // Open other media files with external apps
                         android.util.Log.d("NewFolderContentsActivity", "Opening file with external app")
                         val uri = FileProvider.getUriForFile(
                             this@NewFolderContentsActivity,
@@ -811,7 +793,17 @@ class NewFolderContentsActivity : AppCompatActivity() {
                             setDataAndType(uri, mimeType)
                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                         }
-                        startActivity(intent)
+
+                        // Check if there's an app to handle this file type
+                        if (intent.resolveActivity(packageManager) != null) {
+                            startActivity(intent)
+                        } else {
+                            Toast.makeText(
+                                this@NewFolderContentsActivity,
+                                "No app found to open this file type",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
                 }
 
@@ -1254,6 +1246,46 @@ class NewFolderContentsActivity : AppCompatActivity() {
 
         if (permissions.isNotEmpty()) {
             requestPermissionLauncher.launch(permissions.toTypedArray())
+        }
+    }
+
+    private fun isMediaFile(uri: Uri): Boolean {
+        val mimeType = getMimeTypeFromUri(uri)
+
+        // Check MIME type first
+        if (mimeType.startsWith("image/") ||
+            mimeType.startsWith("video/") ||
+            mimeType.startsWith("audio/")) {
+            return true
+        }
+
+        // Check file extension for additional support
+        val fileName = getFileName(uri) ?: return false
+        val extension = fileName.substringAfterLast('.', "").lowercase()
+
+        // Comprehensive list of supported file extensions
+        val supportedExtensions = setOf(
+            // Images
+            "jpg", "jpeg", "png", "gif", "bmp", "webp", "tiff", "tif", "ico", "svg",
+            "heic", "heif", "raw", "cr2", "nef", "arw", "dng", "orf", "rw2", "pef",
+
+            // Videos
+            "mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v", "3gp", "mpg",
+            "mpeg", "m2ts", "mts", "vob", "asf", "rm", "rmvb", "divx", "xvid",
+
+            // Audio
+            "mp3", "wav", "aac", "ogg", "wma", "flac", "m4a", "opus", "aiff",
+            "au", "ra", "ape", "ac3", "dts", "pcm", "amr", "mid", "midi"
+        )
+
+        return extension in supportedExtensions
+    }
+
+    private fun getMimeTypeFromUri(uri: Uri): String {
+        return contentResolver.getType(uri) ?: run {
+            val fileName = getFileName(uri) ?: return "application/octet-stream"
+            val extension = fileName.substringAfterLast('.', "").lowercase()
+            MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) ?: "application/octet-stream"
         }
     }
 }

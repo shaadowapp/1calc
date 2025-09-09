@@ -125,8 +125,13 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:$media3Version")
     implementation("androidx.media3:media3-ui:$media3Version")
 
-    // PDF Viewer Fragment - Using working alpha version
-    implementation("androidx.pdf:pdf-viewer-fragment:1.0.0-alpha10")
+    // PDF Viewer - Using WebView approach instead of AndroidX PDF viewer
+
+    // Gson for JSON serialization
+    implementation("com.google.code.gson:gson:2.10.1")
+
+    // Zip4j for password-protected ZIP files
+    implementation("net.lingala.zip4j:zip4j:2.11.5")
 
 }
 

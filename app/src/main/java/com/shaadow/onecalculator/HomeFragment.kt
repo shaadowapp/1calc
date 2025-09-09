@@ -50,6 +50,7 @@ class HomeFragment : Fragment() {
         setupCategoryCards()
         setupAllCalculators()
         setupNotificationIcon()
+        setupTimeBasedGreeting()
 
         // Ensure search results are hidden initially
         hideSearchResults()
@@ -283,6 +284,12 @@ class HomeFragment : Fragment() {
             val intent = Intent(requireContext(), TodoActivity::class.java)
             startActivity(intent)
         }
+
+
+        // Hidden Gallery menu button
+        binding.hiddenGalleryMenuButton.setOnClickListener { view ->
+            showHiddenGalleryMenu(view)
+        }
     }
 
     private fun setupNotificationIcon() {
@@ -309,6 +316,24 @@ class HomeFragment : Fragment() {
             ),
             com.shaadow.onecalculator.utils.PopupMenuBuilder.Item(
                 id = 2,
+                title = "Report Bug",
+                iconRes = R.drawable.ic_action_name,
+                onClick = {
+                    showBugReport()
+                    true
+                }
+            ),
+            com.shaadow.onecalculator.utils.PopupMenuBuilder.Item(
+                id = 3,
+                title = "Send Feedback",
+                iconRes = R.drawable.ic_feedback,
+                onClick = {
+                    showFeedback()
+                    true
+                }
+            ),
+            com.shaadow.onecalculator.utils.PopupMenuBuilder.Item(
+                id = 3,
                 title = "About Us",
                 iconRes = R.drawable.ic_info,
                 onClick = {
@@ -318,12 +343,48 @@ class HomeFragment : Fragment() {
                 }
             ),
             com.shaadow.onecalculator.utils.PopupMenuBuilder.Item(
-                id = 3,
+                id = 4,
                 title = "History",
                 iconRes = R.drawable.ic_history,
                 onClick = {
                     val intent = Intent(requireContext(), HistoryActivity::class.java)
                     startActivity(intent)
+                    true
+                }
+            )
+        )
+        com.shaadow.onecalculator.utils.PopupMenuBuilder.show(requireContext(), view, items)
+    }
+
+    private fun showBugReport() {
+        val bugReportSheet = BugReportBottomSheet.newInstance()
+        bugReportSheet.show(parentFragmentManager, BugReportBottomSheet.TAG)
+    }
+
+    private fun showFeedback() {
+        val feedbackSheet = FeedbackBottomSheet.newInstance()
+        feedbackSheet.show(parentFragmentManager, FeedbackBottomSheet.TAG)
+    }
+
+    private fun showHiddenGalleryMenu(view: View) {
+        val items = listOf(
+            com.shaadow.onecalculator.utils.PopupMenuBuilder.Item(
+                id = 1,
+                title = "Hide",
+                iconRes = R.drawable.ic_remove,
+                onClick = {
+                    // Hide the hidden gallery card
+                    binding.cardHiddenGallery.visibility = View.GONE
+                    // Update preference to remember the hidden state
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        val dao = HistoryDatabase.getInstance(requireContext()).preferenceDao()
+                        dao.setPreference(
+                            PreferenceEntity(
+                                key = "hidden_gallery_visible",
+                                value = "false"
+                            )
+                        )
+                    }
                     true
                 }
             )
@@ -359,6 +420,23 @@ class HomeFragment : Fragment() {
         )
         unitCalculatorsAdapter.updateSections(calculatorSections)
         binding.unitCalculatorsRecyclerView.adapter = unitCalculatorsAdapter
+    }
+
+    private fun setupTimeBasedGreeting() {
+        val greeting = getTimeBasedGreeting()
+        binding.timeBasedGreeting.text = greeting
+    }
+
+    private fun getTimeBasedGreeting(): String {
+        val calendar = java.util.Calendar.getInstance()
+        val hour = calendar.get(java.util.Calendar.HOUR_OF_DAY)
+
+        return when (hour) {
+            in 5..11 -> getString(R.string.good_morning)    // 5:00 AM - 11:59 AM
+            in 12..16 -> getString(R.string.good_afternoon)  // 12:00 PM - 4:59 PM
+            in 17..21 -> getString(R.string.good_evening)   // 5:00 PM - 9:59 PM
+            else -> getString(R.string.good_night)          // 10:00 PM - 4:59 AM
+        }
     }
 
     override fun onDestroyView() {

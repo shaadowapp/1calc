@@ -9,6 +9,9 @@
     <!-- Cache directory for temporary files -->
     <cache-path name="cache_files" path="." />
 
+    <!-- Specific path for decrypted temp files -->
+    <cache-path name="decrypted_temp" path="decrypted_temp/" />
+
     <!-- External cache directory -->
     <external-cache-path name="external_cache" path="." />
 

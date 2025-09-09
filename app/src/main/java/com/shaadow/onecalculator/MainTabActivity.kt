@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.View
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.viewpager2.widget.ViewPager2
 import com.shaadow.onecalculator.PreferenceDao
@@ -13,7 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.lifecycle.lifecycleScope
 
-class MainTabActivity : AppCompatActivity() {
+class MainTabActivity : BaseActivity() {
     private lateinit var viewPager: ViewPager2
     private lateinit var bottomNav: ModernBottomNavigationView
     private lateinit var sharedPreferences: SharedPreferences
@@ -27,15 +28,17 @@ class MainTabActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main_tab)
-        
+
         viewPager = findViewById(R.id.view_pager)
         bottomNav = findViewById(R.id.bottom_navigation)
+
+        // Shake detection is now handled globally by GlobalShakeService
 
         // Observe preference changes in real time
         val dao = HistoryDatabase.getInstance(this).preferenceDao()
         lifecycleScope.launch {
             dao.observeAllPreferences().collect { prefs ->
-                val enabledTabs = mutableListOf("home")
+                val enabledTabs = mutableListOf("home", "calculator")
                 // Mathly features are hidden for launch - they are in development
                 // val mathlyVoice = prefs.find { it.key == "mathly_voice" }?.value?.toBooleanStrictOrNull() != false
                 // val mathlyChat = prefs.find { it.key == "mathly_chat" }?.value?.toBooleanStrictOrNull() != false
@@ -63,4 +66,9 @@ class MainTabActivity : AppCompatActivity() {
             }
         })
     }
-} 
+
+    // Shake detection is now handled globally by GlobalShakeService
+    // No need for manual lifecycle management
+
+    // Bug report is now handled by BaseActivity via broadcast receiver
+}

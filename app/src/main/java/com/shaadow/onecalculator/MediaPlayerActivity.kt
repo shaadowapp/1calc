@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -35,6 +36,9 @@ class MediaPlayerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMediaPlayerBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Prevent screenshots and screen recording for security
+        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
 
         setupViews()
         loadMedia()

@@ -34,13 +34,17 @@ import com.shaadow.onecalculator.utils.ExternalStorageManager
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import net.lingala.zip4j.ZipFile
+import net.lingala.zip4j.model.ZipParameters
+import net.lingala.zip4j.model.enums.EncryptionMethod
+import net.lingala.zip4j.model.enums.AesKeyStrength
 import java.io.File
 import java.util.concurrent.Executor
 import java.security.MessageDigest
 import java.security.SecureRandom
 import kotlin.text.Charsets
 
-class MediaGalleryActivity : AppCompatActivity() {
+class MediaGalleryActivity : BaseActivity() {
 
     private lateinit var binding: ActivityMediaGalleryBinding
     private lateinit var folderAdapter: EncryptedFolderAdapter
@@ -48,6 +52,7 @@ class MediaGalleryActivity : AppCompatActivity() {
     private lateinit var encryptedFolderDao: EncryptedFolderDao
     private var currentMasterPassword: String = ""
     private var isAllSelected: Boolean = false
+    private var isAutoLocking: Boolean = false
 
     // Shortcut-related variables
     private var isShortcutAccess: Boolean = false
@@ -109,6 +114,9 @@ class MediaGalleryActivity : AppCompatActivity() {
         binding = ActivityMediaGalleryBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Prevent screenshots and screen recording for security
+        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+
         setupToolbar()
         initializeDatabase()
         initializeExternalStorage()
@@ -123,6 +131,9 @@ class MediaGalleryActivity : AppCompatActivity() {
         } else {
             registerReceiver(fingerprintSettingReceiver, filter)
         }
+
+        // Ensure hidden directory exists before proceeding
+        ExternalStorageManager.ensureHiddenDirectoryExists(this)
 
         // Check authentication before proceeding
         checkAuthentication()
@@ -150,6 +161,26 @@ class MediaGalleryActivity : AppCompatActivity() {
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+        // Auto-lock gallery when app goes to background (user presses home, switches apps, etc.)
+        autoLockGallery()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Additional auto-lock check when activity is no longer visible to user
+        // This ensures gallery locks even if onPause wasn't called or was interrupted
+        autoLockGallery()
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        // This is called when user is leaving the activity (home button, recent apps, etc.)
+        // Lock immediately for better security when user explicitly leaves
+        autoLockGallery(immediate = true)
+    }
+
     private fun setupToolbar() {
         binding.toolbar.setNavigationOnClickListener {
             finish()
@@ -166,7 +197,7 @@ class MediaGalleryActivity : AppCompatActivity() {
             try {
                 android.util.Log.d("MediaGalleryActivity", "Initializing external storage...")
                 val success = withContext(Dispatchers.IO) {
-                    ExternalStorageManager.initializeHiddenDirectory(this@MediaGalleryActivity)
+                    ExternalStorageManager.ensureHiddenDirectoryExists(this@MediaGalleryActivity)
                 }
                 if (success) {
                     android.util.Log.d("MediaGalleryActivity", "External storage initialized successfully")
@@ -199,6 +230,15 @@ class MediaGalleryActivity : AppCompatActivity() {
     private fun checkPermissions() {
         val permissions = mutableListOf<String>()
 
+        // Check for MANAGE_EXTERNAL_STORAGE permission on Android 11+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            if (!android.os.Environment.isExternalStorageManager()) {
+                android.util.Log.d("MediaGalleryActivity", "Requesting MANAGE_EXTERNAL_STORAGE permission")
+                requestManageExternalStoragePermission()
+                return
+            }
+        }
+
         // Check for media permissions based on Android version
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
@@ -221,6 +261,51 @@ class MediaGalleryActivity : AppCompatActivity() {
         } else {
             setupFolderList()
         }
+    }
+
+    private fun requestManageExternalStoragePermission() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            try {
+                val intent = Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                    data = android.net.Uri.parse("package:$packageName")
+                }
+                manageStorageLauncher.launch(intent)
+            } catch (e: Exception) {
+                android.util.Log.e("MediaGalleryActivity", "Error requesting MANAGE_EXTERNAL_STORAGE permission", e)
+                // Fallback to regular permissions
+                checkPermissions()
+            }
+        }
+    }
+
+    // Launcher for MANAGE_EXTERNAL_STORAGE permission
+    private val manageStorageLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            if (android.os.Environment.isExternalStorageManager()) {
+                android.util.Log.d("MediaGalleryActivity", "MANAGE_EXTERNAL_STORAGE permission granted")
+                checkPermissions() // Continue with other permissions
+            } else {
+                android.util.Log.w("MediaGalleryActivity", "MANAGE_EXTERNAL_STORAGE permission denied")
+                showManageStoragePermissionDialog()
+            }
+        }
+    }
+
+    private fun showManageStoragePermissionDialog() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Storage Permission Required")
+            .setMessage("To create the hidden gallery folder (.1Calculator), the app needs permission to manage all files. Please grant this permission in the next screen.")
+            .setPositiveButton("Grant Permission") { _, _ ->
+                requestManageExternalStoragePermission()
+            }
+            .setNegativeButton("Continue Without") { _, _ ->
+                // Continue with fallback storage
+                checkPermissions()
+            }
+            .setCancelable(false)
+            .show()
     }
 
     private fun setupFolderList() {
@@ -258,7 +343,7 @@ class MediaGalleryActivity : AppCompatActivity() {
                         createDefaultFolders()
                     }
                 } else {
-                    // Convert to FolderWithCount
+                    // Convert to FolderWithCount - do this in background thread
                     val foldersWithCount = withContext(Dispatchers.IO) {
                         folders.map { folder ->
                             val fileCount = database.encryptedFileDao().getFileCountInFolderSync(folder.id)
@@ -266,8 +351,10 @@ class MediaGalleryActivity : AppCompatActivity() {
                             FolderWithCount(folder, fileCount)
                         }
                     }
+                    android.util.Log.d("MediaGalleryActivity", "Submitting ${foldersWithCount.size} folders to adapter")
                     folderAdapter.submitFoldersWithAddButton(foldersWithCount)
                     updateEmptyState(false)
+                    android.util.Log.d("MediaGalleryActivity", "Folder list setup completed")
                 }
             }
         }
@@ -402,6 +489,18 @@ class MediaGalleryActivity : AppCompatActivity() {
                     showStorageInfo()
                     true
                 }
+                R.id.action_export_gallery -> {
+                    exportEntireGallery()
+                    true
+                }
+                R.id.action_import_gallery -> {
+                    importGalleryBackup()
+                    true
+                }
+                R.id.action_report_bug -> {
+                    showBugReportDialog()
+                    true
+                }
                 else -> false
             }
         }
@@ -412,7 +511,7 @@ class MediaGalleryActivity : AppCompatActivity() {
 
         // Restore normal UI
         window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN)
-        
+
         // Restore status bar and navigation bar colors
         window.statusBarColor = ContextCompat.getColor(this, android.R.color.black)
         window.navigationBarColor = ContextCompat.getColor(this, android.R.color.black)
@@ -421,6 +520,42 @@ class MediaGalleryActivity : AppCompatActivity() {
         showSystemUI()
 
         clearDialogReferences()
+    }
+
+    private fun autoLockGallery() {
+        autoLockGallery(false)
+    }
+
+    private fun autoLockGallery(immediate: Boolean = false) {
+        // Check if gallery is currently unlocked (lock screen is not visible)
+        if (binding.lockScreenOverlay.root.visibility != View.VISIBLE && !isAutoLocking) {
+            android.util.Log.d("MediaGalleryActivity", "Auto-locking gallery - app going to background")
+
+            // Set flag to prevent multiple auto-lock calls
+            isAutoLocking = true
+
+            val lockAction = {
+                // Double-check that gallery is still unlocked (user might have locked it manually)
+                if (binding.lockScreenOverlay.root.visibility != View.VISIBLE) {
+                    // Show the lock screen
+                    showFingerprintLockScreen()
+
+                    // Show a brief toast to inform user about auto-lock
+                    Toast.makeText(this, "Gallery auto-locked for security", Toast.LENGTH_SHORT).show()
+                }
+
+                // Reset the flag
+                isAutoLocking = false
+            }
+
+            if (immediate) {
+                // Lock immediately for explicit user actions (home button, recent apps)
+                lockAction()
+            } else {
+                // Add a small delay for smoother transition in other cases
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(lockAction, 500)
+            }
+        }
     }
 
     private fun showSystemUI() {
@@ -508,6 +643,9 @@ class MediaGalleryActivity : AppCompatActivity() {
 
                     Toast.makeText(this@MediaGalleryActivity, "Authentication successful", Toast.LENGTH_SHORT).show()
 
+                    // Reset auto-lock flag when user successfully unlocks
+                    isAutoLocking = false
+
                     hideLockScreen()
 
                     if (isShortcutAccess && shortcutPosition >= 0) {
@@ -556,8 +694,14 @@ class MediaGalleryActivity : AppCompatActivity() {
     }
 
     private fun proceedToGallery() {
+        // Ensure hidden directory exists before proceeding with gallery operations
+        ExternalStorageManager.ensureHiddenDirectoryExists(this)
+
         checkPermissions()
         setupClickListeners()
+
+        // Perform post-authentication file validation to remove any non-media files
+        validateAndCleanNonMediaFiles()
     }
 
     private fun handleShortcutAccess() {
@@ -1593,13 +1737,15 @@ private fun toggleSelectAllFolders(menuItem: android.view.MenuItem) {
                 isAllSelected = false
                 
                 // Show result
+                val locationMessage = "📁 Files saved in app storage"
+
                 val message = when {
                     totalSuccessCount > 0 && totalErrorCount == 0 ->
-                        "Successfully exported $totalSuccessCount files from ${folders.size} folder(s) to ${exportParentDir.absolutePath}"
+                        "✅ Successfully exported $totalSuccessCount files from ${folders.size} folder(s)!\n$locationMessage\n📂 Location: ${exportParentDir.absolutePath}"
                     totalSuccessCount > 0 && totalErrorCount > 0 ->
-                        "Exported $totalSuccessCount files, $totalErrorCount failed. Location: ${exportParentDir.absolutePath}"
+                        "⚠️ Exported $totalSuccessCount files, $totalErrorCount failed.\n$locationMessage\n📂 Location: ${exportParentDir.absolutePath}"
                     else ->
-                        "Failed to export files"
+                        "❌ Failed to export files"
                 }
                 
                 Toast.makeText(this@MediaGalleryActivity, message, Toast.LENGTH_LONG).show()
@@ -1697,6 +1843,113 @@ private fun toggleSelectAllFolders(menuItem: android.view.MenuItem) {
         menu.findItem(R.id.action_delete_selected)?.isVisible = hasSelection
         menu.findItem(R.id.action_move_selected)?.isVisible = hasSelection
         menu.findItem(R.id.action_export_selected)?.isVisible = hasSelection
+    }
+
+    private fun validateAndCleanNonMediaFiles() {
+        lifecycleScope.launch {
+            try {
+                android.util.Log.d("MediaGalleryActivity", "Starting post-authentication file validation...")
+
+                val folders = withContext(Dispatchers.IO) {
+                    database.encryptedFolderDao().getAllFoldersSync()
+                }
+
+                var totalRemovedFiles = 0
+                var totalScannedFiles = 0
+
+                for (folder in folders) {
+                    val files = withContext(Dispatchers.IO) {
+                        database.encryptedFileDao().getFilesInFolderSync(folder.id)
+                    }
+
+                    totalScannedFiles += files.size
+
+                    val filesToRemove = mutableListOf<EncryptedFileEntity>()
+
+                    for (file in files) {
+                        // Check if file is a supported media type
+                        val isMediaFile = isSupportedMediaFile(file.originalFileName, file.mimeType)
+                        if (!isMediaFile) {
+                            android.util.Log.w("MediaGalleryActivity", "Found non-media file: ${file.originalFileName} (MIME: ${file.mimeType})")
+                            filesToRemove.add(file)
+                        }
+                    }
+
+                    // Remove non-media files
+                    if (filesToRemove.isNotEmpty()) {
+                        withContext(Dispatchers.IO) {
+                            filesToRemove.forEach { file ->
+                                // Delete encrypted file from storage
+                                val hiddenDir = ExternalStorageManager.getHiddenCalculatorDir(this@MediaGalleryActivity)
+                                if (hiddenDir != null) {
+                                    val encryptedFile = File(hiddenDir, file.encryptedFileName)
+                                    if (encryptedFile.exists()) {
+                                        val deleted = encryptedFile.delete()
+                                        android.util.Log.d("MediaGalleryActivity", "Deleted encrypted file: ${file.encryptedFileName}, success: $deleted")
+                                    }
+                                }
+
+                                // Delete from database
+                                database.encryptedFileDao().deleteFile(file)
+                                android.util.Log.d("MediaGalleryActivity", "Removed non-media file from database: ${file.originalFileName}")
+                            }
+                        }
+                        totalRemovedFiles += filesToRemove.size
+                    }
+                }
+
+                if (totalRemovedFiles > 0) {
+                    android.util.Log.i("MediaGalleryActivity", "File validation complete: $totalScannedFiles scanned, $totalRemovedFiles removed")
+                    Toast.makeText(
+                        this@MediaGalleryActivity,
+                        "Cleaned up $totalRemovedFiles unsupported files from your gallery",
+                        Toast.LENGTH_LONG
+                    ).show()
+
+                    // Refresh the folder list to update counts
+                    setupFolderList()
+                } else {
+                    android.util.Log.d("MediaGalleryActivity", "File validation complete: $totalScannedFiles scanned, no cleanup needed")
+                }
+
+            } catch (e: Exception) {
+                android.util.Log.e("MediaGalleryActivity", "Error during file validation", e)
+                Toast.makeText(
+                    this@MediaGalleryActivity,
+                    "Error during file cleanup: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    private fun isSupportedMediaFile(fileName: String, mimeType: String): Boolean {
+        // Check MIME type first
+        if (mimeType.startsWith("image/") ||
+            mimeType.startsWith("video/") ||
+            mimeType.startsWith("audio/")) {
+            return true
+        }
+
+        // Check file extension for additional support
+        val extension = fileName.substringAfterLast('.', "").lowercase()
+
+        // Comprehensive list of supported file extensions
+        val supportedExtensions = setOf(
+            // Images
+            "jpg", "jpeg", "png", "gif", "bmp", "webp", "tiff", "tif", "ico", "svg",
+            "heic", "heif", "raw", "cr2", "nef", "arw", "dng", "orf", "rw2", "pef",
+
+            // Videos
+            "mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v", "3gp", "mpg",
+            "mpeg", "m2ts", "mts", "vob", "asf", "rm", "rmvb", "divx", "xvid",
+
+            // Audio
+            "mp3", "wav", "aac", "ogg", "wma", "flac", "m4a", "opus", "aiff",
+            "au", "ra", "ape", "ac3", "dts", "pcm", "amr", "mid", "midi"
+        )
+
+        return extension in supportedExtensions
     }
 
     private fun importFilesToFolder(folder: EncryptedFolderEntity) {
@@ -1905,6 +2158,748 @@ private fun toggleSelectAllFolders(menuItem: android.view.MenuItem) {
         }
 
         dialog.show()
+    }
+
+    private fun exportEntireGallery() {
+        lifecycleScope.launch {
+            try {
+                android.util.Log.d("MediaGalleryActivity", "Starting complete gallery export...")
+
+                // Check if there are any folders/files to export
+                val folders = withContext(Dispatchers.IO) {
+                    database.encryptedFolderDao().getAllFoldersSync()
+                }
+
+                if (folders.isEmpty()) {
+                    Toast.makeText(this@MediaGalleryActivity, "No folders to export", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+
+                // Show ZIP password dialog first
+                showZipPasswordDialog { zipPassword ->
+                    // Start the actual export process
+                    performZipExport(folders, zipPassword)
+                }
+
+            } catch (e: Exception) {
+                android.util.Log.e("MediaGalleryActivity", "Error starting gallery export", e)
+                Toast.makeText(this@MediaGalleryActivity, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun showZipPasswordDialog(onPasswordSet: (String) -> Unit) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_zip_password, null)
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        val passwordInput = dialogView.findViewById<TextInputEditText>(R.id.zip_password_input)
+        val confirmPasswordInput = dialogView.findViewById<TextInputEditText>(R.id.confirm_zip_password_input)
+        val passwordLayout = dialogView.findViewById<TextInputLayout>(R.id.zip_password_layout)
+        val confirmPasswordLayout = dialogView.findViewById<TextInputLayout>(R.id.confirm_zip_password_layout)
+
+        dialogView.findViewById<View>(R.id.cancel_button).setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<View>(R.id.create_zip_button).setOnClickListener {
+            val password = passwordInput.text?.toString()?.trim() ?: ""
+            val confirmPassword = confirmPasswordInput.text?.toString()?.trim() ?: ""
+
+            // Clear previous errors
+            passwordLayout.error = null
+            confirmPasswordLayout.error = null
+
+            var hasError = false
+
+            // Validate password
+            if (password.isEmpty()) {
+                passwordLayout.error = "Password is required"
+                hasError = true
+            } else if (password.length < 4) {
+                passwordLayout.error = "Password must be at least 4 characters"
+                hasError = true
+            }
+
+            // Validate confirm password
+            if (confirmPassword != password) {
+                confirmPasswordLayout.error = "Passwords do not match"
+                hasError = true
+            }
+
+            if (!hasError) {
+                dialog.dismiss()
+                onPasswordSet(password)
+            }
+        }
+
+        dialog.show()
+    }
+
+    private fun performZipExport(folders: List<EncryptedFolderEntity>, zipPassword: String) {
+        val loadingDialog = showLoadingDialog()
+        var totalFiles = 0
+        var successCount = 0
+
+        lifecycleScope.launch {
+            try {
+                android.util.Log.d("MediaGalleryActivity", "Starting ZIP export process...")
+
+                // Create ZIP file in Downloads folder
+                val timestamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault()).format(java.util.Date())
+                val downloadsDir = com.shaadow.onecalculator.utils.ExternalStorageManager.getDownloadsDirectory(this@MediaGalleryActivity)
+                val zipFileName = "export_hg_1calc_$timestamp.zip"
+                val zipFile = if (downloadsDir != null) {
+                    File(downloadsDir, zipFileName)
+                } else {
+                    // Fallback to app's external files directory
+                    File(getExternalFilesDir(null), zipFileName)
+                }
+
+                android.util.Log.d("MediaGalleryActivity", "ZIP file: ${zipFile.absolutePath}")
+
+                // Create temporary directory for decrypted files
+                val tempDir = File(cacheDir, "export_temp_$timestamp")
+                if (!tempDir.exists()) {
+                    tempDir.mkdirs()
+                }
+
+                // Update loading message
+                runOnUiThread {
+                    loadingDialog.findViewById<TextView>(R.id.loading_message)?.text = "Decrypting files..."
+                    loadingDialog.findViewById<TextView>(R.id.progress_text)?.text = "Preparing files..."
+                }
+
+                // Process each folder
+                for ((folderIndex, folder) in folders.withIndex()) {
+                    val files = withContext(Dispatchers.IO) {
+                        database.encryptedFileDao().getFilesInFolderSync(folder.id)
+                    }
+
+                    totalFiles += files.size
+
+                    // Update progress
+                    runOnUiThread {
+                        loadingDialog.findViewById<TextView>(R.id.progress_text)?.text =
+                            "Processing folder ${folderIndex + 1}/${folders.size}: ${folder.name}"
+                    }
+
+                    for (file in files) {
+                        try {
+                            val fileEncryptionService = com.shaadow.onecalculator.services.FileEncryptionService(this@MediaGalleryActivity)
+
+                            // Decrypt file
+                            val decryptedFile = withContext(Dispatchers.IO) {
+                                fileEncryptionService.decryptFileForViewing(file, currentMasterPassword, folder.salt)
+                            }
+
+                            if (decryptedFile != null) {
+                                // Copy to temp directory with original name (flat structure)
+                                val targetFile = File(tempDir, file.originalFileName)
+                                decryptedFile.copyTo(targetFile, overwrite = true)
+
+                                // Clean up temp decrypted file
+                                decryptedFile.delete()
+                                successCount++
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("MediaGalleryActivity", "Error processing file: ${file.originalFileName}", e)
+                        }
+                    }
+                }
+
+                if (successCount == 0) {
+                    runOnUiThread {
+                        Toast.makeText(this@MediaGalleryActivity, "No files were processed for export", Toast.LENGTH_SHORT).show()
+                    }
+                    loadingDialog.dismiss()
+                    return@launch
+                }
+
+                // Update loading message
+                runOnUiThread {
+                    loadingDialog.findViewById<TextView>(R.id.loading_message)?.text = "Creating ZIP file..."
+                    loadingDialog.findViewById<TextView>(R.id.progress_text)?.text = "Compressing files..."
+                }
+
+                // Create metadata.json
+                val metadata = withContext(Dispatchers.IO) {
+                    createGalleryMetadata(folders)
+                }
+                val metadataFile = File(tempDir, "metadata.json")
+                metadataFile.writeText(metadata)
+
+                // Verify metadata file was created
+                if (!metadataFile.exists()) {
+                    throw Exception("Failed to create metadata.json file")
+                }
+
+                android.util.Log.d("MediaGalleryActivity", "Metadata file created at: ${metadataFile.absolutePath}")
+                android.util.Log.d("MediaGalleryActivity", "Metadata file size: ${metadataFile.length()} bytes")
+
+                // Create password-protected ZIP file
+                val zipFileObj = ZipFile(zipFile, zipPassword.toCharArray())
+                val zipParameters = ZipParameters().apply {
+                    isEncryptFiles = true
+                    encryptionMethod = EncryptionMethod.AES
+                    aesKeyStrength = AesKeyStrength.KEY_STRENGTH_256
+                }
+
+                // Add metadata.json first
+                val metadataParams = ZipParameters(zipParameters).apply {
+                    fileNameInZip = "metadata.json"
+                }
+                zipFileObj.addFile(metadataFile, metadataParams)
+
+                // Add all files from temp directory (flat structure)
+                val files = tempDir.listFiles()?.filter { it.isFile && it.name != "metadata.json" } ?: emptyList()
+                for (file in files) {
+                    val fileParams = ZipParameters(zipParameters).apply {
+                        fileNameInZip = file.name
+                    }
+                    zipFileObj.addFile(file, fileParams)
+                }
+
+                android.util.Log.d("MediaGalleryActivity", "ZIP file created successfully at: ${zipFile.absolutePath}")
+                android.util.Log.d("MediaGalleryActivity", "ZIP file size: ${zipFile.length()} bytes")
+
+                // Clean up temp directory
+                tempDir.deleteRecursively()
+
+                // Dismiss loading dialog
+                loadingDialog.dismiss()
+
+                // Show success dialog with PIN info
+                showZipExportSuccessDialog(zipFile, successCount, zipPassword)
+
+            } catch (e: Exception) {
+                android.util.Log.e("MediaGalleryActivity", "Error exporting gallery to ZIP", e)
+                loadingDialog.dismiss()
+                runOnUiThread {
+                    Toast.makeText(this@MediaGalleryActivity, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private fun showLoadingDialog(): androidx.appcompat.app.AlertDialog {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_export_loading, null)
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setView(dialogView)
+            .setCancelable(false)
+            .create()
+
+        dialog.show()
+        return dialog
+    }
+
+    private fun showZipExportSuccessDialog(zipFile: File, fileCount: Int, zipPassword: String) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_export_success, null)
+
+        // Set up the dialog content
+        val titleText = dialogView.findViewById<TextView>(R.id.export_success_title)
+        val messageText = dialogView.findViewById<TextView>(R.id.export_success_message)
+        val fileNameText = dialogView.findViewById<TextView>(R.id.export_file_name)
+        val fileSizeText = dialogView.findViewById<TextView>(R.id.export_file_size)
+        val zipPasswordText = dialogView.findViewById<TextView>(R.id.zip_password_display)
+        val viewButton = dialogView.findViewById<MaterialButton>(R.id.view_file_button)
+        val closeButton = dialogView.findViewById<MaterialButton>(R.id.close_button)
+
+        // Set dialog content
+        titleText?.text = "✅ ZIP Export Complete"
+        messageText?.text = "Your hidden gallery has been successfully exported to a password-protected ZIP file."
+        fileNameText?.text = "📄 ${zipFile.name}"
+        fileSizeText?.text = "📊 $fileCount files • ${(zipFile.length() / 1024)} KB"
+        zipPasswordText?.text = "Password: $zipPassword"
+
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        // View file button action
+        viewButton?.setOnClickListener {
+            openExportedFileLocation(zipFile)
+            dialog.dismiss()
+        }
+
+        // Close button action
+        closeButton?.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun createEncryptedArchive(dataParts: List<ByteArray>, masterPassword: String): Pair<ByteArray, ByteArray> {
+        try {
+            // Create a simple archive format
+            val archiveData = mutableListOf<Byte>()
+
+            // Archive header (will be stored unencrypted for validation)
+            val header = "HGB_ARCHIVE_V1".toByteArray(Charsets.UTF_8)
+
+            // Number of parts
+            val partCount = dataParts.size
+            val partCountBytes = ByteArray(4)
+            for (i in 0..3) {
+                partCountBytes[i] = (partCount shr (i * 8)).toByte()
+            }
+            archiveData.addAll(partCountBytes.toList())
+
+            // Add each data part with its size
+            for (data in dataParts) {
+                // Part size
+                val sizeBytes = ByteArray(4)
+                val size = data.size
+                for (i in 0..3) {
+                    sizeBytes[i] = (size shr (i * 8)).toByte()
+                }
+                archiveData.addAll(sizeBytes.toList())
+
+                // Part data
+                archiveData.addAll(data.toList())
+            }
+
+            // Encrypt the archive data (without header) using deterministic key from master password
+            val archiveArray = archiveData.toByteArray()
+            val archiveSalt = "HGB_ARCHIVE_SALT_2024" // Fixed salt for archive encryption
+            val encryptedArchive = EncryptionUtils.encrypt(archiveArray, masterPassword, archiveSalt)
+
+            return Pair(header, encryptedArchive)
+
+        } catch (e: Exception) {
+            android.util.Log.e("MediaGalleryActivity", "Error creating encrypted archive", e)
+            throw e
+        }
+    }
+
+    private suspend fun createGalleryMetadata(folders: List<EncryptedFolderEntity>): String {
+        val metadata = mutableMapOf<String, Any>()
+        metadata["version"] = "1.0"
+        metadata["exportTimestamp"] = java.time.Instant.now().toString()
+
+        val galleryData = mutableListOf<Map<String, Any>>()
+
+        for (folder in folders) {
+            // Get file information
+            val files = withContext(Dispatchers.IO) {
+                database.encryptedFileDao().getFilesInFolderSync(folder.id)
+            }
+
+            for (file in files) {
+                val fileInfo = mutableMapOf<String, Any>()
+                fileInfo["originalName"] = file.originalFileName
+                fileInfo["encryptedName"] = file.encryptedFileName
+                fileInfo["sizeBytes"] = file.fileSize
+                fileInfo["contentType"] = file.mimeType
+                fileInfo["location"] = folder.name // Use folder name as location
+                galleryData.add(fileInfo)
+            }
+        }
+
+        metadata["galleryData"] = galleryData
+
+        return com.google.gson.Gson().toJson(metadata)
+    }
+
+
+    private fun importGalleryBackup() {
+        // Launch file picker for backup file with ZIP filter
+        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+            type = "*/*"
+            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/zip", "application/octet-stream"))
+            addCategory(Intent.CATEGORY_OPENABLE)
+        }
+
+        try {
+            importBackupLauncher.launch(Intent.createChooser(intent, "Select Hidden Gallery Backup (.zip) File"))
+        } catch (e: Exception) {
+            Toast.makeText(this, "No file manager found", Toast.LENGTH_SHORT).show()
+            android.util.Log.e("MediaGalleryActivity", "Error launching backup file picker", e)
+        }
+    }
+
+    // Activity result launcher for importing backup files
+    private val importBackupLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.let { uri ->
+                restoreGalleryFromBackup(uri)
+            }
+        }
+    }
+
+    private fun restoreGalleryFromBackup(backupUri: Uri) {
+        // Show password input dialog first
+        showZipImportPasswordDialog(backupUri)
+    }
+
+    private fun showZipImportPasswordDialog(zipUri: Uri) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_zip_import_password, null)
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        val passwordInput = dialogView.findViewById<TextInputEditText>(R.id.zip_import_password_input)
+        val passwordLayout = dialogView.findViewById<TextInputLayout>(R.id.zip_import_password_layout)
+
+        dialogView.findViewById<View>(R.id.cancel_import_button).setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<View>(R.id.unlock_zip_button).setOnClickListener {
+            val password = passwordInput.text?.toString()?.trim() ?: ""
+
+            // Clear previous errors
+            passwordLayout.error = null
+
+            // Validate password
+            if (password.isEmpty()) {
+                passwordLayout.error = "Password is required"
+                return@setOnClickListener
+            }
+
+            dialog.dismiss()
+            performZipImport(zipUri, password)
+        }
+
+        dialog.show()
+    }
+
+    private fun performZipImport(zipUri: Uri, password: String) {
+        val loadingDialog = showImportLoadingDialog()
+        var importedFolders = 0
+        var importedFiles = 0
+
+        lifecycleScope.launch {
+            try {
+                android.util.Log.d("MediaGalleryActivity", "Starting ZIP import process...")
+
+                // Update loading message
+                runOnUiThread {
+                    loadingDialog.findViewById<TextView>(R.id.import_loading_message)?.text = "Extracting ZIP file..."
+                    loadingDialog.findViewById<TextView>(R.id.import_progress_text)?.text = "Reading archive..."
+                }
+
+                // Create temporary directory for extraction
+                val tempDir = File(cacheDir, "zip_import_temp_${System.currentTimeMillis()}")
+                if (!tempDir.exists()) {
+                    tempDir.mkdirs()
+                }
+
+                // Create temporary ZIP file from URI
+                val tempZipFile = File(cacheDir, "temp_import_${System.currentTimeMillis()}.zip")
+                contentResolver.openInputStream(zipUri)?.use { inputStream ->
+                    tempZipFile.outputStream().use { outputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
+                } ?: throw Exception("Cannot read ZIP file")
+
+                // Extract ZIP file to temp directory
+                val zipFile = ZipFile(tempZipFile, password.toCharArray())
+
+                try {
+                    zipFile.extractAll(tempDir.absolutePath)
+                    android.util.Log.d("MediaGalleryActivity", "ZIP extraction successful")
+
+                    // Debug: List all files in temp directory
+                    val extractedFiles = tempDir.listFiles()
+                    if (extractedFiles != null) {
+                        android.util.Log.d("MediaGalleryActivity", "Extracted files count: ${extractedFiles.size}")
+                        for (file in extractedFiles) {
+                            android.util.Log.d("MediaGalleryActivity", "Extracted file: ${file.name} (${file.length()} bytes)")
+                            if (file.isDirectory) {
+                                val subFiles = file.listFiles()
+                                if (subFiles != null) {
+                                    android.util.Log.d("MediaGalleryActivity", "  Directory ${file.name} contains ${subFiles.size} files")
+                                    for (subFile in subFiles) {
+                                        android.util.Log.d("MediaGalleryActivity", "    ${subFile.name} (${subFile.length()} bytes)")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("MediaGalleryActivity", "ZIP extraction failed", e)
+                    throw Exception("Failed to extract ZIP file. Please check the password and ensure the file is not corrupted.")
+                } finally {
+                    // Clean up temp ZIP file
+                    tempZipFile.delete()
+                }
+
+                // Update loading message
+                runOnUiThread {
+                    loadingDialog.findViewById<TextView>(R.id.import_progress_text)?.text = "Reading metadata..."
+                }
+
+                // Read and parse metadata.json
+                val metadataFile = File(tempDir, "metadata.json")
+                if (!metadataFile.exists()) {
+                    android.util.Log.e("MediaGalleryActivity", "metadata.json not found in: ${tempDir.absolutePath}")
+                    // List all files in temp directory to debug
+                    val allFiles = tempDir.listFiles()
+                    if (allFiles != null) {
+                        android.util.Log.e("MediaGalleryActivity", "Files in temp directory:")
+                        for (file in allFiles) {
+                            android.util.Log.e("MediaGalleryActivity", "  ${file.name}")
+                        }
+                    }
+                    throw Exception("Invalid ZIP file: metadata.json not found")
+                }
+
+                val metadataJson = metadataFile.readText()
+                android.util.Log.d("MediaGalleryActivity", "Metadata JSON content: $metadataJson")
+
+                val metadata = com.google.gson.Gson().fromJson(metadataJson, Map::class.java)
+                android.util.Log.d("MediaGalleryActivity", "Parsed metadata keys: ${metadata.keys}")
+
+                val galleryData = metadata["galleryData"] as? List<Map<String, Any>>
+                    ?: throw Exception("Invalid metadata format: galleryData not found")
+
+                android.util.Log.d("MediaGalleryActivity", "Found ${galleryData.size} files in metadata")
+
+                // Group files by location (folder name)
+                val filesByLocation = galleryData.groupBy { it["location"] as String }
+
+                // Process each location/folder
+                for ((locationIndex, locationEntry) in filesByLocation.entries.withIndex()) {
+                    val locationName = locationEntry.key
+                    val filesInLocation = locationEntry.value
+
+                    // Update progress
+                    runOnUiThread {
+                        loadingDialog.findViewById<TextView>(R.id.import_progress_text)?.text =
+                            "Processing location ${locationIndex + 1}/${filesByLocation.size}: $locationName"
+                    }
+
+                    // Check if folder already exists, create if not
+                    var targetFolder = withContext(Dispatchers.IO) {
+                        database.encryptedFolderDao().getFolderByName(locationName)
+                    }
+
+                    if (targetFolder == null) {
+                        // Create new folder with default salt
+                        val defaultSalt = EncryptionUtils.generateSalt()
+                        val newFolder = EncryptedFolderEntity(
+                            name = locationName,
+                            passwordHash = EncryptionUtils.hashPassword(currentMasterPassword, defaultSalt),
+                            salt = defaultSalt
+                        )
+
+                        val folderId = withContext(Dispatchers.IO) {
+                            database.encryptedFolderDao().insertFolder(newFolder)
+                        }
+
+                        targetFolder = withContext(Dispatchers.IO) {
+                            database.encryptedFolderDao().getFolderById(folderId)
+                        }
+
+                        android.util.Log.d("MediaGalleryActivity", "Created new folder: $locationName with ID: ${targetFolder?.id}")
+                        importedFolders++
+                    }
+
+                    if (targetFolder != null) {
+                        val fileEncryptionService = com.shaadow.onecalculator.services.FileEncryptionService(this@MediaGalleryActivity)
+
+                        for (fileData in filesInLocation) {
+                            try {
+                                val originalName = fileData["originalName"] as String
+                                val tempFile = File(tempDir, originalName)
+
+                                if (tempFile.exists()) {
+                                    // Create URI for the temp file
+                                    val tempUri = androidx.core.content.FileProvider.getUriForFile(
+                                        this@MediaGalleryActivity,
+                                        "${packageName}.fileprovider",
+                                        tempFile
+                                    )
+
+                                    // Encrypt and store the file
+                                    val fileEntity = withContext(Dispatchers.IO) {
+                                        fileEncryptionService.encryptAndStoreFile(tempUri, targetFolder.id, currentMasterPassword, targetFolder.salt)
+                                    }
+
+                                    if (fileEntity != null) {
+                                        val insertedId = withContext(Dispatchers.IO) {
+                                            database.encryptedFileDao().insertFile(fileEntity)
+                                        }
+                                        android.util.Log.d("MediaGalleryActivity", "Imported file: $originalName to $locationName with ID: $insertedId")
+                                        importedFiles++
+                                    } else {
+                                        android.util.Log.e("MediaGalleryActivity", "Failed to create file entity for: $originalName")
+                                    }
+                                } else {
+                                    android.util.Log.w("MediaGalleryActivity", "File not found in ZIP: $originalName")
+                                }
+
+                            } catch (e: Exception) {
+                                android.util.Log.e("MediaGalleryActivity", "Error importing file: ${fileData["originalName"]}", e)
+                            }
+                        }
+                    }
+                }
+
+                // Clean up temp directory
+                tempDir.deleteRecursively()
+
+                // Dismiss loading dialog
+                loadingDialog.dismiss()
+
+                // Debug: Check database state before refresh
+                android.util.Log.d("MediaGalleryActivity", "Checking database state after import...")
+                val allFoldersAfterImport = withContext(Dispatchers.IO) {
+                    database.encryptedFolderDao().getAllFoldersSync()
+                }
+                android.util.Log.d("MediaGalleryActivity", "Total folders in database: ${allFoldersAfterImport.size}")
+                for (folder in allFoldersAfterImport) {
+                    val fileCount = withContext(Dispatchers.IO) {
+                        database.encryptedFileDao().getFileCountInFolderSync(folder.id)
+                    }
+                    android.util.Log.d("MediaGalleryActivity", "Folder '${folder.name}' has $fileCount files")
+                }
+
+                // Refresh folder list
+                android.util.Log.d("MediaGalleryActivity", "Refreshing folder list...")
+                setupFolderList()
+
+                // Show success message
+                val message = "Gallery import completed!\n" +
+                              "📁 Folders imported: $importedFolders\n" +
+                              "📄 Files imported: $importedFiles"
+                android.util.Log.d("MediaGalleryActivity", "Import completed with message: $message")
+                Toast.makeText(this@MediaGalleryActivity, message, Toast.LENGTH_LONG).show()
+
+            } catch (e: Exception) {
+                android.util.Log.e("MediaGalleryActivity", "Error importing gallery from ZIP", e)
+                loadingDialog.dismiss()
+                runOnUiThread {
+                    Toast.makeText(this@MediaGalleryActivity, "Import failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private fun showImportLoadingDialog(): androidx.appcompat.app.AlertDialog {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_import_loading, null)
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setView(dialogView)
+            .setCancelable(false)
+            .create()
+
+        dialog.show()
+        return dialog
+    }
+
+    private fun parseEncryptedArchive(data: ByteArray): List<ByteArray> {
+        try {
+            val parts = mutableListOf<ByteArray>()
+            var offset = 0
+
+            // Read number of parts
+            if (offset + 4 > data.size) throw Exception("Invalid archive format")
+            var partCount = 0
+            for (i in 0..3) {
+                partCount = partCount or ((data[offset + i].toInt() and 0xFF) shl (i * 8))
+            }
+            offset += 4
+
+            // Read each part
+            for (i in 0 until partCount) {
+                if (offset + 4 > data.size) throw Exception("Invalid part size")
+                var partSize = 0
+                for (j in 0..3) {
+                    partSize = partSize or ((data[offset + j].toInt() and 0xFF) shl (j * 8))
+                }
+                offset += 4
+
+                if (offset + partSize > data.size) throw Exception("Invalid part data")
+                val partData = data.copyOfRange(offset, offset + partSize)
+                parts.add(partData)
+                offset += partSize
+            }
+
+            return parts
+
+        } catch (e: Exception) {
+            android.util.Log.e("MediaGalleryActivity", "Error parsing encrypted archive", e)
+            throw e
+        }
+    }
+
+    private fun showExportSuccessDialog(backupFile: File, fileCount: Int) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_export_success, null)
+
+        // Set up the dialog content
+        val titleText = dialogView.findViewById<android.widget.TextView>(R.id.export_success_title)
+        val messageText = dialogView.findViewById<android.widget.TextView>(R.id.export_success_message)
+        val fileNameText = dialogView.findViewById<android.widget.TextView>(R.id.export_file_name)
+        val fileSizeText = dialogView.findViewById<android.widget.TextView>(R.id.export_file_size)
+        val viewButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.view_file_button)
+        val closeButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.close_button)
+
+        // Set dialog content
+        titleText?.text = "✅ Export Complete"
+        messageText?.text = "Your hidden gallery has been successfully exported to a secure backup file."
+        fileNameText?.text = "📄 ${backupFile.name}"
+        fileSizeText?.text = "📊 ${fileCount} files • ${(backupFile.length() / 1024)} KB"
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this, R.style.DialogStyle_Todo)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        // View file button action
+        viewButton?.setOnClickListener {
+            openExportedFileLocation(backupFile)
+            dialog.dismiss()
+        }
+
+        // Close button action
+        closeButton?.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun openExportedFileLocation(backupFile: File) {
+        try {
+            // Try to open the folder containing the exported file
+            val folderUri = androidx.core.content.FileProvider.getUriForFile(
+                this,
+                "${packageName}.fileprovider",
+                backupFile.parentFile!!
+            )
+
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(folderUri, "resource/folder")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
+            // Try to start the activity
+            startActivity(intent)
+
+        } catch (e: Exception) {
+            android.util.Log.e("MediaGalleryActivity", "Error opening exported file location", e)
+
+            // Fallback: Show a toast with the file path
+            Toast.makeText(
+                this,
+                "File saved to: ${backupFile.parentFile?.absolutePath}",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    private fun showBugReportDialog() {
+        val bugReportSheet = BugReportBottomSheet.newInstance()
+        bugReportSheet.show(supportFragmentManager, BugReportBottomSheet.TAG)
     }
 
 }

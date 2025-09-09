@@ -47,4 +47,22 @@
         android:icon="@drawable/ic_info"
         app:showAsAction="never" />
 
+    <item
+        android:id="@+id/action_export_gallery"
+        android:title="Export Gallery"
+        android:icon="@drawable/ic_export"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_import_gallery"
+        android:title="Import Gallery"
+        android:icon="@drawable/ic_import"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_report_bug"
+        android:title="Report Bug"
+        android:icon="@drawable/ic_warning"
+        app:showAsAction="never" />
+
 </menu>

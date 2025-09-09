@@ -24,24 +24,28 @@ class ModernBottomNavigationView @JvmOverloads constructor(
 
     // Tab views
     private lateinit var homeTab: View
+    private lateinit var calculatorTab: View
     private lateinit var chatTab: View
     private lateinit var mathlyTab: View
     private lateinit var scannerTab: View
 
     // Tab icons
     private lateinit var homeIcon: ImageView
+    private lateinit var calculatorIcon: ImageView
     private lateinit var chatIcon: ImageView
     private lateinit var mathlyIcon: ImageView
     private lateinit var scannerIcon: ImageView
 
     // Tab labels
     private lateinit var homeLabel: TextView
+    private lateinit var calculatorLabel: TextView
     private lateinit var chatLabel: TextView
     private lateinit var mathlyLabel: TextView
     private lateinit var scannerLabel: TextView
 
     // Tab containers
     private lateinit var homeContainer: FrameLayout
+    private lateinit var calculatorContainer: FrameLayout
     private lateinit var chatContainer: FrameLayout
     private lateinit var mathlyContainer: FrameLayout
     private lateinit var scannerContainer: FrameLayout
@@ -56,24 +60,28 @@ class ModernBottomNavigationView @JvmOverloads constructor(
 
         // Initialize tab views
         homeTab = findViewById(R.id.home_tab)
+        calculatorTab = findViewById(R.id.calculator_tab)
         chatTab = findViewById(R.id.category_tab) // Using same id for now
         mathlyTab = findViewById(R.id.mathly_tab)
         scannerTab = findViewById(R.id.scanner_tab)
 
         // Initialize icon views
         homeIcon = homeTab.findViewById(R.id.tab_icon)
+        calculatorIcon = calculatorTab.findViewById(R.id.tab_icon)
         chatIcon = chatTab.findViewById(R.id.tab_icon)
         mathlyIcon = mathlyTab.findViewById(R.id.tab_icon)
         scannerIcon = scannerTab.findViewById(R.id.tab_icon)
 
         // Initialize label views
         homeLabel = homeTab.findViewById(R.id.tab_label)
+        calculatorLabel = calculatorTab.findViewById(R.id.tab_label)
         chatLabel = chatTab.findViewById(R.id.tab_label)
         mathlyLabel = mathlyTab.findViewById(R.id.tab_label)
         scannerLabel = scannerTab.findViewById(R.id.tab_label)
 
         // Initialize container views
         homeContainer = homeTab.findViewById(R.id.icon_container)
+        calculatorContainer = calculatorTab.findViewById(R.id.icon_container)
         chatContainer = chatTab.findViewById(R.id.icon_container)
         mathlyContainer = mathlyTab.findViewById(R.id.icon_container)
         scannerContainer = scannerTab.findViewById(R.id.icon_container)
@@ -92,6 +100,10 @@ class ModernBottomNavigationView @JvmOverloads constructor(
         // Home tab
         homeIcon.setImageResource(R.drawable.ic_home)
         homeLabel.text = context.getString(R.string.home_nav)
+
+        // Calculator tab
+        calculatorIcon.setImageResource(R.drawable.ic_calc_icon)
+        calculatorLabel.text = context.getString(R.string.calculator)
 
         // Mathly Voice tab
         mathlyIcon.setImageResource(R.drawable.ic_microphone)
@@ -112,19 +124,24 @@ class ModernBottomNavigationView @JvmOverloads constructor(
             onTabSelectedListener?.invoke(0)
         }
 
-        mathlyTab.setOnClickListener {
+        calculatorTab.setOnClickListener {
             setSelectedTab(1)
             onTabSelectedListener?.invoke(1)
         }
 
-        chatTab.setOnClickListener {
+        mathlyTab.setOnClickListener {
             setSelectedTab(2)
             onTabSelectedListener?.invoke(2)
         }
 
-        scannerTab.setOnClickListener {
+        chatTab.setOnClickListener {
             setSelectedTab(3)
             onTabSelectedListener?.invoke(3)
+        }
+
+        scannerTab.setOnClickListener {
+            setSelectedTab(4)
+            onTabSelectedListener?.invoke(4)
         }
     }
 
@@ -140,9 +157,10 @@ class ModernBottomNavigationView @JvmOverloads constructor(
     private fun updateTabAppearance(position: Int, isSelected: Boolean) {
         val (container, icon, label) = when (position) {
             0 -> Triple(homeContainer, homeIcon, homeLabel)
-            1 -> Triple(mathlyContainer, mathlyIcon, mathlyLabel)
-            2 -> Triple(chatContainer, chatIcon, chatLabel)
-            3 -> Triple(scannerContainer, scannerIcon, scannerLabel)
+            1 -> Triple(calculatorContainer, calculatorIcon, calculatorLabel)
+            2 -> Triple(mathlyContainer, mathlyIcon, mathlyLabel)
+            3 -> Triple(chatContainer, chatIcon, chatLabel)
+            4 -> Triple(scannerContainer, scannerIcon, scannerLabel)
             else -> return
         }
 
@@ -179,11 +197,11 @@ class ModernBottomNavigationView @JvmOverloads constructor(
     fun setEnabledTabs(enabledTabs: List<String>) {
         // Home tab is always visible
         homeTab.visibility = View.VISIBLE
-        // Mathly Voice
-        mathlyTab.visibility = if (enabledTabs.contains("mathly_voice")) View.VISIBLE else View.GONE
-        // Chat
-        chatTab.visibility = if (enabledTabs.contains("chat")) View.VISIBLE else View.GONE
-        // Scanner
-        scannerTab.visibility = if (enabledTabs.contains("scanner")) View.VISIBLE else View.GONE
+        // Calculator tab is always visible
+        calculatorTab.visibility = View.VISIBLE
+        // Hide other tabs for now (under development)
+        mathlyTab.visibility = View.GONE
+        chatTab.visibility = View.GONE
+        scannerTab.visibility = View.GONE
     }
 } 

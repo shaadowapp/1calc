@@ -27,6 +27,11 @@
             android:id="@+id/home_tab"
             layout="@layout/bottom_nav_item" />
 
+        <!-- Calculator Tab -->
+        <include
+            android:id="@+id/calculator_tab"
+            layout="@layout/bottom_nav_item" />
+
         <!-- Chat Tab -->
         <include
             android:id="@+id/category_tab"

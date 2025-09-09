@@ -110,6 +110,13 @@
     <!-- Selection Colors -->
     <color name="accent_color">#BB86FC</color>
     <color name="accent_color_alpha">#33BB86FC</color>
-    
+
+    <!-- Warning Colors -->
+    <color name="warning_orange">#FF9800</color>
+
+    <!-- Success and Info Colors -->
+    <color name="success_green">#4CAF50</color>
+    <color name="info_blue">#2196F3</color>
+
     <!-- Additional Background Colors -->
 </resources>

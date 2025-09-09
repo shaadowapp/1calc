@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- PDF Viewer WebView requires internet for Google Docs viewer -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     
     <!-- Media permissions for Hidden Gallery -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -25,6 +27,12 @@
 
     <!-- FCM Notification permission -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+
+    <!-- PDF Viewer permissions -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
 
     <application
         android:name=".CalculatorApplication"
@@ -63,7 +71,6 @@
         <activity android:name=".AboutUsActivity" />
         <activity android:name=".PrivacyPermissionsActivity" />
         <activity android:name=".CheckUpdateActivity" />
-        <activity android:name=".FeedbackActivity" />
         <activity android:name=".RateUsActivity" />
         <activity android:name=".TodoActivity" />
         <activity android:name=".HotAppsActivity" />
@@ -72,7 +79,6 @@
         <activity android:name=".NewFolderContentsActivity" android:screenOrientation="portrait" />
         <activity android:name=".ImageViewerActivity" android:screenOrientation="portrait" />
         <activity android:name=".MediaPlayerActivity" android:screenOrientation="portrait" />
-        <activity android:name=".PdfViewerActivity" android:screenOrientation="portrait" />
 
         <receiver android:name=".CalculatorWidgetBlack" android:exported="false">
             <intent-filter>
@@ -93,6 +99,7 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+
 
         <receiver
             android:name=".TabBarVisibilityReceiver"

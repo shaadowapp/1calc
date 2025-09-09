@@ -18,7 +18,7 @@ class HomeActivity : AppCompatActivity() {
 
         val viewPager = findViewById<ViewPager2>(R.id.view_pager)
         val bottomNav = findViewById<ModernBottomNavigationView>(R.id.bottom_navigation)
-        val adapter = ViewPagerAdapter(this, listOf("home", "mathly_voice", "chat", "scanner"))
+        val adapter = ViewPagerAdapter(this, listOf("home", "calculator", "chat", "voice", "scanner"))
         viewPager.adapter = adapter
         viewPager.isUserInputEnabled = false // Disable swipe if you want only tab click
 
@@ -42,8 +42,8 @@ class HomeActivity : AppCompatActivity() {
         }
         // Check if we should navigate to scanner tab
         if (intent.getBooleanExtra("navigate_to_scanner", false)) {
-            viewPager.currentItem = 3 // Scanner tab
-            bottomNav.setSelectedItem(3)
+            viewPager.currentItem = 4 // Scanner tab
+            bottomNav.setSelectedItem(4)
         }
 
     }

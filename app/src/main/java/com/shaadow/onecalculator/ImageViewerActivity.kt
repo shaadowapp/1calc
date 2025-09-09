@@ -8,6 +8,7 @@ import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.view.View
+import android.view.WindowManager
 import android.webkit.MimeTypeMap
 import android.widget.ImageView
 import android.widget.TextView
@@ -39,6 +40,9 @@ class ImageViewerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_image_viewer)
+
+        // Prevent screenshots and screen recording for security
+        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
 
         setupViews()
         loadImage()

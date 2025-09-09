@@ -16,9 +16,6 @@ import androidx.core.content.ContextCompat
 import android.util.Log
 import android.widget.ProgressBar
 import androidx.constraintlayout.widget.ConstraintLayout
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.QuerySnapshot
-import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -29,7 +26,6 @@ class HotAppsActivity : AppCompatActivity() {
     private lateinit var recycler: RecyclerView
     private lateinit var progressBar: ProgressBar
     private lateinit var emptyState: TextView
-    private val firestore = FirebaseFirestore.getInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,33 +54,31 @@ class HotAppsActivity : AppCompatActivity() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val querySnapshot = firestore.collection("hot_apps").get().await()
-                val hotApps = querySnapshot.documents.mapNotNull { document ->
-                    try {
-                        HotApp(
-                            id = document.id,
-                            name = document.getString("name") ?: "",
-                            shortDesc = document.getString("shortDesc") ?: "",
-                            fullDesc = document.getString("fullDesc") ?: "",
-                            features = (document.get("features") as? List<String>) ?: emptyList(),
-                            iconUrl = document.getString("iconUrl"),
-                            playStoreUrl = document.getString("playStoreUrl") ?: "",
-                            isExpanded = false
-                        )
-                    } catch (e: Exception) {
-                        Log.e("HotAppsActivity", "Error parsing document ${document.id}: ${e.message}")
-                        null
-                    }
-                }
+                // Hardcoded FavTunes data
+                val hotApps = listOf(
+                    HotApp(
+                        id = "favtunes",
+                        name = "FavTunes",
+                        shortDesc = "Choose FavTunes now for songs & playlists.",
+                        fullDesc = "FavTunes, by Shaadow, is a music app that offers a personalized and hassle-free listening experience. It features a vast collection of over 10,000 songs and a sleek user interface. The app provides custom playlists based on your preferences, without requiring any login or personal information.",
+                        features = listOf(
+                            "Personalized Playlists",
+                            "No Login/Signup Required",
+                            "Offline music playback",
+                            "10,000+ Songs Collection",
+                            "Sleek and Clean UI",
+                            "High-quality audio streaming"
+                        ),
+                        iconUrl = null, // Will use favtunes_logo drawable
+                        playStoreUrl = "https://play.google.com/store/apps/details?id=com.shaadow.tunes",
+                        isExpanded = false
+                    )
+                )
 
                 withContext(Dispatchers.Main) {
                     progressBar.visibility = View.GONE
-                    if (hotApps.isEmpty()) {
-                        showEmptyState()
-                    } else {
-                        recycler.adapter = HotAppsAdapter(hotApps.toMutableList())
-                        recycler.visibility = View.VISIBLE
-                    }
+                    recycler.adapter = HotAppsAdapter(hotApps.toMutableList())
+                    recycler.visibility = View.VISIBLE
                 }
             } catch (e: Exception) {
                 Log.e("HotAppsActivity", "Error loading hot apps: ${e.message}")

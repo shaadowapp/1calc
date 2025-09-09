@@ -95,6 +95,35 @@
                 android:nestedScrollingEnabled="false"
                 tools:listitem="@layout/item_encrypted_folder" />
 
+            <!-- Permanent Deletion Warning -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:background="@drawable/bg_warning_card"
+                android:padding="16dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="16dp"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_warning"
+                    android:layout_marginEnd="12dp"
+                    app:tint="@color/warning_orange" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="⚠️ Important: Files in Hidden Gallery will be permanently deleted if you uninstall the app. Export your data before uninstalling to avoid data loss."
+                    android:textColor="@color/warning_orange"
+                    android:textSize="12sp"
+                    android:lineSpacingExtra="4dp" />
+
+            </LinearLayout>
+
         </LinearLayout>
 
     </androidx.core.widget.NestedScrollView>

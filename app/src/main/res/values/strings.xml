@@ -285,6 +285,12 @@
     <string name="scientific_calculator">Scientific Calculator</string>
     <string name="welcome_back">Welcome back,</string>
     <string name="dear">Dear</string>
+
+    <!-- Time-based greetings -->
+    <string name="good_morning">Good Morning</string>
+    <string name="good_afternoon">Good Afternoon</string>
+    <string name="good_evening">Good Evening</string>
+    <string name="good_night">Good Night</string>
     <string name="search_feature_hint">Search for a feature…</string>
     <string name="rich_features">Rich Features of 1Calculator</string>
     <string name="calculator">Calculators</string>
@@ -358,4 +364,8 @@
     <string name="clear_search">Clear search</string>
     <string name="all_unit_calculators">All Unit Calculators</string>
     <string name="no_calculators_found">No calculators found</string>
+
+    <!-- Missing strings for UI components -->
+    <string name="menu">Menu</string>
+    <string name="open_calculator">Open Calculator</string>
 </resources>

@@ -188,14 +188,6 @@ class EncryptedFileAdapter(
                     fileIcon.setImageResource(R.drawable.ic_music_note)
                     fileIcon.scaleType = ImageView.ScaleType.CENTER_INSIDE
                 }
-                file.mimeType.contains("pdf") -> {
-                    fileIcon.setImageResource(R.drawable.ic_picture_as_pdf)
-                    fileIcon.scaleType = ImageView.ScaleType.CENTER_INSIDE
-                }
-                file.mimeType.contains("document") -> {
-                    fileIcon.setImageResource(R.drawable.ic_description)
-                    fileIcon.scaleType = ImageView.ScaleType.CENTER_INSIDE
-                }
                 else -> {
                     fileIcon.setImageResource(R.drawable.ic_file)
                     fileIcon.scaleType = ImageView.ScaleType.CENTER_INSIDE
@@ -370,8 +362,6 @@ class EncryptedFileAdapter(
             mimeType.startsWith("image/") -> "Image"
             mimeType.startsWith("video/") -> "Video"
             mimeType.startsWith("audio/") -> "Audio"
-            mimeType.contains("pdf") -> "PDF"
-            mimeType.contains("document") -> "Document"
             mimeType.contains("text") -> "Text"
             mimeType.contains("zip") || mimeType.contains("archive") -> "Archive"
             else -> "File"

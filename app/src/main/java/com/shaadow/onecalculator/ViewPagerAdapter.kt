@@ -15,7 +15,8 @@ class ViewPagerAdapter(
     override fun createFragment(position: Int): Fragment {
         return when (enabledTabs[position]) {
             "home" -> HomeFragment()
-            "mathly_voice" -> com.shaadow.onecalculator.mathly.MathlyVoiceFragment()
+            "calculator" -> CalculatorFragment()
+            "voice" -> com.shaadow.onecalculator.mathly.MathlyVoiceFragment()
             "chat" -> com.shaadow.onecalculator.mathly.ui.MathlyChatFragment()
             "scanner" -> com.shaadow.onecalculator.mathly.MathlyScannerFragment()
             else -> HomeFragment()

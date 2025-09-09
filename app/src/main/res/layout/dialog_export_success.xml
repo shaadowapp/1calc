@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@drawable/dialog_background">
+
+    <!-- Success Icon -->
+    <ImageView
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_gravity="center"
+        android:layout_marginBottom="16dp"
+        android:src="@drawable/ic_check_circle"
+        android:contentDescription="Export Success" />
+
+    <!-- Title -->
+    <TextView
+        android:id="@+id/export_success_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="✅ Export Complete"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary"
+        android:gravity="center"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Message -->
+    <TextView
+        android:id="@+id/export_success_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Your hidden gallery has been successfully exported to a secure backup file."
+        android:textSize="14sp"
+        android:textColor="@color/text_secondary"
+        android:gravity="center"
+        android:layout_marginBottom="20dp"
+        android:lineSpacingExtra="4dp" />
+
+    <!-- File Details Card -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_warning_card"
+        android:padding="16dp"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/export_file_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📄 export_hg_1calc_20231201_143022.zip"
+            android:textSize="14sp"
+            android:textColor="@color/text_primary"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/export_file_size"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📊 25 files • 1.2 MB"
+            android:textSize="12sp"
+            android:textColor="@color/text_muted_b0aec0" />
+
+    </LinearLayout>
+
+    <!-- PIN Information Card -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_success_card"
+        android:padding="16dp"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🔐 ZIP Password"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/success_green"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/zip_password_display"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Password: ********"
+            android:textSize="14sp"
+            android:textColor="@color/text_primary"
+            android:layout_marginBottom="12dp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="⚠️ Important: Save this password securely! You will need it to open the ZIP file."
+            android:textSize="12sp"
+            android:textColor="@color/warning_orange"
+            android:lineSpacingExtra="2dp" />
+
+    </LinearLayout>
+
+    <!-- Tips Card -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_info_card"
+        android:padding="16dp"
+        android:layout_marginBottom="24dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="💡 Tips"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/info_blue"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="• The ZIP file contains all your media files and a metadata.json file\n• Use any ZIP extraction app to open the file\n• Files are organized by folder structure\n• Keep the password safe and secure"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:lineSpacingExtra="4dp" />
+
+    </LinearLayout>
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/close_button"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Close"
+            android:textColor="@color/accent_purple_bb86fc"
+            app:cornerRadius="8dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/view_file_button"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:text="View File"
+            android:backgroundTint="@color/accent_purple_bb86fc"
+            android:textColor="@color/white_ffffff"
+            app:cornerRadius="8dp" />
+
+    </LinearLayout>
+
+</LinearLayout>
