@@ -53,8 +53,6 @@ open class CalculatorWidget : AppWidgetProvider() {
             else -> expression
         }
         
-        // Debug: Let's see what we're displaying
-        android.util.Log.d("WidgetDebug", "UpdateWidget - Expression: '$expression', ResultShown: $resultShown, DisplayText: '$displayText'")
         
         views.setTextViewText(R.id.widget_expression, displayText)
 
@@ -111,15 +109,12 @@ open class CalculatorWidget : AppWidgetProvider() {
                     !expression.endsWith("×") && !expression.endsWith("÷")) {
                     val originalExpression = expression
                     val result = safeCalculate(expression)
-                    // Debug: Let's see what we're getting
-                    android.util.Log.d("WidgetDebug", "Expression: '$originalExpression', Result: '$result'")
                     // Save to history in background
                     CoroutineScope(Dispatchers.IO).launch {
                         saveToHistory(context, originalExpression, result)
                     }
                     expression = result
                     resultShown = true
-                    android.util.Log.d("WidgetDebug", "After calculation - Expression: '$expression', ResultShown: $resultShown")
                 }
             }
             "⌫" -> {

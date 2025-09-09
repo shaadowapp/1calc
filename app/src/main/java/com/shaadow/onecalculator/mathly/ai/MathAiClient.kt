@@ -14,12 +14,6 @@ object MathAiClient {
     private const val OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
     suspend fun sendMathQuery(query: String): String {
-        // Debug logging
-        android.util.Log.d("MathAiClient", "=== MathAiClient Debug Start ===")
-        android.util.Log.d("MathAiClient", "API Key: ${if (BuildConfig.MATHLY_API_KEY.isNotEmpty()) "Present (${BuildConfig.MATHLY_API_KEY.length} chars)" else "EMPTY!"}")
-        android.util.Log.d("MathAiClient", "API Key Value: ${BuildConfig.MATHLY_API_KEY}")
-        android.util.Log.d("MathAiClient", "Query: $query")
-
         if (BuildConfig.MATHLY_API_KEY.isEmpty()) {
             android.util.Log.e("MathAiClient", "API key is empty!")
             throw Exception("API key is not configured. Please check local.properties file.")
@@ -51,19 +45,10 @@ object MathAiClient {
             .post(body)
             .build()
 
-        android.util.Log.d("MathAiClient", "Request URL: ${request.url}")
-        android.util.Log.d("MathAiClient", "Request Body: ${json.toString()}")
-
         return withContext(Dispatchers.IO) {
             try {
-                android.util.Log.d("MathAiClient", "Making HTTP request...")
                 client.newCall(request).execute().use { response ->
-                    android.util.Log.d("MathAiClient", "Response Code: ${response.code}")
-                    android.util.Log.d("MathAiClient", "Response Message: ${response.message}")
-                    android.util.Log.d("MathAiClient", "Response Headers: ${response.headers}")
-
                     val responseBody = response.body?.string() ?: ""
-                    android.util.Log.d("MathAiClient", "Response Body: $responseBody")
 
                     if (!response.isSuccessful) {
                         android.util.Log.e("MathAiClient", "HTTP Error: ${response.code} - ${response.message}")

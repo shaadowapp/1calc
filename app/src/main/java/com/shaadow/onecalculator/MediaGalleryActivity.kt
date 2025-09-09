@@ -53,6 +53,17 @@ class MediaGalleryActivity : BaseActivity() {
     private var currentMasterPassword: String = ""
     private var isAllSelected: Boolean = false
     private var isAutoLocking: Boolean = false
+    private var isAuthenticated: Boolean = false
+    private var isFromBackground: Boolean = false
+    private var sessionAuthenticated: Boolean = false
+    private var isExternalStorageInitialized: Boolean = false
+
+    // SharedPreferences for persistent authentication state
+    private lateinit var authPrefs: android.content.SharedPreferences
+    private val AUTH_PREFS_NAME = "gallery_auth_prefs"
+    private val KEY_SESSION_AUTHENTICATED = "session_authenticated"
+    private val KEY_AUTH_TIMESTAMP = "auth_timestamp"
+    private val AUTH_TIMEOUT_MS = 30 * 60 * 1000L // 30 minutes timeout
 
     // Shortcut-related variables
     private var isShortcutAccess: Boolean = false
@@ -114,6 +125,9 @@ class MediaGalleryActivity : BaseActivity() {
         binding = ActivityMediaGalleryBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Initialize SharedPreferences for authentication state
+        authPrefs = getSharedPreferences(AUTH_PREFS_NAME, Context.MODE_PRIVATE)
+
         // Prevent screenshots and screen recording for security
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
 
@@ -132,11 +146,27 @@ class MediaGalleryActivity : BaseActivity() {
             registerReceiver(fingerprintSettingReceiver, filter)
         }
 
-        // Ensure hidden directory exists before proceeding
-        ExternalStorageManager.ensureHiddenDirectoryExists(this)
+        // Load persistent authentication state
+        sessionAuthenticated = isSessionAuthenticated()
 
-        // Check authentication before proceeding
-        checkAuthentication()
+        // Check if this is the first time opening the gallery (not from navigation)
+        val isFirstLaunch = intent.getBooleanExtra("is_first_launch", true)
+        val authenticationDone = intent.getBooleanExtra("authentication_done", false)
+        val sessionAuthFromIntent = intent.getBooleanExtra("session_authenticated", false)
+
+        // If session authentication is passed from intent, set it
+        if (sessionAuthFromIntent && !sessionAuthenticated) {
+            setSessionAuthenticated(true)
+        }
+
+        // Only require authentication if it's first launch AND session not authenticated AND authentication not already done
+        if (isFirstLaunch && !sessionAuthenticated && !authenticationDone) {
+            // Check authentication only on first launch
+            checkAuthentication()
+        } else {
+            // Skip authentication for navigation within app, if already authenticated in session, or if authentication was already done
+            proceedToGallery()
+        }
     }
 
     override fun onDestroy() {
@@ -149,29 +179,50 @@ class MediaGalleryActivity : BaseActivity() {
             android.util.Log.w("MediaGalleryActivity", "Broadcast receiver was not registered")
         }
 
-        // Hide any open lock screen
-        hideLockScreen()
+        // Reset per-activity authentication state, but keep session state
+        isAuthenticated = false
+        // Note: sessionAuthenticated persists until app is killed or timeout
     }
 
     override fun onResume() {
         super.onResume()
-        // Re-check biometric availability when returning to the activity
-        if (binding.lockScreenOverlay.root.visibility == View.VISIBLE) {
+        android.util.Log.d("MediaGalleryActivity", "onResume called - isFromBackground: $isFromBackground, sessionAuthenticated: $sessionAuthenticated")
+
+        // Only re-check authentication if coming back from background AND session not authenticated
+        if (isFromBackground && !isSessionAuthenticated()) {
+            android.util.Log.d("MediaGalleryActivity", "Re-checking authentication after background return")
             checkAuthentication()
+        } else if (isFromBackground) {
+            android.util.Log.d("MediaGalleryActivity", "Returned from background but gallery is already unlocked")
         }
+
+        // Reset the background flag after processing
+        isFromBackground = false
     }
 
     override fun onPause() {
         super.onPause()
-        // Auto-lock gallery when app goes to background (user presses home, switches apps, etc.)
-        autoLockGallery()
+        // Set flag to indicate we're going to background
+        isFromBackground = true
+        // Note: We don't auto-lock here to avoid issues with activity switches
+        // Auto-lock will be handled in onStop() for better reliability
     }
 
     override fun onStop() {
         super.onStop()
-        // Additional auto-lock check when activity is no longer visible to user
-        // This ensures gallery locks even if onPause wasn't called or was interrupted
-        autoLockGallery()
+        // Auto-lock gallery when activity is no longer visible to user
+        // This ensures gallery locks when user presses home, switches apps, etc.
+        // Only auto-lock if we're actually going to background (not just switching activities)
+        if (isFromBackground) {
+            autoLockGallery()
+        } else {
+            // If we're not going to background, it might be an activity switch
+            // Check if we're finishing the activity (user pressed back)
+            if (isFinishing) {
+                android.util.Log.d("MediaGalleryActivity", "Activity is finishing, auto-locking gallery")
+                autoLockGallery()
+            }
+        }
     }
 
     override fun onUserLeaveHint() {
@@ -193,9 +244,16 @@ class MediaGalleryActivity : BaseActivity() {
     }
 
     private fun initializeExternalStorage() {
+        // Prevent multiple initialization calls
+        if (isExternalStorageInitialized) {
+            android.util.Log.d("MediaGalleryActivity", "External storage already initialized, skipping")
+            return
+        }
+
         lifecycleScope.launch {
             try {
                 android.util.Log.d("MediaGalleryActivity", "Initializing external storage...")
+
                 val success = withContext(Dispatchers.IO) {
                     ExternalStorageManager.ensureHiddenDirectoryExists(this@MediaGalleryActivity)
                 }
@@ -203,6 +261,7 @@ class MediaGalleryActivity : BaseActivity() {
                     android.util.Log.d("MediaGalleryActivity", "External storage initialized successfully")
                     val hiddenDir = ExternalStorageManager.getHiddenCalculatorDir(this@MediaGalleryActivity)
                     android.util.Log.d("MediaGalleryActivity", "Hidden folder location: ${hiddenDir?.absolutePath}")
+                    isExternalStorageInitialized = true
                 } else {
                     android.util.Log.w("MediaGalleryActivity", "Failed to initialize external storage")
                     // Show info to user about the hidden folder location
@@ -216,7 +275,6 @@ class MediaGalleryActivity : BaseActivity() {
             }
         }
     }
-
     private fun checkShortcutIntent() {
         isShortcutAccess = intent.getBooleanExtra("is_shortcut_access", false)
         shortcutFolderId = intent.getLongExtra("shortcut_folder_id", -1)
@@ -361,12 +419,50 @@ class MediaGalleryActivity : BaseActivity() {
     }
 
     private fun checkAuthentication() {
+        android.util.Log.d("MediaGalleryActivity", "checkAuthentication called - isAuthenticated: $isAuthenticated, isFromBackground: $isFromBackground, sessionAuthenticated: $sessionAuthenticated")
+
+        // Skip authentication if user is already authenticated in this session
+        if (sessionAuthenticated) {
+            android.util.Log.d("MediaGalleryActivity", "User already authenticated in session, skipping fingerprint prompt")
+            // Ensure master password is set for folder operations
+            if (currentMasterPassword.isEmpty()) {
+                currentMasterPassword = "0000"
+                android.util.Log.d("MediaGalleryActivity", "Master password set for existing session")
+            }
+            proceedToGallery()
+            return
+        }
+
+        // Skip authentication for normal navigation if already authenticated in this activity
+        if (isAuthenticated && !isFromBackground) {
+            android.util.Log.d("MediaGalleryActivity", "User already authenticated in this activity session, skipping fingerprint prompt")
+            // Ensure master password is set for folder operations
+            if (currentMasterPassword.isEmpty()) {
+                currentMasterPassword = "0000"
+                android.util.Log.d("MediaGalleryActivity", "Master password set for existing activity session")
+            }
+            proceedToGallery()
+            return
+        }
+
+        // Skip authentication if this is a configuration change (screen rotation, etc.)
+        if (isChangingConfigurations) {
+            android.util.Log.d("MediaGalleryActivity", "Configuration change detected, skipping authentication")
+            // Ensure master password is set for folder operations
+            if (currentMasterPassword.isEmpty()) {
+                currentMasterPassword = "0000"
+                android.util.Log.d("MediaGalleryActivity", "Master password set for configuration change")
+            }
+            proceedToGallery()
+            return
+        }
+
         // Check if biometric authentication is available
         val biometricManager = BiometricManager.from(this)
         when (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK)) {
             BiometricManager.BIOMETRIC_SUCCESS -> {
                 android.util.Log.d("MediaGalleryActivity", "Biometric authentication is available")
-                showFingerprintLockScreen()
+                showBiometricPrompt()
             }
             BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> {
                 android.util.Log.e("MediaGalleryActivity", "No biometric hardware available")
@@ -387,63 +483,78 @@ class MediaGalleryActivity : BaseActivity() {
         }
     }
 
-    private fun showFingerprintLockScreen() {
-        // Show the lock screen overlay
-        val lockScreenOverlay = binding.lockScreenOverlay.root
-        lockScreenOverlay.visibility = View.VISIBLE
-
-        // Make activity full screen
-        window.setFlags(
-            android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN,
-            android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN
-        )
-        window.statusBarColor = android.graphics.Color.TRANSPARENT
-        window.navigationBarColor = android.graphics.Color.TRANSPARENT
-
-        // Hide ALL PIN/password UI elements explicitly
-        val overlay = binding.lockScreenOverlay
-
-        android.util.Log.d("MediaGalleryActivity", "Setting up fingerprint-only lock screen")
-
-        // Hide password UI
-        overlay.passwordInputLayout.visibility = View.GONE
-
-        // Hide PIN UI completely
-        overlay.pinDisplayLayout.visibility = View.GONE
-        overlay.pinKeypadLayout.visibility = View.GONE
-
-        // Hide action buttons (submit/cancel)
-        overlay.actionButtonsLayout.visibility = View.GONE
-
-        // Hide forgot buttons
-        overlay.forgotPasswordButton.visibility = View.GONE
-        overlay.forgotPinButton.visibility = View.GONE
-
-        // Update subtitle for fingerprint authentication
-        overlay.lockSubtitle.text = "Touch the fingerprint sensor to unlock"
-
-        // Setup fingerprint button click listener
-        overlay.fingerprintButton.setOnClickListener {
-            android.util.Log.d("MediaGalleryActivity", "Fingerprint button clicked")
-            showBiometricPrompt()
+    // Helper methods for persistent authentication state
+    private fun setSessionAuthenticated(authenticated: Boolean) {
+        sessionAuthenticated = authenticated
+        val editor = authPrefs.edit()
+        if (authenticated) {
+            editor.putBoolean(KEY_SESSION_AUTHENTICATED, true)
+            editor.putLong(KEY_AUTH_TIMESTAMP, System.currentTimeMillis())
+        } else {
+            editor.remove(KEY_SESSION_AUTHENTICATED)
+            editor.remove(KEY_AUTH_TIMESTAMP)
         }
-
-        // Back button to exit
-        overlay.backButton.setOnClickListener {
-            hideLockScreen()
-            finish()
-        }
-
-        // Automatically trigger biometric prompt on screen load
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-            showBiometricPrompt()
-        }, 500)
-
-        // Hide system UI for true full screen
-        hideSystemUI()
-
-        android.util.Log.d("MediaGalleryActivity", "Fingerprint-only lock screen setup complete")
+        editor.commit() // Use commit() for synchronous write to ensure immediate persistence
+        android.util.Log.d("MediaGalleryActivity", "Session authentication state saved: $authenticated")
     }
+
+    private fun isSessionAuthenticated(): Boolean {
+        // First check the in-memory flag for immediate response
+        if (sessionAuthenticated) {
+            // Double-check with SharedPreferences to ensure consistency
+            val prefsAuthenticated = authPrefs.getBoolean(KEY_SESSION_AUTHENTICATED, false)
+            if (!prefsAuthenticated) {
+                // In-memory state is stale, reset it
+                sessionAuthenticated = false
+                return false
+            }
+
+            // Check if authentication has timed out
+            val authTimestamp = authPrefs.getLong(KEY_AUTH_TIMESTAMP, 0)
+            val currentTime = System.currentTimeMillis()
+            val timeDiff = currentTime - authTimestamp
+
+            if (timeDiff > AUTH_TIMEOUT_MS) {
+                android.util.Log.d("MediaGalleryActivity", "Authentication timed out after ${timeDiff / 1000} seconds")
+                // Clear expired authentication
+                setSessionAuthenticated(false)
+                return false
+            }
+
+            android.util.Log.d("MediaGalleryActivity", "Valid persistent authentication found, time remaining: ${(AUTH_TIMEOUT_MS - timeDiff) / 1000} seconds")
+            return true
+        }
+
+        // Check SharedPreferences if in-memory flag is false
+        val authenticated = authPrefs.getBoolean(KEY_SESSION_AUTHENTICATED, false)
+        if (!authenticated) {
+            return false
+        }
+
+        // Check if authentication has timed out
+        val authTimestamp = authPrefs.getLong(KEY_AUTH_TIMESTAMP, 0)
+        val currentTime = System.currentTimeMillis()
+        val timeDiff = currentTime - authTimestamp
+
+        if (timeDiff > AUTH_TIMEOUT_MS) {
+            android.util.Log.d("MediaGalleryActivity", "Authentication timed out after ${timeDiff / 1000} seconds")
+            // Clear expired authentication
+            setSessionAuthenticated(false)
+            return false
+        }
+
+        // Update in-memory flag to match SharedPreferences
+        sessionAuthenticated = true
+        android.util.Log.d("MediaGalleryActivity", "Valid persistent authentication found, time remaining: ${(AUTH_TIMEOUT_MS - timeDiff) / 1000} seconds")
+        return true
+    }
+
+    private fun clearAuthenticationState() {
+        setSessionAuthenticated(false)
+        isAuthenticated = false
+        android.util.Log.d("MediaGalleryActivity", "Authentication state cleared")
+    }
+
 
 
 
@@ -506,43 +617,27 @@ class MediaGalleryActivity : BaseActivity() {
         }
     }
 
-    private fun hideLockScreen() {
-        binding.lockScreenOverlay.root.visibility = View.GONE
-
-        // Restore normal UI
-        window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN)
-
-        // Restore status bar and navigation bar colors
-        window.statusBarColor = ContextCompat.getColor(this, android.R.color.black)
-        window.navigationBarColor = ContextCompat.getColor(this, android.R.color.black)
-
-        // Show system UI
-        showSystemUI()
-
-        clearDialogReferences()
-    }
 
     private fun autoLockGallery() {
         autoLockGallery(false)
     }
 
     private fun autoLockGallery(immediate: Boolean = false) {
-        // Check if gallery is currently unlocked (lock screen is not visible)
-        if (binding.lockScreenOverlay.root.visibility != View.VISIBLE && !isAutoLocking) {
-            android.util.Log.d("MediaGalleryActivity", "Auto-locking gallery - app going to background")
+        // Only auto-lock if we're actually going to background (not during activity navigation)
+        // Since we removed the lock screen overlay, we just finish the activity to "lock" it
+        if (!isAutoLocking && isFromBackground) {
+            android.util.Log.d("MediaGalleryActivity", "Auto-locking gallery - app going to background (isFromBackground: $isFromBackground)")
+
+            // Clear authentication state when auto-locking
+            clearAuthenticationState()
 
             // Set flag to prevent multiple auto-lock calls
             isAutoLocking = true
 
             val lockAction = {
-                // Double-check that gallery is still unlocked (user might have locked it manually)
-                if (binding.lockScreenOverlay.root.visibility != View.VISIBLE) {
-                    // Show the lock screen
-                    showFingerprintLockScreen()
-
-                    // Show a brief toast to inform user about auto-lock
-                    Toast.makeText(this, "Gallery auto-locked for security", Toast.LENGTH_SHORT).show()
-                }
+                // Finish the activity to "lock" the gallery
+                android.util.Log.d("MediaGalleryActivity", "Finishing activity to lock gallery")
+                finish()
 
                 // Reset the flag
                 isAutoLocking = false
@@ -555,6 +650,8 @@ class MediaGalleryActivity : BaseActivity() {
                 // Add a small delay for smoother transition in other cases
                 android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(lockAction, 500)
             }
+        } else {
+            android.util.Log.d("MediaGalleryActivity", "Skipping auto-lock - isAutoLocking: $isAutoLocking, isFromBackground: $isFromBackground")
         }
     }
 
@@ -641,12 +738,14 @@ class MediaGalleryActivity : BaseActivity() {
                     // Set default master password for file encryption since we only use fingerprint
                     currentMasterPassword = "0000" // Default password for file encryption
 
-                    Toast.makeText(this@MediaGalleryActivity, "Authentication successful", Toast.LENGTH_SHORT).show()
+                    // Mark user as authenticated to prevent repeated prompts
+                    isAuthenticated = true
+                    setSessionAuthenticated(true) // Use persistent state
+
+                    // Authentication success is indicated by gallery opening - no toast needed
 
                     // Reset auto-lock flag when user successfully unlocks
                     isAutoLocking = false
-
-                    hideLockScreen()
 
                     if (isShortcutAccess && shortcutPosition >= 0) {
                         // Handle shortcut access - directly open target folder
@@ -660,7 +759,7 @@ class MediaGalleryActivity : BaseActivity() {
                 override fun onAuthenticationFailed() {
                     super.onAuthenticationFailed()
                     android.util.Log.d("MediaGalleryActivity", "Biometric authentication failed - fingerprint not recognized")
-                    Toast.makeText(this@MediaGalleryActivity, "Fingerprint not recognized. Try again.", Toast.LENGTH_SHORT).show()
+                    // Biometric prompt already shows feedback - no additional toast needed
                     // Don't exit on failed recognition, let user try again
                 }
             })
@@ -694,8 +793,10 @@ class MediaGalleryActivity : BaseActivity() {
     }
 
     private fun proceedToGallery() {
-        // Ensure hidden directory exists before proceeding with gallery operations
-        ExternalStorageManager.ensureHiddenDirectoryExists(this)
+        // Ensure hidden directory exists before proceeding with gallery operations (only if not already initialized)
+        if (!isExternalStorageInitialized) {
+            ExternalStorageManager.ensureHiddenDirectoryExists(this)
+        }
 
         checkPermissions()
         setupClickListeners()
@@ -738,6 +839,12 @@ class MediaGalleryActivity : BaseActivity() {
     private fun openFolderContentsForShortcut(folder: EncryptedFolderEntity) {
         try {
             android.util.Log.d("MediaGalleryActivity", "Opening folder contents for shortcut: ${folder.name}, ID: ${folder.id}")
+
+            // Ensure master password is available for shortcut access
+            if (currentMasterPassword.isEmpty()) {
+                android.util.Log.w("MediaGalleryActivity", "Master password is empty for shortcut, setting default")
+                currentMasterPassword = "0000"
+            }
 
             val intent = Intent(this, NewFolderContentsActivity::class.java)
             intent.putExtra("folder_id", folder.id)
@@ -990,7 +1097,7 @@ class MediaGalleryActivity : BaseActivity() {
                 val folderId = encryptedFolderDao.insertFolder(folder)
                 android.util.Log.d("MediaGalleryActivity", "Folder '$name' created with ID: $folderId")
 
-                Toast.makeText(this@MediaGalleryActivity, "Folder '$name' created successfully", Toast.LENGTH_SHORT).show()
+                // Folder creation success is indicated by the folder appearing in the list - no toast needed
             } catch (e: Exception) {
                 Toast.makeText(this@MediaGalleryActivity, "Failed to create folder: ${e.message}", Toast.LENGTH_SHORT).show()
             }
@@ -1489,11 +1596,17 @@ class MediaGalleryActivity : BaseActivity() {
         try {
             android.util.Log.d("MediaGalleryActivity", "Opening folder contents for: ${folder.name}, ID: ${folder.id}")
             android.util.Log.d("MediaGalleryActivity", "Using master password: ${currentMasterPassword.isNotEmpty()}")
-            
+
+            // Ensure master password is available
+            if (currentMasterPassword.isEmpty()) {
+                android.util.Log.w("MediaGalleryActivity", "Master password is empty, setting default")
+                currentMasterPassword = "0000"
+            }
+
             val intent = Intent(this, NewFolderContentsActivity::class.java)
             intent.putExtra("folder_id", folder.id)
             intent.putExtra("master_password", currentMasterPassword)
-            
+
             android.util.Log.d("MediaGalleryActivity", "Starting NewFolderContentsActivity with folder ID: ${folder.id}")
             startActivity(intent)
             android.util.Log.d("MediaGalleryActivity", "Intent started successfully")

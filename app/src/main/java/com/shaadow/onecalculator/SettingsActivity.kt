@@ -498,12 +498,217 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun openHiddenGallery() {
+        checkPermissionsAndOpenGallery()
+    }
+
+    private fun checkPermissionsAndOpenGallery() {
+        android.util.Log.d("SettingsActivity", "Checking storage permissions for hidden gallery")
+
+        val permissions = mutableListOf<String>()
+
+        // Check for MANAGE_EXTERNAL_STORAGE permission on Android 11+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            if (!android.os.Environment.isExternalStorageManager()) {
+                android.util.Log.d("SettingsActivity", "MANAGE_EXTERNAL_STORAGE permission needed")
+                requestManageExternalStoragePermission()
+                return
+            }
+        }
+
+        // Check for media permissions based on Android version
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                    this,
+                    android.Manifest.permission.READ_MEDIA_IMAGES
+                ) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                permissions.add(android.Manifest.permission.READ_MEDIA_IMAGES)
+            }
+            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                    this,
+                    android.Manifest.permission.READ_MEDIA_VIDEO
+                ) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                permissions.add(android.Manifest.permission.READ_MEDIA_VIDEO)
+            }
+        } else {
+            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                    this,
+                    android.Manifest.permission.READ_EXTERNAL_STORAGE
+                ) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                permissions.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+            }
+            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                    this,
+                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                permissions.add(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            }
+        }
+
+        if (permissions.isNotEmpty()) {
+            android.util.Log.d("SettingsActivity", "Requesting permissions: $permissions")
+            requestStoragePermissionsLauncher.launch(permissions.toTypedArray())
+        } else {
+            android.util.Log.d("SettingsActivity", "All permissions already granted")
+            authenticateAndOpenGallery()
+        }
+    }
+
+    private fun requestManageExternalStoragePermission() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            try {
+                val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                    data = android.net.Uri.parse("package:$packageName")
+                }
+                manageStorageLauncher.launch(intent)
+            } catch (e: Exception) {
+                android.util.Log.e("SettingsActivity", "Error requesting MANAGE_EXTERNAL_STORAGE permission", e)
+                showPermissionDeniedDialog()
+            }
+        }
+    }
+
+    // Permission request launcher for storage permissions
+    private val requestStoragePermissionsLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val allGranted = permissions.values.all { it }
+        if (allGranted) {
+            android.util.Log.d("SettingsActivity", "All storage permissions granted")
+            openGalleryActivity()
+        } else {
+            android.util.Log.w("SettingsActivity", "Storage permissions denied")
+            showPermissionDeniedDialog()
+        }
+    }
+
+    // Launcher for MANAGE_EXTERNAL_STORAGE permission
+    private val manageStorageLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            if (android.os.Environment.isExternalStorageManager()) {
+                android.util.Log.d("SettingsActivity", "MANAGE_EXTERNAL_STORAGE permission granted")
+                checkPermissionsAndOpenGallery() // Continue with other permissions
+            } else {
+                android.util.Log.w("SettingsActivity", "MANAGE_EXTERNAL_STORAGE permission denied")
+                showPermissionDeniedDialog()
+            }
+        }
+    }
+
+    private fun authenticateAndOpenGallery() {
+        android.util.Log.d("SettingsActivity", "Starting fingerprint authentication for hidden gallery")
+
+        // Check if biometric authentication is available
+        val biometricManager = androidx.biometric.BiometricManager.from(this)
+        when (biometricManager.canAuthenticate(androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK)) {
+            androidx.biometric.BiometricManager.BIOMETRIC_SUCCESS -> {
+                android.util.Log.d("SettingsActivity", "Biometric authentication is available")
+                showBiometricPrompt()
+            }
+            androidx.biometric.BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> {
+                android.util.Log.e("SettingsActivity", "No biometric hardware available")
+                showBiometricError("Biometric authentication not available on this device")
+            }
+            androidx.biometric.BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> {
+                android.util.Log.e("SettingsActivity", "Biometric hardware unavailable")
+                showBiometricError("Biometric hardware is currently unavailable")
+            }
+            androidx.biometric.BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> {
+                android.util.Log.e("SettingsActivity", "No biometric credentials enrolled")
+                showBiometricError("No fingerprints enrolled. Please set up fingerprint authentication in device settings")
+            }
+            else -> {
+                android.util.Log.e("SettingsActivity", "Biometric authentication not available")
+                showBiometricError("Biometric authentication is not available")
+            }
+        }
+    }
+
+    private fun showBiometricPrompt() {
+        val executor: java.util.concurrent.Executor = androidx.core.content.ContextCompat.getMainExecutor(this)
+        val biometricPrompt = androidx.biometric.BiometricPrompt(this as androidx.fragment.app.FragmentActivity, executor,
+            object : androidx.biometric.BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    super.onAuthenticationError(errorCode, errString)
+                    android.util.Log.e("SettingsActivity", "Biometric authentication error: $errorCode - $errString")
+
+                    when (errorCode) {
+                        androidx.biometric.BiometricPrompt.ERROR_USER_CANCELED,
+                        androidx.biometric.BiometricPrompt.ERROR_NEGATIVE_BUTTON -> {
+                            // User cancelled, do nothing
+                            android.util.Log.d("SettingsActivity", "User cancelled biometric authentication")
+                        }
+                        androidx.biometric.BiometricPrompt.ERROR_LOCKOUT,
+                        androidx.biometric.BiometricPrompt.ERROR_LOCKOUT_PERMANENT -> {
+                            showBiometricError("Too many failed attempts. Please try again later.")
+                        }
+                        else -> {
+                            Toast.makeText(this@SettingsActivity, "Authentication error: $errString", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+
+                override fun onAuthenticationSucceeded(result: androidx.biometric.BiometricPrompt.AuthenticationResult) {
+                    super.onAuthenticationSucceeded(result)
+                    android.util.Log.d("SettingsActivity", "Biometric authentication succeeded")
+                    openGalleryActivity()
+                }
+
+                override fun onAuthenticationFailed() {
+                    super.onAuthenticationFailed()
+                    android.util.Log.d("SettingsActivity", "Biometric authentication failed - fingerprint not recognized")
+                    // Biometric prompt already shows feedback - no additional toast needed
+                }
+            })
+
+        val promptInfo = androidx.biometric.BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Unlock Hidden Gallery")
+            .setSubtitle("Use your fingerprint to access the hidden gallery")
+            .setDescription("Place your finger on the fingerprint sensor")
+            .setNegativeButtonText("Cancel")
+            .setAllowedAuthenticators(androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK)
+            .build()
+
         try {
-            val intent = Intent(this, MediaGalleryActivity::class.java)
+            biometricPrompt.authenticate(promptInfo)
+        } catch (e: Exception) {
+            android.util.Log.e("SettingsActivity", "Error showing biometric prompt", e)
+            showBiometricError("Failed to show fingerprint authentication: ${e.message}")
+        }
+    }
+
+    private fun showBiometricError(message: String) {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Authentication Error")
+            .setMessage(message)
+            .setPositiveButton("OK", null)
+            .setCancelable(true)
+            .show()
+    }
+
+    private fun openGalleryActivity() {
+        try {
+            val intent = android.content.Intent(this, MediaGalleryActivity::class.java)
+            intent.putExtra("is_first_launch", false) // Navigation within app
+            intent.putExtra("authentication_done", true) // Indicate authentication is already completed
             startActivity(intent)
         } catch (e: Exception) {
             android.util.Log.e("SettingsActivity", "Error opening hidden gallery", e)
+            Toast.makeText(this, "Error opening hidden gallery", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun showPermissionDeniedDialog() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Storage Permissions Required")
+            .setMessage("Hidden Gallery needs storage permissions to access and encrypt your files. Please grant the permissions to continue.")
+            .setPositiveButton("Grant Permissions") { _, _ ->
+                checkPermissionsAndOpenGallery()
+            }
+            .setNegativeButton("Cancel", null)
+            .setCancelable(true)
+            .show()
     }
 
     private fun showFingerprintOnlyDialog() {

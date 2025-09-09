@@ -8,6 +8,5 @@ class CalculatorApplication : Application() {
         super.onCreate()
 
         // Application initialized - using button-based bug reporting
-        android.util.Log.d("CalculatorApplication", "Application started")
     }
 }

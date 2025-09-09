@@ -141,13 +141,5 @@
         app:tint="@color/white_ffffff"
         app:elevation="8dp" />
 
-    <!-- Full Screen Lock Overlay -->
-    <include
-        android:id="@+id/lock_screen_overlay"
-        layout="@layout/overlay_gallery_lock_screen"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="visible"
-        android:elevation="100dp" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

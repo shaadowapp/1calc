@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
@@ -42,6 +43,16 @@ class MediaPlayerActivity : AppCompatActivity() {
 
         setupViews()
         loadMedia()
+
+        // Handle back press with modern callback
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (player?.isPlaying == true) {
+                    player?.pause()
+                }
+                finish()
+            }
+        })
     }
 
     private fun setupViews() {
@@ -66,9 +77,10 @@ class MediaPlayerActivity : AppCompatActivity() {
             return
         }
 
-        currentFile = File(filePath)
+        val mediaFile = File(filePath)
+        currentFile = mediaFile
 
-        if (!currentFile!!.exists() || !currentFile!!.isFile) {
+        if (!mediaFile.exists() || !mediaFile.isFile) {
             Toast.makeText(this, "Error: File not found", Toast.LENGTH_SHORT).show()
             finish()
             return
@@ -84,7 +96,7 @@ class MediaPlayerActivity : AppCompatActivity() {
         val uri = FileProvider.getUriForFile(
             this,
             "${packageName}.fileprovider",
-            currentFile!!
+            mediaFile
         )
 
         val mediaItem = MediaItem.Builder()
@@ -168,20 +180,16 @@ class MediaPlayerActivity : AppCompatActivity() {
         player = null
 
         // Clean up temporary file if needed
-        if (isTemporaryFile && currentFile != null && currentFile!!.exists()) {
+        // Capture currentFile value to avoid concurrent mutation issues
+        val fileToClean = currentFile
+        if (isTemporaryFile && fileToClean != null && fileToClean.exists()) {
             try {
                 val fileEncryptionService = com.shaadow.onecalculator.services.FileEncryptionService(this)
-                fileEncryptionService.cleanupTempFile(currentFile!!)
+                fileEncryptionService.cleanupTempFile(fileToClean)
             } catch (e: Exception) {
                 android.util.Log.w("MediaPlayerActivity", "Error cleaning up temp file", e)
             }
         }
     }
 
-    override fun onBackPressed() {
-        if (player?.isPlaying == true) {
-            player?.pause()
-        }
-        super.onBackPressed()
-    }
 }

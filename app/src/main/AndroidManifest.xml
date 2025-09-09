@@ -9,7 +9,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- PDF Viewer WebView requires internet for Google Docs viewer -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    
+
     <!-- Media permissions for Hidden Gallery -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
@@ -27,12 +27,6 @@
 
     <!-- FCM Notification permission -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-
-
-    <!-- PDF Viewer permissions -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="28" />
 
     <application
         android:name=".CalculatorApplication"
@@ -60,25 +54,25 @@
             android:windowSoftInputMode="adjustResize"
             android:screenOrientation="portrait" />
 
-        <activity android:name=".OnboardingActivity" />
+        <activity android:name=".OnboardingActivity" android:exported="false" />
 
-        <activity android:name=".SettingsActivity" android:screenOrientation="portrait" />
+        <activity android:name=".SettingsActivity" android:screenOrientation="portrait" android:exported="false" />
 
-        <activity android:name=".MainTabActivity" android:screenOrientation="portrait" />
+        <activity android:name=".MainTabActivity" android:screenOrientation="portrait" android:exported="false" />
 
-        <activity android:name=".mathly.ScannerDetailsActivity" android:screenOrientation="portrait" />
+        <activity android:name=".mathly.ScannerDetailsActivity" android:screenOrientation="portrait" android:exported="false" />
 
-        <activity android:name=".AboutUsActivity" />
-        <activity android:name=".PrivacyPermissionsActivity" />
-        <activity android:name=".CheckUpdateActivity" />
-        <activity android:name=".RateUsActivity" />
-        <activity android:name=".TodoActivity" />
-        <activity android:name=".HotAppsActivity" />
-        <activity android:name=".MediaGalleryActivity" android:screenOrientation="portrait" />
-        <activity android:name=".FolderContentsActivity" android:screenOrientation="portrait" />
-        <activity android:name=".NewFolderContentsActivity" android:screenOrientation="portrait" />
-        <activity android:name=".ImageViewerActivity" android:screenOrientation="portrait" />
-        <activity android:name=".MediaPlayerActivity" android:screenOrientation="portrait" />
+        <activity android:name=".AboutUsActivity" android:exported="false" />
+        <activity android:name=".PrivacyPermissionsActivity" android:exported="false" />
+        <activity android:name=".CheckUpdateActivity" android:exported="false" />
+        <activity android:name=".RateUsActivity" android:exported="false" />
+        <activity android:name=".TodoActivity" android:exported="false" />
+        <activity android:name=".HotAppsActivity" android:exported="false" />
+        <activity android:name=".MediaGalleryActivity" android:screenOrientation="portrait" android:exported="false" />
+        <activity android:name=".FolderContentsActivity" android:screenOrientation="portrait" android:exported="false" />
+        <activity android:name=".NewFolderContentsActivity" android:screenOrientation="portrait" android:exported="false" />
+        <activity android:name=".ImageViewerActivity" android:screenOrientation="portrait" android:exported="false" />
+        <activity android:name=".MediaPlayerActivity" android:screenOrientation="portrait" android:exported="false" />
 
         <receiver android:name=".CalculatorWidgetBlack" android:exported="false">
             <intent-filter>

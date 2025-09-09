@@ -1,6 +1,7 @@
 package com.shaadow.onecalculator
 
 import android.os.Bundle
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -59,6 +60,16 @@ class HistoryActivity : AppCompatActivity() {
         setupFloatingActionButton()
         setupClickOutsideToClearFocus()
         setupClearAllButton()
+
+        // Handle back press with modern callback
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                val intent = Intent(this@HistoryActivity, MainActivity::class.java)
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                startActivity(intent)
+                finish()
+            }
+        })
     }
 
     private fun setupRecyclerView() {
@@ -179,12 +190,4 @@ class HistoryActivity : AppCompatActivity() {
         historyJob?.cancel()
     }
 
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        val intent = Intent(this, MainActivity::class.java)
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        startActivity(intent)
-        finish()
-        super.onBackPressed()
-    }
 } 
