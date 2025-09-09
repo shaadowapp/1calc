@@ -633,21 +633,35 @@ class BasicActivity : AppCompatActivity() {
     private fun startGalleryShortcutFlow(position: Int) {
         lifecycleScope.launch {
             try {
+                // Special case: position 0 opens the main gallery screen
+                if (position == 0) {
+                    val intent = Intent(this@BasicActivity, MediaGalleryActivity::class.java).apply {
+                        putExtra("is_shortcut_access", true)
+                        putExtra("shortcut_position", 0)
+                    }
+                    startActivity(intent)
+                    return@launch
+                }
+
+                // For positions 1-9, open specific folders
                 // Get database instance
                 val db = HistoryDatabase.getInstance(this@BasicActivity)
                 val folderDao = db.encryptedFolderDao()
 
-                // Get all folders ordered by creation time (position 0 = first folder, 1 = second, etc.)
+                // Get all folders ordered by creation time (position 1 = first folder, 2 = second, etc.)
                 val folders = withContext(Dispatchers.IO) {
                     folderDao.getAllFoldersSync()
                 }
 
-                if (position >= folders.size) {
+                // Adjust position for 1-based indexing (position 1 = folders[0], position 2 = folders[1], etc.)
+                val folderIndex = position - 1
+
+                if (folderIndex >= folders.size) {
                     Toast.makeText(this@BasicActivity, "No folder at position $position", Toast.LENGTH_SHORT).show()
                     return@launch
                 }
 
-                val targetFolder = folders[position]
+                val targetFolder = folders[folderIndex]
 
                 // Start gallery activity with shortcut intent
                 val intent = Intent(this@BasicActivity, MediaGalleryActivity::class.java).apply {

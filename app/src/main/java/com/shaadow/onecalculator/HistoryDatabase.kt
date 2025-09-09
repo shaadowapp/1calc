@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [HistoryEntity::class, PreferenceEntity::class, EncryptedFolderEntity::class, EncryptedFileEntity::class, DeviceInfoEntity::class], version = 9, exportSchema = false) // Updated for new architecture
+@Database(entities = [HistoryEntity::class, PreferenceEntity::class, EncryptedFolderEntity::class, EncryptedFileEntity::class, DeviceInfoEntity::class], version = 11, exportSchema = false) // Updated for new architecture - added isLocked field to EncryptedFolderEntity
 abstract class HistoryDatabase : RoomDatabase() {
     abstract fun historyDao(): HistoryDao
     abstract fun preferenceDao(): PreferenceDao

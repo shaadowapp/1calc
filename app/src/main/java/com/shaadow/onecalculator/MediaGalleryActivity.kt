@@ -26,6 +26,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import androidx.appcompat.widget.SwitchCompat
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.shaadow.onecalculator.databinding.ActivityMediaGalleryBinding
@@ -34,6 +35,7 @@ import com.shaadow.onecalculator.utils.ExternalStorageManager
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runBlocking
 import net.lingala.zip4j.ZipFile
 import net.lingala.zip4j.model.ZipParameters
 import net.lingala.zip4j.model.enums.EncryptionMethod
@@ -72,11 +74,34 @@ class MediaGalleryActivity : BaseActivity() {
 
     companion object {
         const val ACTION_FINGERPRINT_SETTING_CHANGED = "com.shaadow.onecalculator.FINGERPRINT_SETTING_CHANGED"
+        const val ACTION_FILES_CHANGED = "com.shaadow.onecalculator.FILES_CHANGED"
+        const val ACTION_FOLDER_UPDATED = "com.shaadow.onecalculator.FOLDER_UPDATED"
+        const val EXTRA_FOLDER_ID = "folder_id"
     }
 
     private val fingerprintSettingReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             // Handle fingerprint setting changes if needed
+        }
+    }
+
+    private val fileChangeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                ACTION_FILES_CHANGED -> {
+                    android.util.Log.d("MediaGalleryActivity", "Received FILES_CHANGED broadcast, refreshing folder list")
+                    // Refresh folder list to update item counts
+                    setupFolderList()
+                }
+                ACTION_FOLDER_UPDATED -> {
+                    val folderId = intent.getLongExtra(EXTRA_FOLDER_ID, -1)
+                    if (folderId != -1L) {
+                        android.util.Log.d("MediaGalleryActivity", "Received FOLDER_UPDATED broadcast for folder $folderId, refreshing folder list")
+                        // Refresh folder list to update specific folder's item count
+                        setupFolderList()
+                    }
+                }
+            }
         }
     }
 
@@ -140,10 +165,23 @@ class MediaGalleryActivity : BaseActivity() {
 
         // Register broadcast receiver for fingerprint setting changes
         val filter = IntentFilter(ACTION_FINGERPRINT_SETTING_CHANGED)
+        @Suppress("UnspecifiedRegisterReceiverFlag")
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(fingerprintSettingReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
             registerReceiver(fingerprintSettingReceiver, filter)
+        }
+
+        // Register broadcast receiver for file changes
+        val fileChangeFilter = IntentFilter().apply {
+            addAction(ACTION_FILES_CHANGED)
+            addAction(ACTION_FOLDER_UPDATED)
+        }
+        @Suppress("UnspecifiedRegisterReceiverFlag")
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(fileChangeReceiver, fileChangeFilter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(fileChangeReceiver, fileChangeFilter)
         }
 
         // Load persistent authentication state
@@ -171,12 +209,19 @@ class MediaGalleryActivity : BaseActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Unregister broadcast receiver
+        // Unregister broadcast receivers
         try {
             unregisterReceiver(fingerprintSettingReceiver)
         } catch (e: IllegalArgumentException) {
             // Receiver was not registered
-            android.util.Log.w("MediaGalleryActivity", "Broadcast receiver was not registered")
+            android.util.Log.w("MediaGalleryActivity", "Fingerprint broadcast receiver was not registered")
+        }
+
+        try {
+            unregisterReceiver(fileChangeReceiver)
+        } catch (e: IllegalArgumentException) {
+            // Receiver was not registered
+            android.util.Log.w("MediaGalleryActivity", "File change broadcast receiver was not registered")
         }
 
         // Reset per-activity authentication state, but keep session state
@@ -186,14 +231,15 @@ class MediaGalleryActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
+        @Suppress("SuspiciousEqualsCombination")
         android.util.Log.d("MediaGalleryActivity", "onResume called - isFromBackground: $isFromBackground, sessionAuthenticated: $sessionAuthenticated")
 
-        // Only re-check authentication if coming back from background AND session not authenticated
-        if (isFromBackground && !isSessionAuthenticated()) {
-            android.util.Log.d("MediaGalleryActivity", "Re-checking authentication after background return")
+        // Only re-check authentication if session has timed out (not just from background)
+        if (!isSessionAuthenticated()) {
+            android.util.Log.d("MediaGalleryActivity", "Session authentication expired, re-checking authentication")
             checkAuthentication()
-        } else if (isFromBackground) {
-            android.util.Log.d("MediaGalleryActivity", "Returned from background but gallery is already unlocked")
+        } else {
+            android.util.Log.d("MediaGalleryActivity", "Session authentication still valid")
         }
 
         // Reset the background flag after processing
@@ -202,34 +248,26 @@ class MediaGalleryActivity : BaseActivity() {
 
     override fun onPause() {
         super.onPause()
-        // Set flag to indicate we're going to background
+        // Set flag to indicate we're going to background (kept for other logic)
         isFromBackground = true
-        // Note: We don't auto-lock here to avoid issues with activity switches
-        // Auto-lock will be handled in onStop() for better reliability
+        // Note: Auto-lock is now only triggered when activity finishes
     }
 
     override fun onStop() {
         super.onStop()
-        // Auto-lock gallery when activity is no longer visible to user
-        // This ensures gallery locks when user presses home, switches apps, etc.
-        // Only auto-lock if we're actually going to background (not just switching activities)
-        if (isFromBackground) {
+        // Only auto-lock gallery when activity is finishing (user pressed back)
+        // Do not auto-lock when app goes to background or during app switching
+        if (isFinishing) {
+            android.util.Log.d("MediaGalleryActivity", "Activity is finishing, auto-locking gallery")
             autoLockGallery()
-        } else {
-            // If we're not going to background, it might be an activity switch
-            // Check if we're finishing the activity (user pressed back)
-            if (isFinishing) {
-                android.util.Log.d("MediaGalleryActivity", "Activity is finishing, auto-locking gallery")
-                autoLockGallery()
-            }
         }
     }
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        // This is called when user is leaving the activity (home button, recent apps, etc.)
-        // Lock immediately for better security when user explicitly leaves
-        autoLockGallery(immediate = true)
+        // Removed auto-lock on user leave hint to prevent locking when app goes to background
+        // Gallery will only lock when user explicitly closes it (presses back)
+        android.util.Log.d("MediaGalleryActivity", "User leaving activity - not auto-locking")
     }
 
     private fun setupToolbar() {
@@ -379,6 +417,9 @@ class MediaGalleryActivity : BaseActivity() {
             },
             onAddFolderClick = {
                 showCreateFolderDialog()
+            },
+            onSelectionChanged = { allSelected ->
+                updateBulkActionVisibility(allSelected)
             }
         )
 
@@ -395,11 +436,18 @@ class MediaGalleryActivity : BaseActivity() {
 
             // Observe folders from database
             existingFolders.collect { folders ->
-                if (folders.isEmpty()) {
-                    // Create default folders on first access
+                // Only create default folders if this is the very first time (no folders ever existed)
+                // and user hasn't explicitly deleted them all
+                val prefs = getSharedPreferences("gallery_prefs", Context.MODE_PRIVATE)
+                val hasCreatedDefaultFolders = prefs.getBoolean("has_created_default_folders", false)
+
+                if (folders.isEmpty() && !hasCreatedDefaultFolders) {
+                    // Create default folders on first access only
                     withContext(Dispatchers.IO) {
                         createDefaultFolders()
                     }
+                    // Mark that we've created default folders
+                    prefs.edit().putBoolean("has_created_default_folders", true).apply()
                 } else {
                     // Convert to FolderWithCount - do this in background thread
                     val foldersWithCount = withContext(Dispatchers.IO) {
@@ -411,7 +459,7 @@ class MediaGalleryActivity : BaseActivity() {
                     }
                     android.util.Log.d("MediaGalleryActivity", "Submitting ${foldersWithCount.size} folders to adapter")
                     folderAdapter.submitFoldersWithAddButton(foldersWithCount)
-                    updateEmptyState(false)
+                    updateEmptyState(folders.isEmpty())
                     android.util.Log.d("MediaGalleryActivity", "Folder list setup completed")
                 }
             }
@@ -433,8 +481,8 @@ class MediaGalleryActivity : BaseActivity() {
             return
         }
 
-        // Skip authentication for normal navigation if already authenticated in this activity
-        if (isAuthenticated && !isFromBackground) {
+        // Skip authentication if already authenticated in this activity
+        if (isAuthenticated) {
             android.util.Log.d("MediaGalleryActivity", "User already authenticated in this activity session, skipping fingerprint prompt")
             // Ensure master password is set for folder operations
             if (currentMasterPassword.isEmpty()) {
@@ -619,14 +667,10 @@ class MediaGalleryActivity : BaseActivity() {
 
 
     private fun autoLockGallery() {
-        autoLockGallery(false)
-    }
-
-    private fun autoLockGallery(immediate: Boolean = false) {
-        // Only auto-lock if we're actually going to background (not during activity navigation)
-        // Since we removed the lock screen overlay, we just finish the activity to "lock" it
-        if (!isAutoLocking && isFromBackground) {
-            android.util.Log.d("MediaGalleryActivity", "Auto-locking gallery - app going to background (isFromBackground: $isFromBackground)")
+        // Auto-lock gallery by finishing the activity
+        // This is called when the activity is finishing (user pressed back)
+        if (!isAutoLocking) {
+            android.util.Log.d("MediaGalleryActivity", "Auto-locking gallery - activity finishing")
 
             // Clear authentication state when auto-locking
             clearAuthenticationState()
@@ -634,24 +678,16 @@ class MediaGalleryActivity : BaseActivity() {
             // Set flag to prevent multiple auto-lock calls
             isAutoLocking = true
 
-            val lockAction = {
-                // Finish the activity to "lock" the gallery
-                android.util.Log.d("MediaGalleryActivity", "Finishing activity to lock gallery")
-                finish()
+            // Finish the activity to "lock" the gallery
+            android.util.Log.d("MediaGalleryActivity", "Finishing activity to lock gallery")
+            finish()
 
-                // Reset the flag
+            // Reset the flag after a delay
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                 isAutoLocking = false
-            }
-
-            if (immediate) {
-                // Lock immediately for explicit user actions (home button, recent apps)
-                lockAction()
-            } else {
-                // Add a small delay for smoother transition in other cases
-                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(lockAction, 500)
-            }
+            }, 1000)
         } else {
-            android.util.Log.d("MediaGalleryActivity", "Skipping auto-lock - isAutoLocking: $isAutoLocking, isFromBackground: $isFromBackground")
+            android.util.Log.d("MediaGalleryActivity", "Skipping auto-lock - already auto-locking")
         }
     }
 
@@ -710,7 +746,7 @@ class MediaGalleryActivity : BaseActivity() {
                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                     super.onAuthenticationError(errorCode, errString)
                     android.util.Log.e("MediaGalleryActivity", "Biometric authentication error: $errorCode - $errString")
-                    
+
                     when (errorCode) {
                         BiometricPrompt.ERROR_USER_CANCELED,
                         BiometricPrompt.ERROR_NEGATIVE_BUTTON -> {
@@ -765,14 +801,8 @@ class MediaGalleryActivity : BaseActivity() {
             })
 
         val promptInfo = if (isShortcutAccess && shortcutPosition >= 0) {
-            // For shortcut access, show generic prompt since we can't get folder name synchronously
-            BiometricPrompt.PromptInfo.Builder()
-                .setTitle("Unlock Folder")
-                .setSubtitle("Calculator shortcut to position ${shortcutPosition + 1}")
-                .setDescription("Place your finger on the fingerprint sensor")
-                .setNegativeButtonText("Cancel")
-                .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK)
-                .build()
+            // For shortcut access, get the specific folder name for better UX
+            getBiometricPromptInfoForShortcut()
         } else {
             // Normal gallery access
             BiometricPrompt.PromptInfo.Builder()
@@ -789,6 +819,61 @@ class MediaGalleryActivity : BaseActivity() {
         } catch (e: Exception) {
             android.util.Log.e("MediaGalleryActivity", "Error showing biometric prompt", e)
             showErrorAndExit("Failed to show fingerprint authentication: ${e.message}")
+        }
+    }
+
+    private fun getBiometricPromptInfoForShortcut(): BiometricPrompt.PromptInfo {
+        return if (shortcutPosition == 0) {
+            // Special case: position 0 opens the main gallery screen
+            BiometricPrompt.PromptInfo.Builder()
+                .setTitle("Unlock Hidden Gallery")
+                .setSubtitle("Use fingerprint to open Hidden Gallery")
+                .setDescription("Place your finger on the fingerprint sensor")
+                .setNegativeButtonText("Cancel")
+                .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK)
+                .build()
+        } else {
+            // For positions 1-9, try to get the folder name
+            val folderName = getFolderNameForPosition(shortcutPosition)
+            if (folderName != null) {
+                BiometricPrompt.PromptInfo.Builder()
+                    .setTitle("Unlock Folder")
+                    .setSubtitle("Use fingerprint to open $folderName")
+                    .setDescription("Place your finger on the fingerprint sensor")
+                    .setNegativeButtonText("Cancel")
+                    .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK)
+                    .build()
+            } else {
+                // Fallback if folder name can't be retrieved
+                BiometricPrompt.PromptInfo.Builder()
+                    .setTitle("Unlock Folder")
+                    .setSubtitle("Calculator shortcut to position $shortcutPosition")
+                    .setDescription("Place your finger on the fingerprint sensor")
+                    .setNegativeButtonText("Cancel")
+                    .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK)
+                    .build()
+            }
+        }
+    }
+
+    private fun getFolderNameForPosition(position: Int): String? {
+        return try {
+            // Adjust position for 1-based indexing (position 1 = folders[0], position 2 = folders[1], etc.)
+            val folderIndex = position - 1
+
+            // Get all folders synchronously (this should be fast since it's just a database query)
+            val folders = runBlocking(Dispatchers.IO) {
+                encryptedFolderDao.getAllFoldersSync()
+            }
+
+            if (folderIndex >= 0 && folderIndex < folders.size) {
+                folders[folderIndex].name
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MediaGalleryActivity", "Error getting folder name for position $position", e)
+            null
         }
     }
 
@@ -810,20 +895,32 @@ class MediaGalleryActivity : BaseActivity() {
             try {
                 android.util.Log.d("MediaGalleryActivity", "Handling shortcut access for position: $shortcutPosition")
 
+                // Special case: position 0 opens the main gallery screen
+                if (shortcutPosition == 0) {
+                    android.util.Log.d("MediaGalleryActivity", "Shortcut position 0: showing main gallery screen")
+                    // Just proceed to gallery without opening any folder
+                    proceedToGallery()
+                    return@launch
+                }
+
+                // For positions 1-9, open specific folders
                 val folders = withContext(Dispatchers.IO) {
                     encryptedFolderDao.getAllFoldersSync()
                 }
 
-                if (shortcutPosition >= 0 && shortcutPosition < folders.size) {
-                    val targetFolder = folders[shortcutPosition]
-                    android.util.Log.d("MediaGalleryActivity", "Opening shortcut folder: ${targetFolder.name} (ID: ${targetFolder.id})")
+                // Adjust position for 1-based indexing (position 1 = folders[0], position 2 = folders[1], etc.)
+                val folderIndex = shortcutPosition - 1
+
+                if (folderIndex >= 0 && folderIndex < folders.size) {
+                    val targetFolder = folders[folderIndex]
+                    android.util.Log.d("MediaGalleryActivity", "Opening shortcut folder: ${targetFolder.name} (ID: ${targetFolder.id}) at position $shortcutPosition")
 
                     // For shortcuts, finish this activity before opening folder to prevent it from staying in back stack
                     openFolderContentsForShortcut(targetFolder)
                     finish() // Close MediaGalleryActivity so back from folder goes directly to calculator
                 } else {
                     android.util.Log.e("MediaGalleryActivity", "Invalid shortcut position: $shortcutPosition, available folders: ${folders.size}")
-                    Toast.makeText(this@MediaGalleryActivity, "Invalid folder position", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MediaGalleryActivity, "No folder at position $shortcutPosition", Toast.LENGTH_SHORT).show()
                     // Fall back to normal gallery
                     proceedToGallery()
                 }
@@ -909,7 +1006,7 @@ class MediaGalleryActivity : BaseActivity() {
 
     private suspend fun createDefaultFolders() {
         try {
-            android.util.Log.d("MediaGalleryActivity", "Creating default folders...")
+            android.util.Log.d("MediaGalleryActivity", "Creating default folders for new user...")
 
             val defaultFolders = listOf(
                 DefaultFolderInfo("Photos", "ic_folder", "Store your private photos", "icon_bg_1", 1),
@@ -918,26 +1015,21 @@ class MediaGalleryActivity : BaseActivity() {
                 DefaultFolderInfo("Others", "ic_folder", "Store other private files", "icon_bg_4", 4)
             )
 
-            val defaultPassword = "0000"
-
             for (folderInfo in defaultFolders) {
                 // Check if folder already exists
                 val existingFolder = encryptedFolderDao.getFolderByName(folderInfo.name)
                 if (existingFolder == null) {
-                    // Generate salt and hash password
-                    val salt = EncryptionUtils.generateSalt()
-                    val hashedPassword = EncryptionUtils.hashPassword(defaultPassword, salt)
-
-                    // Create virtual folder entity (no physical folder needed)
+                    // Create unlocked folder by default (no password needed)
                     val folder = EncryptedFolderEntity(
                         name = folderInfo.name,
-                        passwordHash = hashedPassword,
-                        salt = salt
+                        passwordHash = "",
+                        salt = "",
+                        isLocked = false
                     )
 
                     // Save to database
                     encryptedFolderDao.insertFolder(folder)
-                    android.util.Log.d("MediaGalleryActivity", "Created default folder: ${folderInfo.name}")
+                    android.util.Log.d("MediaGalleryActivity", "Created default unlocked folder: ${folderInfo.name}")
                 }
             }
 
@@ -981,9 +1073,9 @@ class MediaGalleryActivity : BaseActivity() {
             append("🎥 Videos - For your private videos\n")
             append("🎵 Audios - For your private audio files\n")
             append("📁 Others - For other private files\n\n")
+            append("🔓 These folders are unlocked by default for easy access.\n\n")
+            append("🔒 You can lock any folder with a PIN using the ⋮ menu.\n\n")
             append("➕ Use the '+' button to create more folders\n\n")
-            append("🔐 Default PIN: 0000\n\n")
-            append("You can change the PIN for each folder individually by using the ⋮ menu.\n\n")
             append("💡 Tip: Set up a recovery question in Settings for account security!")
         }
 
@@ -1012,13 +1104,18 @@ class MediaGalleryActivity : BaseActivity() {
         val folderNameInput = dialogView.findViewById<TextInputEditText>(R.id.folder_name_input)
         val folderPinInput = dialogView.findViewById<TextInputEditText>(R.id.folder_pin_input)
         val folderConfirmPinInput = dialogView.findViewById<TextInputEditText>(R.id.folder_confirm_pin_input)
+        val lockFolderSwitch = dialogView.findViewById<SwitchCompat>(R.id.lock_folder_switch)
         val folderNameLayout = dialogView.findViewById<TextInputLayout>(R.id.folder_name_input_layout)
         val folderPinLayout = dialogView.findViewById<TextInputLayout>(R.id.folder_pin_input_layout)
         val folderConfirmPinLayout = dialogView.findViewById<TextInputLayout>(R.id.folder_confirm_pin_input_layout)
 
-        // Set default PIN
-        folderPinInput.setText("0000")
-        folderConfirmPinInput.setText("0000")
+        // Initially hide PIN fields since locking is disabled by default
+        updatePinFieldsVisibility(dialogView, false)
+
+        // Handle switch toggle
+        lockFolderSwitch.setOnCheckedChangeListener { _, isChecked ->
+            updatePinFieldsVisibility(dialogView, isChecked)
+        }
 
         val dialog = MaterialAlertDialogBuilder(this)
             .setView(dialogView)
@@ -1030,8 +1127,9 @@ class MediaGalleryActivity : BaseActivity() {
 
         dialogView.findViewById<View>(R.id.create_button).setOnClickListener {
             val name = folderNameInput.text?.toString()?.trim() ?: ""
-            val pin = folderPinInput.text?.toString() ?: ""
-            val confirmPin = folderConfirmPinInput.text?.toString() ?: ""
+            val isLocked = lockFolderSwitch.isChecked
+            val pin = if (isLocked) folderPinInput.text?.toString() ?: "" else ""
+            val confirmPin = if (isLocked) folderConfirmPinInput.text?.toString() ?: "" else ""
 
             // Clear previous errors
             folderNameLayout.error = null
@@ -1040,7 +1138,7 @@ class MediaGalleryActivity : BaseActivity() {
 
             var hasError = false
 
-            // Validate input
+            // Validate folder name
             if (name.isEmpty()) {
                 folderNameLayout.error = "Folder name is required"
                 hasError = true
@@ -1049,21 +1147,33 @@ class MediaGalleryActivity : BaseActivity() {
                 hasError = true
             }
 
-            if (pin.length != 4) {
-                folderPinLayout.error = "PIN must be exactly 4 digits"
-                hasError = true
-            } else if (!pin.all { it.isDigit() }) {
-                folderPinLayout.error = "PIN must contain only numbers"
-                hasError = true
-            }
+            // Validate PIN only if locking is enabled
+            if (isLocked) {
+                if (pin.length != 4) {
+                    folderPinLayout.error = "PIN must be exactly 4 digits"
+                    hasError = true
+                } else if (!pin.all { it.isDigit() }) {
+                    folderPinLayout.error = "PIN must contain only numbers"
+                    hasError = true
+                } else if (isWeakPin(pin)) {
+                    folderPinLayout.error = "PIN is too weak. Avoid repeating digits or sequential patterns"
+                    hasError = true
+                }
 
-            if (confirmPin != pin) {
-                folderConfirmPinLayout.error = "PINs do not match"
-                hasError = true
+                if (confirmPin != pin) {
+                    folderConfirmPinLayout.error = "PINs do not match"
+                    hasError = true
+                }
+
+                // Check PIN reuse
+                if (pin.isNotEmpty() && runBlocking { isPinAlreadyUsed(pin) }) {
+                    folderPinLayout.error = "This PIN is already used by another folder"
+                    hasError = true
+                }
             }
 
             if (!hasError) {
-                createFolder(name, pin)
+                createFolder(name, if (isLocked) pin else "", isLocked)
                 dialog.dismiss()
             }
         }
@@ -1071,8 +1181,61 @@ class MediaGalleryActivity : BaseActivity() {
         dialog.show()
     }
 
+    private fun updatePinFieldsVisibility(dialogView: View, isVisible: Boolean) {
+        val pinLayout = dialogView.findViewById<TextInputLayout>(R.id.folder_pin_input_layout)
+        val confirmPinLayout = dialogView.findViewById<TextInputLayout>(R.id.folder_confirm_pin_input_layout)
 
-    private fun createFolder(name: String, password: String) {
+        pinLayout?.visibility = if (isVisible) View.VISIBLE else View.GONE
+        confirmPinLayout?.visibility = if (isVisible) View.VISIBLE else View.GONE
+
+        // Clear PIN fields when hiding
+        if (!isVisible) {
+            dialogView.findViewById<TextInputEditText>(R.id.folder_pin_input)?.setText("")
+            dialogView.findViewById<TextInputEditText>(R.id.folder_confirm_pin_input)?.setText("")
+            pinLayout?.error = null
+            confirmPinLayout?.error = null
+        }
+    }
+
+    private suspend fun isPinAlreadyUsed(pin: String, excludeFolderId: Long? = null): Boolean {
+        return try {
+            val folders = withContext(Dispatchers.IO) {
+                encryptedFolderDao.getAllFoldersSync()
+            }
+            folders.any { folder ->
+                folder.id != excludeFolderId &&
+                folder.isLocked &&
+                EncryptionUtils.hashPassword(pin, folder.salt) == folder.passwordHash
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MediaGalleryActivity", "Error checking PIN reuse", e)
+            false
+        }
+    }
+
+    private fun isWeakPin(pin: String): Boolean {
+        // Check for repeating digits (000, 111, 222, etc.)
+        if (pin.all { it == pin[0] }) {
+            return true
+        }
+
+        // Check for sequential digits (012, 123, 234, etc.)
+        val sequentialPatterns = listOf("012", "123", "234", "345", "456", "567", "678", "789", "890", "901")
+        if (sequentialPatterns.contains(pin)) {
+            return true
+        }
+
+        // Check for reverse sequential (210, 321, 432, etc.)
+        val reverseSequentialPatterns = listOf("210", "321", "432", "543", "654", "765", "876", "987", "098", "109")
+        if (reverseSequentialPatterns.contains(pin)) {
+            return true
+        }
+
+        return false
+    }
+
+
+    private fun createFolder(name: String, password: String, isLocked: Boolean = false) {
         lifecycleScope.launch {
             try {
                 // Check if folder name already exists
@@ -1082,23 +1245,32 @@ class MediaGalleryActivity : BaseActivity() {
                     return@launch
                 }
 
-                // Generate salt and hash password
-                val salt = EncryptionUtils.generateSalt()
-                val hashedPassword = EncryptionUtils.hashPassword(password, salt)
+                // Generate salt and hash password (only if locked)
+                val salt = if (isLocked) EncryptionUtils.generateSalt() else ""
+                val hashedPassword = if (isLocked) EncryptionUtils.hashPassword(password, salt) else ""
 
-                // Create virtual folder entity (no physical folder needed)
+                // Create virtual folder entity
                 val folder = EncryptedFolderEntity(
                     name = name,
                     passwordHash = hashedPassword,
-                    salt = salt
+                    salt = salt,
+                    isLocked = isLocked
                 )
 
                 // Save to database
                 val folderId = encryptedFolderDao.insertFolder(folder)
-                android.util.Log.d("MediaGalleryActivity", "Folder '$name' created with ID: $folderId")
+                android.util.Log.d("MediaGalleryActivity", "Folder '$name' created with ID: $folderId, locked: $isLocked")
 
-                // Folder creation success is indicated by the folder appearing in the list - no toast needed
+                // Show appropriate success message
+                val message = if (isLocked) {
+                    "Folder '$name' created with PIN protection"
+                } else {
+                    "Folder '$name' created successfully"
+                }
+                Toast.makeText(this@MediaGalleryActivity, message, Toast.LENGTH_SHORT).show()
+
             } catch (e: Exception) {
+                android.util.Log.e("MediaGalleryActivity", "Error creating folder", e)
                 Toast.makeText(this@MediaGalleryActivity, "Failed to create folder: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
@@ -1115,6 +1287,11 @@ class MediaGalleryActivity : BaseActivity() {
         val importId = 1001 // Use a unique ID that won't conflict with existing menu items
         popup.menu.add(0, importId, 4, "Import Files")
 
+        // Add lock/unlock option based on current state
+        val lockUnlockId = 1002
+        val lockUnlockText = if (folder.isLocked) "Unlock Folder" else "Lock Folder"
+        popup.menu.add(0, lockUnlockId, 2, lockUnlockText)
+
         popup.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.action_open_folder -> {
@@ -1126,7 +1303,11 @@ class MediaGalleryActivity : BaseActivity() {
                     true
                 }
                 R.id.action_change_pin -> {
-                    showChangePinDialog(folder)
+                    if (folder.isLocked) {
+                        showChangePinDialog(folder)
+                    } else {
+                        Toast.makeText(this, "Folder is not locked. Lock it first to set a PIN.", Toast.LENGTH_SHORT).show()
+                    }
                     true
                 }
                 R.id.action_export_folder -> {
@@ -1135,6 +1316,14 @@ class MediaGalleryActivity : BaseActivity() {
                 }
                 importId -> {
                     importFilesToFolder(folder)
+                    true
+                }
+                lockUnlockId -> {
+                    if (folder.isLocked) {
+                        showUnlockFolderDialog(folder)
+                    } else {
+                        showLockFolderDialog(folder)
+                    }
                     true
                 }
                 R.id.action_delete_folder -> {
@@ -1207,12 +1396,149 @@ class MediaGalleryActivity : BaseActivity() {
 
                 Toast.makeText(this@MediaGalleryActivity, "Folder renamed successfully", Toast.LENGTH_SHORT).show()
 
-                // Refresh the folder list
-                setupFolderList()
+                // Refresh the folder list with a small delay to ensure database consistency
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    setupFolderList()
+                }, 100)
 
             } catch (e: Exception) {
                 android.util.Log.e("MediaGalleryActivity", "Error renaming folder", e)
                 Toast.makeText(this@MediaGalleryActivity, "Error renaming folder: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun showLockFolderDialog(folder: EncryptedFolderEntity) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_create_folder_pin, null)
+
+        // Hide folder name input since we're locking existing folder
+        val folderNameLayout = dialogView.findViewById<TextInputLayout>(R.id.folder_name_input_layout)
+        folderNameLayout?.visibility = View.GONE
+
+        // Update title
+        val titleText = dialogView.findViewById<TextView>(android.R.id.text1)
+        if (titleText != null) {
+            titleText.text = "Lock Folder: ${folder.name}"
+        }
+
+        // Update button text
+        val createButton = dialogView.findViewById<MaterialButton>(R.id.create_button)
+        createButton?.text = "Lock Folder"
+
+        // Get PIN fields
+        val pinInput = dialogView.findViewById<TextInputEditText>(R.id.folder_pin_input)
+        val confirmPinInput = dialogView.findViewById<TextInputEditText>(R.id.folder_confirm_pin_input)
+        val pinLayout = dialogView.findViewById<TextInputLayout>(R.id.folder_pin_input_layout)
+        val confirmPinLayout = dialogView.findViewById<TextInputLayout>(R.id.folder_confirm_pin_input_layout)
+
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setView(dialogView)
+            .create()
+
+        createButton?.setOnClickListener {
+            val pin = pinInput?.text?.toString() ?: ""
+            val confirmPin = confirmPinInput?.text?.toString() ?: ""
+
+            // Clear previous errors
+            pinLayout?.error = null
+            confirmPinLayout?.error = null
+
+            var hasError = false
+
+            // Validate PIN
+            if (pin.length != 4) {
+                pinLayout?.error = "PIN must be exactly 4 digits"
+                hasError = true
+            } else if (!pin.all { it.isDigit() }) {
+                pinLayout?.error = "PIN must contain only numbers"
+                hasError = true
+            } else if (isWeakPin(pin)) {
+                pinLayout?.error = "PIN is too weak. Avoid repeating digits or sequential patterns"
+                hasError = true
+            }
+
+            if (confirmPin != pin) {
+                confirmPinLayout?.error = "PINs do not match"
+                hasError = true
+            }
+
+            // Check PIN reuse
+            if (pin.isNotEmpty() && runBlocking { isPinAlreadyUsed(pin) }) {
+                pinLayout?.error = "This PIN is already used by another folder"
+                hasError = true
+            }
+
+            if (!hasError) {
+                lockFolder(folder, pin)
+                dialog.dismiss()
+            }
+        }
+
+        val cancelButton = dialogView.findViewById<MaterialButton>(R.id.cancel_button)
+        cancelButton?.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun showUnlockFolderDialog(folder: EncryptedFolderEntity) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Unlock Folder")
+            .setMessage("Are you sure you want to unlock '${folder.name}'? Anyone will be able to access this folder without a PIN.")
+            .setPositiveButton("Unlock") { _, _ ->
+                unlockFolder(folder)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun lockFolder(folder: EncryptedFolderEntity, pin: String) {
+        lifecycleScope.launch {
+            try {
+                // Generate salt and hash password
+                val salt = EncryptionUtils.generateSalt()
+                val hashedPassword = EncryptionUtils.hashPassword(pin, salt)
+
+                // Update folder with PIN
+                val updatedFolder = folder.copy(
+                    passwordHash = hashedPassword,
+                    salt = salt,
+                    isLocked = true
+                )
+
+                withContext(Dispatchers.IO) {
+                    database.encryptedFolderDao().updateFolder(updatedFolder)
+                }
+
+                Toast.makeText(this@MediaGalleryActivity, "Folder '${folder.name}' locked successfully", Toast.LENGTH_SHORT).show()
+
+            } catch (e: Exception) {
+                android.util.Log.e("MediaGalleryActivity", "Error locking folder", e)
+                Toast.makeText(this@MediaGalleryActivity, "Error locking folder: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun unlockFolder(folder: EncryptedFolderEntity) {
+        lifecycleScope.launch {
+            try {
+                // Update folder to remove PIN
+                val updatedFolder = folder.copy(
+                    passwordHash = "",
+                    salt = "",
+                    isLocked = false
+                )
+
+                withContext(Dispatchers.IO) {
+                    database.encryptedFolderDao().updateFolder(updatedFolder)
+                }
+
+                Toast.makeText(this@MediaGalleryActivity, "Folder '${folder.name}' unlocked successfully", Toast.LENGTH_SHORT).show()
+
+            } catch (e: Exception) {
+                android.util.Log.e("MediaGalleryActivity", "Error unlocking folder", e)
+                Toast.makeText(this@MediaGalleryActivity, "Error unlocking folder: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -1301,12 +1627,15 @@ class MediaGalleryActivity : BaseActivity() {
             append("🔒 Security Features:\n")
             append("• Each folder has its own PIN\n")
             append("• Set up recovery questions in Settings\n")
-            append("• Default PIN is 0000 (change recommended)\n\n")
+            append("• Choose your own PIN when locking folders\n\n")
             append("⚡ Calculator Shortcuts:\n")
             append("• Enter digit 0-9 in calculator\n")
             append("• Long-press = button for 4 seconds\n")
-            append("• Opens folder at that position\n")
-            append("• Example: Enter '2' → long-press = → opens folder at position 2\n\n")
+            append("• '0' opens main gallery screen\n")
+            append("• '1' opens 1st folder, '2' opens 2nd folder, etc.\n")
+            append("• Example: Enter '0' → long-press = → opens gallery\n")
+            append("• Example: Enter '1' → long-press = → opens Photos folder\n")
+            append("• Example: Enter '2' → long-press = → opens Videos folder\n\n")
             append("💡 Tips:\n")
             append("• Use ⋮ menu in header for bulk operations\n")
             append("• Export folders to backup your data\n")
@@ -1326,6 +1655,11 @@ class MediaGalleryActivity : BaseActivity() {
 
     // Folder-specific actions
     private fun showChangePinDialog(folder: EncryptedFolderEntity) {
+        if (!folder.isLocked) {
+            Toast.makeText(this, "Folder is not locked. Lock it first to change PIN.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val dialogView = layoutInflater.inflate(R.layout.dialog_create_folder_pin, null)
 
         // Hide the folder name input since we're changing PIN for existing folder
@@ -1381,7 +1715,7 @@ class MediaGalleryActivity : BaseActivity() {
             setHintTextColor(resources.getColor(R.color.text_muted_b0aec0, null))
             textSize = 16f
             maxLines = 1
-            filters = arrayOf(android.text.InputFilter.LengthFilter(4))
+            filters = arrayOf(android.text.InputFilter.LengthFilter(3))
             inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
             setPadding(resources.getDimensionPixelSize(R.dimen.padding_large), resources.getDimensionPixelSize(R.dimen.padding_large), resources.getDimensionPixelSize(R.dimen.padding_large), resources.getDimensionPixelSize(R.dimen.padding_large))
         }
@@ -1431,11 +1765,20 @@ class MediaGalleryActivity : BaseActivity() {
             } else if (newPin.length != 4 || !newPin.all { it.isDigit() }) {
                 newPinLayout?.error = "New PIN must be 4 digits"
                 hasError = true
+            } else if (isWeakPin(newPin)) {
+                newPinLayout?.error = "PIN is too weak. Avoid repeating digits or sequential patterns"
+                hasError = true
             }
 
             // Validate confirm PIN
             if (confirmPin != newPin) {
                 confirmPinLayout?.error = "PINs do not match"
+                hasError = true
+            }
+
+            // Check PIN reuse for new PIN
+            if (newPin.isNotEmpty() && runBlocking { isPinAlreadyUsed(newPin, folder.id) } && newPin != currentPin) {
+                newPinLayout?.error = "This PIN is already used by another folder"
                 hasError = true
             }
 
@@ -1573,6 +1916,14 @@ class MediaGalleryActivity : BaseActivity() {
         lifecycleScope.launch {
             try {
                 android.util.Log.d("MediaGalleryActivity", "Verifying PIN '$enteredPin' for folder: ${folder.name}")
+
+                // If folder is not locked, always return true
+                if (!folder.isLocked) {
+                    android.util.Log.d("MediaGalleryActivity", "Folder is not locked, allowing access")
+                    callback(true)
+                    return@launch
+                }
+
                 val isValid = withContext(Dispatchers.IO) {
                     val storedHash = folder.passwordHash
                     val salt = folder.salt
@@ -1677,6 +2028,10 @@ private fun toggleSelectAllFolders(menuItem: android.view.MenuItem) {
                 
                 folderAdapter.clearSelection()
                 updateMenuVisibility(false)
+
+                // Notify about file changes for instant UI update
+                notifyFilesChanged()
+
                 Toast.makeText(this@MediaGalleryActivity, "${folders.size} folder(s) deleted", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 android.util.Log.e("MediaGalleryActivity", "Error deleting folders", e)
@@ -1744,8 +2099,10 @@ private fun toggleSelectAllFolders(menuItem: android.view.MenuItem) {
                 updateMenuVisibility(false)
                 isAllSelected = false
                 
-                // Refresh the folder list
-                setupFolderList()
+                // Refresh the folder list with a small delay to ensure database consistency
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    setupFolderList()
+                }, 100)
                 
                 Toast.makeText(this@MediaGalleryActivity, "Moved $successCount folder(s) to '$category' category", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
@@ -1958,6 +2315,21 @@ private fun toggleSelectAllFolders(menuItem: android.view.MenuItem) {
         menu.findItem(R.id.action_export_selected)?.isVisible = hasSelection
     }
 
+    private fun updateBulkActionVisibility(allSelected: Boolean) {
+        val menu = binding.toolbar.menu
+        // Show bulk actions when all folders are selected
+        if (allSelected) {
+            menu.findItem(R.id.action_delete_selected)?.isVisible = true
+            menu.findItem(R.id.action_move_selected)?.isVisible = true
+            menu.findItem(R.id.action_export_selected)?.isVisible = true
+            // You could also add a special "Select All" action or modify existing ones
+            Toast.makeText(this, "All folders selected! Bulk actions available.", Toast.LENGTH_SHORT).show()
+        } else {
+            // Hide bulk actions when not all folders are selected
+            updateMenuVisibility(folderAdapter.getSelectedFolders().isNotEmpty())
+        }
+    }
+
     private fun validateAndCleanNonMediaFiles() {
         lifecycleScope.launch {
             try {
@@ -2019,8 +2391,15 @@ private fun toggleSelectAllFolders(menuItem: android.view.MenuItem) {
                         Toast.LENGTH_LONG
                     ).show()
 
-                    // Refresh the folder list to update counts
-                    setupFolderList()
+                    // Notify about file changes for instant UI update
+                    if (totalRemovedFiles > 0) {
+                        notifyFilesChanged()
+                    }
+
+                    // Refresh the folder list to update counts with a small delay to ensure database consistency
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        setupFolderList()
+                    }, 100)
                 } else {
                     android.util.Log.d("MediaGalleryActivity", "File validation complete: $totalScannedFiles scanned, no cleanup needed")
                 }
@@ -2168,8 +2547,15 @@ private fun toggleSelectAllFolders(menuItem: android.view.MenuItem) {
 
                 Toast.makeText(this@MediaGalleryActivity, message, Toast.LENGTH_SHORT).show()
 
-                // Refresh folder list to update counts
-                setupFolderList()
+                // Notify about file changes for instant UI update
+                if (successCount > 0) {
+                    notifyFolderUpdated(folder.id)
+                }
+
+                // Refresh folder list to update counts with a small delay to ensure database consistency
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    setupFolderList()
+                }, 100)
 
             } catch (e: Exception) {
                 android.util.Log.e("MediaGalleryActivity", "Error importing files", e)
@@ -2197,6 +2583,12 @@ private fun toggleSelectAllFolders(menuItem: android.view.MenuItem) {
     private fun showFolderPinDialog(folder: EncryptedFolderEntity, onSuccess: () -> Unit = {
         openFolderContents(folder)
     }) {
+        // If folder is not locked, skip PIN dialog and open directly
+        if (!folder.isLocked) {
+            onSuccess()
+            return
+        }
+
         val dialogView = layoutInflater.inflate(R.layout.dialog_folder_pin, null)
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this, R.style.DialogStyle_Todo)
             .setView(dialogView)
@@ -2232,7 +2624,7 @@ private fun toggleSelectAllFolders(menuItem: android.view.MenuItem) {
 
         numberButtons.forEachIndexed { index, button ->
             button?.setOnClickListener {
-                if (currentPin.length < 4) {
+                if (currentPin.length < 3) {
                     currentPin += if (index == 9) "0" else (index + 1).toString()
                     updatePinDisplay(pinDigits, currentPin)
                     errorMessage?.visibility = View.GONE
@@ -2876,9 +3268,16 @@ private fun toggleSelectAllFolders(menuItem: android.view.MenuItem) {
                     android.util.Log.d("MediaGalleryActivity", "Folder '${folder.name}' has $fileCount files")
                 }
 
-                // Refresh folder list
+                // Notify about file changes for instant UI update
+                if (importedFiles > 0) {
+                    notifyFilesChanged()
+                }
+
+                // Refresh folder list with a small delay to ensure database consistency
                 android.util.Log.d("MediaGalleryActivity", "Refreshing folder list...")
-                setupFolderList()
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    setupFolderList()
+                }, 100)
 
                 // Show success message
                 val message = "Gallery import completed!\n" +
@@ -3013,6 +3412,26 @@ private fun toggleSelectAllFolders(menuItem: android.view.MenuItem) {
     private fun showBugReportDialog() {
         val bugReportSheet = BugReportBottomSheet.newInstance()
         bugReportSheet.show(supportFragmentManager, BugReportBottomSheet.TAG)
+    }
+
+    // Helper methods to send broadcasts for file changes
+    @Suppress("UnsafeIntentLaunch")
+    private fun notifyFilesChanged() {
+        val intent = Intent(ACTION_FILES_CHANGED).apply {
+            setPackage(packageName)
+        }
+        sendBroadcast(intent)
+        android.util.Log.d("MediaGalleryActivity", "Sent FILES_CHANGED broadcast")
+    }
+
+    @Suppress("UnsafeIntentLaunch")
+    private fun notifyFolderUpdated(folderId: Long) {
+        val intent = Intent(ACTION_FOLDER_UPDATED).apply {
+            putExtra(EXTRA_FOLDER_ID, folderId)
+            setPackage(packageName)
+        }
+        sendBroadcast(intent)
+        android.util.Log.d("MediaGalleryActivity", "Sent FOLDER_UPDATED broadcast for folder $folderId")
     }
 
 }

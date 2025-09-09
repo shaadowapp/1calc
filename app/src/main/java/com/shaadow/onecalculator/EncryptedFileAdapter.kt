@@ -82,7 +82,7 @@ class EncryptedFileAdapter(
         private val fileInfo: TextView = itemView.findViewById(R.id.file_info)
         private val fileDate: TextView = itemView.findViewById(R.id.file_date)
         private val menuButton: ImageView = itemView.findViewById(R.id.file_menu_button)
-        private val selectionCheckbox: androidx.appcompat.widget.AppCompatCheckBox? = itemView.findViewById(R.id.selection_checkbox)
+        private val selectionTick: ImageView = itemView.findViewById(R.id.selection_tick)
 
         fun bind(file: EncryptedFileEntity) {
             fileName.text = file.originalFileName
@@ -101,16 +101,47 @@ class EncryptedFileAdapter(
             
             // Handle selection mode
             if (isSelectionMode) {
-                selectionCheckbox?.visibility = View.VISIBLE
-                selectionCheckbox?.isChecked = selectedFiles.contains(file.id)
+                selectionTick.visibility = View.VISIBLE
+                val isSelected = selectedFiles.contains(file.id)
+                selectionTick.alpha = if (isSelected) 0.8f else 0.3f // More subtle alpha for better aesthetics
                 menuButton.visibility = View.GONE
-                
-                // Update background for selected items
-                itemView.isSelected = selectedFiles.contains(file.id)
+
+                // Update background and scale for selected items
+                itemView.isSelected = isSelected
+                if (isSelected) {
+                    // Add subtle scale effect for selected items
+                    itemView.scaleX = 0.98f
+                    itemView.scaleY = 0.98f
+
+                    // Apply green theme to the card
+                    (itemView as? com.google.android.material.card.MaterialCardView)?.apply {
+                        strokeColor = context.getColor(R.color.success_green)
+                        strokeWidth = 2
+                    }
+                } else {
+                    // Reset scale for unselected items
+                    itemView.scaleX = 1.0f
+                    itemView.scaleY = 1.0f
+
+                    // Reset card stroke to default
+                    (itemView as? com.google.android.material.card.MaterialCardView)?.apply {
+                        strokeColor = context.getColor(R.color.card_stroke_3f3c4b)
+                        strokeWidth = 0
+                    }
+                }
             } else {
-                selectionCheckbox?.visibility = View.GONE
+                selectionTick.visibility = View.GONE
                 menuButton.visibility = View.VISIBLE
                 itemView.isSelected = false
+                // Reset scale when not in selection mode
+                itemView.scaleX = 1.0f
+                itemView.scaleY = 1.0f
+
+                // Reset card stroke to default
+                (itemView as? com.google.android.material.card.MaterialCardView)?.apply {
+                    strokeColor = context.getColor(R.color.card_stroke_3f3c4b)
+                    strokeWidth = 0
+                }
             }
             
             // Set click listener
@@ -132,8 +163,8 @@ class EncryptedFileAdapter(
                 showContextMenu(file, it)
             }
             
-            // Set checkbox click listener
-            selectionCheckbox?.setOnClickListener {
+            // Set tick mark click listener
+            selectionTick.setOnClickListener {
                 onFileClick(file)
             }
         }

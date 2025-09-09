@@ -40,7 +40,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Enter 4-digit PIN to access folder"
+            android:text="Enter 3-digit PIN to access folder"
             android:textColor="@color/text_muted_a0a0a0"
             android:textSize="14sp" />
 

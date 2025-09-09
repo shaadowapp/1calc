@@ -26,7 +26,8 @@ class EncryptedFolderAdapter(
     private val onFolderClick: (FolderWithCount) -> Unit,
     private val onFolderLongClick: (FolderWithCount) -> Unit,
     private val onFolderMenuClick: (FolderWithCount, View) -> Unit,
-    private val onAddFolderClick: () -> Unit
+    private val onAddFolderClick: () -> Unit,
+    private val onSelectionChanged: ((Boolean) -> Unit)? = null
 ) : ListAdapter<Any, RecyclerView.ViewHolder>(FolderDiffCallback()) {
 
     private var isSelectionMode = false
@@ -71,12 +72,21 @@ class EncryptedFolderAdapter(
         } else {
             selectedFolders.add(folderId)
         }
-        
+
         if (selectedFolders.isEmpty()) {
             isSelectionMode = false
         }
-        
+
+        // Check if all folders are selected and notify
+        val allFoldersSelected = checkIfAllFoldersSelected()
+        onSelectionChanged?.invoke(allFoldersSelected)
+
         notifyDataSetChanged()
+    }
+
+    private fun checkIfAllFoldersSelected(): Boolean {
+        val folderItems = currentList.filterIsInstance<FolderWithCount>()
+        return folderItems.isNotEmpty() && selectedFolders.size == folderItems.size
     }
 
     companion object {
@@ -129,20 +139,50 @@ class EncryptedFolderAdapter(
         private val folderName: TextView = itemView.findViewById(R.id.folder_name)
         private val folderItemCount: TextView = itemView.findViewById(R.id.folder_item_count)
         private val folderMenu: ImageView = itemView.findViewById(R.id.folder_menu)
+        private val selectionTick: ImageView = itemView.findViewById(R.id.selection_tick)
 
         fun bind(folderWithCount: FolderWithCount) {
             folderName.text = folderWithCount.name
             folderItemCount.text = folderWithCount.itemCountText
 
+            // Show/hide lock icon based on folder lock status
+            val isLocked = folderWithCount.folder.isLocked
+            lockIcon.visibility = if (isLocked) View.VISIBLE else View.GONE
+
             // Handle selection state
             val isSelected = selectedFolders.contains(folderWithCount.id)
             itemView.isSelected = isSelected
-            
-            // Update background based on selection
+
+            // Update background and selection indicator based on selection
             if (isSelected) {
                 itemView.setBackgroundResource(R.drawable.bg_folder_selected)
+                selectionTick.visibility = View.VISIBLE
+                selectionTick.alpha = 0.8f // Make tick slightly transparent for better aesthetics
+                folderMenu.visibility = View.GONE // Hide menu when selected
+
+                // Add subtle scale animation for selected state
+                itemView.scaleX = 0.98f
+                itemView.scaleY = 0.98f
+
+                // Apply green theme to the card
+                (itemView as? com.google.android.material.card.MaterialCardView)?.apply {
+                    strokeColor = context.getColor(R.color.success_green)
+                    strokeWidth = 3
+                }
             } else {
                 itemView.setBackgroundResource(R.drawable.bg_folder_normal)
+                selectionTick.visibility = View.GONE
+                folderMenu.visibility = View.VISIBLE // Show menu when not selected
+
+                // Reset scale for unselected state
+                itemView.scaleX = 1.0f
+                itemView.scaleY = 1.0f
+
+                // Reset card stroke to default
+                (itemView as? com.google.android.material.card.MaterialCardView)?.apply {
+                    strokeColor = context.getColor(R.color.card_stroke_3f3c4b)
+                    strokeWidth = 1
+                }
             }
 
             itemView.setOnClickListener {

@@ -174,7 +174,7 @@ class TodoActivity : AppCompatActivity() {
             holder.text.text = item.text
             holder.text.paint.isStrikeThruText = item.done
             if (item.done) {
-                holder.check.setImageResource(R.drawable.ic_check_circle)
+                holder.check.setImageResource(R.drawable.ic_check)
                 holder.check.setColorFilter(ContextCompat.getColor(this@TodoActivity, R.color.green_4caf50))
                 holder.text.alpha = 0.5f
             } else {

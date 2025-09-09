@@ -221,7 +221,10 @@ class NewFolderContentsActivity : AppCompatActivity() {
                 startActivity(intent)
                 finish()
             } else {
-                // Normal navigation - go back to gallery
+                // Normal navigation - explicitly go back to gallery
+                val intent = Intent(this, MediaGalleryActivity::class.java)
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                startActivity(intent)
                 finish()
             }
         }
@@ -693,6 +696,11 @@ class NewFolderContentsActivity : AppCompatActivity() {
                 }
                 Toast.makeText(this@NewFolderContentsActivity, message, Toast.LENGTH_SHORT).show()
 
+                // Notify about file changes for instant UI update
+                if (successCount > 0) {
+                    notifyFilesChanged()
+                }
+
                 // Reload files
                 loadFiles()
 
@@ -1020,6 +1028,9 @@ class NewFolderContentsActivity : AppCompatActivity() {
                     encryptedFileDao.deleteFile(file)
                 }
 
+                // Notify about file changes for instant UI update
+                notifyFilesChanged()
+
                 Toast.makeText(this@NewFolderContentsActivity, "File deleted successfully", Toast.LENGTH_SHORT).show()
                 loadFiles()
 
@@ -1287,5 +1298,20 @@ class NewFolderContentsActivity : AppCompatActivity() {
             val extension = fileName.substringAfterLast('.', "").lowercase()
             MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) ?: "application/octet-stream"
         }
+    }
+
+    // Helper methods to send broadcasts for file changes
+    private fun notifyFilesChanged() {
+        val intent = Intent(MediaGalleryActivity.ACTION_FILES_CHANGED)
+        sendBroadcast(intent)
+        android.util.Log.d("NewFolderContentsActivity", "Sent FILES_CHANGED broadcast")
+    }
+
+    private fun notifyFolderUpdated(folderId: Long) {
+        val intent = Intent(MediaGalleryActivity.ACTION_FOLDER_UPDATED).apply {
+            putExtra(MediaGalleryActivity.EXTRA_FOLDER_ID, folderId)
+        }
+        sendBroadcast(intent)
+        android.util.Log.d("NewFolderContentsActivity", "Sent FOLDER_UPDATED broadcast for folder $folderId")
     }
 }

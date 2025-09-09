@@ -98,12 +98,44 @@
 
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Lock Folder Toggle -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="20dp"
+                android:padding="16dp"
+                android:background="@drawable/bg_info_card"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Lock this folder with PIN"
+                    android:textColor="@color/white_ffffff"
+                    android:textSize="16sp"
+                    android:fontFamily="sans-serif-medium" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/lock_folder_switch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="false"
+                    app:thumbTint="@color/accent_purple_bb86fc"
+                    app:trackTint="@color/accent_purple_bb86fc" />
+
+            </LinearLayout>
+
             <!-- PIN Input -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/folder_pin_input_layout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="20dp"
+                android:visibility="gone"
                 app:boxBackgroundMode="outline"
                 app:boxBackgroundColor="@color/card_bg_2a2833"
                 app:boxStrokeColor="@color/accent_purple_bb86fc"
@@ -122,13 +154,13 @@
                     android:id="@+id/folder_pin_input"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="4-Digit PIN"
+                    android:hint="3-Digit PIN"
                     android:textColor="@color/white_ffffff"
                     android:textColorHint="@color/text_muted_b0aec0"
                     android:textSize="16sp"
                     android:fontFamily="sans-serif"
                     android:maxLines="1"
-                    android:maxLength="4"
+                    android:maxLength="3"
                     android:inputType="numberPassword"
                     android:paddingTop="16dp"
                     android:paddingBottom="16dp" />
@@ -140,6 +172,7 @@
                 android:id="@+id/folder_confirm_pin_input_layout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:visibility="gone"
                 app:boxBackgroundMode="outline"
                 app:boxBackgroundColor="@color/card_bg_2a2833"
                 app:boxStrokeColor="@color/accent_purple_bb86fc"
@@ -164,7 +197,7 @@
                     android:textSize="16sp"
                     android:fontFamily="sans-serif"
                     android:maxLines="1"
-                    android:maxLength="4"
+                    android:maxLength="3"
                     android:inputType="numberPassword"
                     android:paddingTop="16dp"
                     android:paddingBottom="16dp" />
@@ -173,44 +206,6 @@
 
         </LinearLayout>
 
-        <!-- Info Section -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="32dp"
-            app:cardBackgroundColor="@color/card_bg_2a2833"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="0dp"
-            app:strokeColor="@color/accent_purple_bb86fc"
-            app:strokeWidth="1dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="16dp"
-                android:gravity="center_vertical">
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_info"
-                    android:layout_marginEnd="12dp"
-                    app:tint="@color/accent_purple_bb86fc" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Default PIN is 0000. You can customize it or change it later from folder options."
-                    android:textColor="@color/text_light_f2f2f2"
-                    android:textSize="14sp"
-                    android:fontFamily="sans-serif"
-                    android:lineSpacingExtra="2dp" />
-
-            </LinearLayout>
-
-        </com.google.android.material.card.MaterialCardView>
 
         <!-- Buttons Section -->
         <LinearLayout

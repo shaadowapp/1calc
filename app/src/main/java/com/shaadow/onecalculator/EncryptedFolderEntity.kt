@@ -21,6 +21,7 @@ data class EncryptedFolderEntity(
     val name: String,
     val passwordHash: String, // SHA-256 hash of the password
     val salt: String, // Salt used for encryption
+    val isLocked: Boolean = false, // Whether the folder requires PIN to access
     val createdAt: Long = System.currentTimeMillis(),
     val lastModified: Long = System.currentTimeMillis(),
     val parentFolderId: Long? = null // ID of the parent folder, null for root folders

@@ -95,38 +95,35 @@
                 android:nestedScrollingEnabled="false"
                 tools:listitem="@layout/item_encrypted_folder" />
 
-            <!-- Permanent Deletion Warning -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:background="@drawable/bg_warning_card"
-                android:padding="16dp"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="16dp"
-                android:gravity="center_vertical">
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_warning"
-                    android:layout_marginEnd="12dp"
-                    app:tint="@color/warning_orange" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="⚠️ Important: Files in Hidden Gallery will be permanently deleted if you uninstall the app. Export your data before uninstalling to avoid data loss."
-                    android:textColor="@color/warning_orange"
-                    android:textSize="12sp"
-                    android:lineSpacingExtra="4dp" />
-
-            </LinearLayout>
 
         </LinearLayout>
 
     </androidx.core.widget.NestedScrollView>
+
+    <!-- Permanent Deletion Warning -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="horizontal"
+        android:paddingVertical="12dp"
+        android:paddingHorizontal="16dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Files will be permanently deleted if you uninstall the app, So export data first."
+            android:textColor="@color/warning_orange"
+            android:textSize="11sp"
+            android:lineSpacingExtra="2dp"
+            android:layout_marginHorizontal="12dp"/>
+
+    </LinearLayout>
 
     <!-- Floating Action Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -134,7 +131,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="80dp"
         android:src="@drawable/ic_add"
         android:contentDescription="Create new folder"
         app:backgroundTint="@color/card_bg_2a2833"
