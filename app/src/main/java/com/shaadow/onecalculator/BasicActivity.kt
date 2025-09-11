@@ -26,6 +26,8 @@ import android.view.ViewGroup
 import android.widget.RelativeLayout
 import android.widget.FrameLayout
 import android.view.Gravity
+import kotlin.math.abs
+import android.util.Log
 import com.shaadow.onecalculator.utils.AnalyticsHelper
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.shaadow.onecalculator.MediaGalleryActivity
@@ -39,7 +41,7 @@ class BasicActivity : AppCompatActivity() {
 
     private lateinit var expressionTv: EditText
     private lateinit var solutionTv: TextView
-    // Remove gestureDetector declaration
+    private lateinit var gestureDetector: GestureDetector
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,6 +54,38 @@ class BasicActivity : AppCompatActivity() {
 
         expressionTv = findViewById(R.id.expression_tv)
         solutionTv = findViewById(R.id.solution_tv)
+
+        Log.d("Gesture", "GestureDetector initialized")
+        gestureDetector = GestureDetector(this, object : SimpleOnGestureListener() {
+            override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+                Log.d("Gesture", "onFling called: e1=$e1, e2=$e2")
+                Log.d("Gesture", "Velocities: velocityX=$velocityX, velocityY=$velocityY")
+                if (e1 == null) {
+                    Log.d("Gesture", "e1 is null, returning false")
+                    return false
+                }
+                val diffY = e2.y - e1.y
+                val diffX = e2.x - e1.x
+                Log.d("Gesture", "Differences: diffY=$diffY, diffX=$diffX")
+                Log.d("Gesture", "Abs values: abs(diffY)=${abs(diffY)}, abs(diffX)=${abs(diffX)}")
+
+                val isVertical = abs(diffY) > abs(diffX)
+                val isDown = diffY > 10
+                val isFast = abs(velocityY) > 50
+
+                Log.d("Gesture", "Conditions: isVertical=$isVertical, isDown=$isDown, isFast=$isFast")
+
+                if (isVertical && isDown && isFast) {
+                    Log.d("Gesture", "Swipe down detected, opening history")
+                    startActivity(Intent(this@BasicActivity, HistoryActivity::class.java))
+                    return true
+                } else {
+                    Log.d("Gesture", "Conditions not met for swipe down")
+                }
+                return false
+            }
+        })
+
 
         // Set input filter to restrict to digits and operators
         val allowedChars = "0123456789+-×÷%.()√^!πe"
@@ -401,8 +435,26 @@ class BasicActivity : AppCompatActivity() {
         }
 
         // Hide all toolbars when clicking outside both the toolbox and the active text view
-        val rootView = findViewById<View>(android.R.id.content)
+        val rootView = window.decorView
+        var isTrackingGesture = false
         rootView.setOnTouchListener { v, event ->
+            Log.d("Gesture", "Received event: ${event.action} at (${event.x}, ${event.y})")
+            val handled = gestureDetector.onTouchEvent(event)
+            Log.d("Gesture", "onTouchEvent handled: $handled for event: ${event.action}")
+
+            if (handled) {
+                isTrackingGesture = true
+                return@setOnTouchListener true
+            }
+
+            if (isTrackingGesture) {
+                gestureDetector.onTouchEvent(event)
+                if (event.action == MotionEvent.ACTION_UP) {
+                    isTrackingGesture = false
+                }
+                return@setOnTouchListener true
+            }
+
             val isToolbarVisible = toolbarInclude.visibility == View.VISIBLE || (copyToolbar?.visibility == View.VISIBLE)
             if (isToolbarVisible) {
                 val toolbox = if (toolbarInclude.visibility == View.VISIBLE) toolbarInclude else copyToolbar
