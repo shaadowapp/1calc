@@ -39,7 +39,6 @@ class BasicActivity : AppCompatActivity() {
 
     private lateinit var expressionTv: EditText
     private lateinit var solutionTv: TextView
-    private lateinit var resultTv: TextView
     // Remove gestureDetector declaration
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,7 +52,6 @@ class BasicActivity : AppCompatActivity() {
 
         expressionTv = findViewById(R.id.expression_tv)
         solutionTv = findViewById(R.id.solution_tv)
-        resultTv = findViewById(R.id.result_tv)
 
         // Set input filter to restrict to digits and operators
         val allowedChars = "0123456789+-×÷%.()√^!πe"
@@ -88,7 +86,10 @@ class BasicActivity : AppCompatActivity() {
             override fun afterTextChanged(s: android.text.Editable?) {
                 adjustExpressionTextSize()
                 updateSolutionVisibility()
-                adjustSolutionTextSize()
+                // Don't adjust solution text size when showing calculation result
+                if (!isResultShown) {
+                    adjustSolutionTextSize()
+                }
             }
         })
 
@@ -156,9 +157,7 @@ class BasicActivity : AppCompatActivity() {
             solutionTv.text = "0"
             expressionTv.visibility = View.VISIBLE
             solutionTv.visibility = View.VISIBLE
-            resultTv.visibility = View.GONE
             solutionTv.textSize = 50f
-            updateSolutionVisibility()
             adjustSolutionTextSize()
             isResultShown = false
         }
@@ -218,13 +217,14 @@ class BasicActivity : AppCompatActivity() {
             val formattedExpression = getExpressionForCalculation()
             try {
                 val result = safeCalculate(formattedExpression)
-                val formattedResult = formatNumberWithCommas(doubleToStringWithoutScientificNotation(result))
-                resultTv.text = formattedResult
-                resultTv.visibility = View.VISIBLE
-                expressionTv.visibility = View.GONE
-                solutionTv.visibility = View.GONE
-                resultTv.textSize = 58f
+                // Solution already has the correct result from live calculation
+                solutionTv.visibility = View.VISIBLE
                 isResultShown = true
+                // If expression ends without operator (complete), hide expression
+                if (isExpressionComplete(expression)) {
+                    expressionTv.visibility = View.GONE
+                    expressionTv.setText("")
+                }
                 // Save to Room DB
                 val expr = expression
                 val res = doubleToStringWithoutScientificNotation(result)
@@ -235,18 +235,14 @@ class BasicActivity : AppCompatActivity() {
 
                 // Track calculation in Analytics
                 analyticsHelper.logCalculation(expr, res)
-
-                adjustSolutionTextSize()
             } catch (e: Exception) {
                 // Track error in Crashlytics
                 FirebaseCrashlytics.getInstance().recordException(e)
                 analyticsHelper.logError("calculation_error", e.message ?: "Unknown calculation error")
 
-                resultTv.text = getString(R.string.error_text)
-                resultTv.visibility = View.VISIBLE
-                expressionTv.visibility = View.GONE
-                solutionTv.visibility = View.GONE
-                adjustSolutionTextSize()
+                solutionTv.text = getString(R.string.error_text)
+                solutionTv.visibility = View.VISIBLE
+                isResultShown = true
             }
         }
 
@@ -259,8 +255,6 @@ class BasicActivity : AppCompatActivity() {
                 // Clear the calculator input immediately when shortcut is triggered
                 expressionTv.setText("")
                 solutionTv.text = ""
-                resultTv.text = ""
-                resultTv.visibility = View.GONE
                 solutionTv.visibility = View.VISIBLE
                 isResultShown = false
                 startGalleryShortcutFlow(position)
@@ -316,7 +310,19 @@ class BasicActivity : AppCompatActivity() {
 
         // Expression EditText: show 3-button toolbar on long press
         val inputField = findViewById<EditText>(R.id.expression_tv)
+
+        // Disable default text selection toolbar
+        inputField.customSelectionActionModeCallback = object : android.view.ActionMode.Callback {
+            override fun onCreateActionMode(mode: android.view.ActionMode?, menu: android.view.Menu?): Boolean = false
+            override fun onPrepareActionMode(mode: android.view.ActionMode?, menu: android.view.Menu?): Boolean = false
+            override fun onActionItemClicked(mode: android.view.ActionMode?, item: android.view.MenuItem?): Boolean = false
+            override fun onDestroyActionMode(mode: android.view.ActionMode?) {}
+        }
+
         inputField.setOnLongClickListener {
+            // Select all text
+            expressionTv.selectAll()
+
             // Hide any other toolbar
             copyToolbar?.visibility = View.GONE
             showToolbarBelow(inputField, toolbarInclude)
@@ -367,6 +373,14 @@ class BasicActivity : AppCompatActivity() {
             toolbarInclude.visibility = View.GONE
         }
 
+        // Disable default text selection toolbar for solution TextView
+        solutionTv.customSelectionActionModeCallback = object : android.view.ActionMode.Callback {
+            override fun onCreateActionMode(mode: android.view.ActionMode?, menu: android.view.Menu?): Boolean = false
+            override fun onPrepareActionMode(mode: android.view.ActionMode?, menu: android.view.Menu?): Boolean = false
+            override fun onActionItemClicked(mode: android.view.ActionMode?, item: android.view.MenuItem?): Boolean = false
+            override fun onDestroyActionMode(mode: android.view.ActionMode?) {}
+        }
+
         // Solution TextView: show single-copy toolbar on long press
         solutionTv.setOnLongClickListener {
             toolbarInclude.visibility = View.GONE
@@ -383,23 +397,6 @@ class BasicActivity : AppCompatActivity() {
             }
             showToolbarBelow(solutionTv, copyToolbar!!)
             activeToolboxTextView = solutionTv
-            true
-        }
-        // Result TextView: show single-copy toolbar on long press
-        resultTv.setOnLongClickListener {
-            toolbarInclude.visibility = View.GONE
-            if (copyToolbar == null) {
-                copyToolbar = layoutInflater.inflate(R.layout.custom_toolbar_copy, findViewById<ViewGroup>(android.R.id.content), false) as LinearLayout
-                (findViewById<ViewGroup>(android.R.id.content) as ViewGroup).addView(copyToolbar)
-                val btnCopy = copyToolbar!!.findViewById<Button>(R.id.btnCopy)
-                btnCopy.setOnClickListener {
-                    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    clipboard.setPrimaryClip(ClipData.newPlainText("text", resultTv.text.toString()))
-                    copyToolbar?.visibility = View.GONE
-                }
-            }
-            showToolbarBelow(resultTv, copyToolbar!!)
-            activeToolboxTextView = resultTv
             true
         }
 
@@ -506,7 +503,10 @@ class BasicActivity : AppCompatActivity() {
     }
 
     private fun updateSolutionVisibility() {
-        solutionTv.visibility = if (expressionTv.text.isNullOrEmpty()) View.INVISIBLE else View.VISIBLE
+        // Don't hide solution when showing calculation result
+        if (!isResultShown) {
+            solutionTv.visibility = if (expressionTv.text.isNullOrEmpty()) View.INVISIBLE else View.VISIBLE
+        }
     }
 
     private fun getNextBracket(expr: String): String {
@@ -681,10 +681,18 @@ class BasicActivity : AppCompatActivity() {
 
     private fun adjustSolutionTextSize() {
         val length = solutionTv.text.length
-        solutionTv.textSize = when {
-            length > 18 -> 28f
-            length > 10 -> 38f
-            else -> 50f
+        if (isResultShown) {
+            solutionTv.textSize = when {
+                length > 18 -> 35f
+                length > 10 -> 45f
+                else -> 60f
+            }
+        } else {
+            solutionTv.textSize = when {
+                length > 18 -> 28f
+                length > 10 -> 38f
+                else -> 50f
+            }
         }
     }
 
