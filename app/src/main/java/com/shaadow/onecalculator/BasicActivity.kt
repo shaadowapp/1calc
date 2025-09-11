@@ -14,6 +14,7 @@ import android.widget.TextView
 import android.widget.EditText
 import android.widget.Toast
 import android.widget.LinearLayout
+import android.widget.ImageView
 import android.content.Intent
 import android.widget.Button
 import androidx.lifecycle.lifecycleScope
@@ -25,12 +26,12 @@ import android.view.ViewGroup
 import android.widget.RelativeLayout
 import android.widget.FrameLayout
 import android.view.Gravity
-import android.widget.ImageView
 import com.shaadow.onecalculator.utils.AnalyticsHelper
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.shaadow.onecalculator.MediaGalleryActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import android.text.InputFilter
 
 class BasicActivity : AppCompatActivity() {
     private var isResultShown = false
@@ -54,13 +55,25 @@ class BasicActivity : AppCompatActivity() {
         solutionTv = findViewById(R.id.solution_tv)
         resultTv = findViewById(R.id.result_tv)
 
+        // Set input filter to restrict to digits and operators
+        val allowedChars = "0123456789+-×÷%.()√^!πe"
+        val filter = InputFilter { source, start, end, dest, dstart, dend ->
+            for (i in start until end) {
+                if (source[i] !in allowedChars) {
+                    return@InputFilter ""
+                }
+            }
+            null
+        }
+        expressionTv.filters = arrayOf(filter)
+
         // Initialize Analytics
         analyticsHelper = AnalyticsHelper(this)
         analyticsHelper.logScreenView("Basic Calculator", "BasicActivity")
 
         // Prevent soft keyboard from showing up
         expressionTv.showSoftInputOnFocus = false
-        
+
         // Hide keyboard when EditText gets focus
         expressionTv.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
@@ -85,7 +98,7 @@ class BasicActivity : AppCompatActivity() {
         val buttons = listOf(
             R.id.button_0, R.id.button_1, R.id.button_2, R.id.button_3, R.id.button_4,
             R.id.button_5, R.id.button_6, R.id.button_7, R.id.button_8, R.id.button_9,
-            R.id.button_plus, R.id.button_minus, R.id.button_multiply, R.id.button_divide,
+            R.id.button_dual_zero, R.id.button_plus, R.id.button_minus, R.id.button_multiply, R.id.button_divide,
             R.id.button_dot, R.id.button_percent, R.id.button_brackets,
             R.id.button_sqrt, R.id.button_power, R.id.button_factorial,
             R.id.button_pi, R.id.button_e
@@ -106,6 +119,7 @@ class BasicActivity : AppCompatActivity() {
                     R.id.button_pi -> "π"
                     R.id.button_e -> "e"
                     R.id.button_dot -> "."
+                    R.id.button_dual_zero -> "00"
                     R.id.button_brackets -> getNextBracket(expressionTv.text.toString())
                     else -> button.text.toString()
                 }
@@ -153,7 +167,7 @@ class BasicActivity : AppCompatActivity() {
             val text = expressionTv.text.toString()
             val selectionStart = expressionTv.selectionStart
             val selectionEnd = expressionTv.selectionEnd
-            
+
             if (text.isNotEmpty()) {
                 if (selectionStart == selectionEnd) {
                     // No text selected, delete character before cursor
@@ -259,6 +273,12 @@ class BasicActivity : AppCompatActivity() {
         // Use the included custom_toolbar in the layout
         val toolbarInclude = findViewById<LinearLayout>(R.id.custom_toolbar)
         toolbarInclude.visibility = View.GONE
+
+        // Set up click listeners for custom toolbar buttons
+        val btnCut = toolbarInclude.findViewById<MaterialButton>(R.id.btnCut)
+        val btnCopy = toolbarInclude.findViewById<MaterialButton>(R.id.btnCopy)
+        val btnPaste = toolbarInclude.findViewById<MaterialButton>(R.id.btnPaste)
+
         // Dynamically inflate the single-copy toolbar when needed
         var copyToolbar: LinearLayout? = null
 
@@ -301,7 +321,50 @@ class BasicActivity : AppCompatActivity() {
             copyToolbar?.visibility = View.GONE
             showToolbarBelow(inputField, toolbarInclude)
             activeToolboxTextView = inputField
+
+            // Show/hide buttons and dividers based on expression content
+            val isExpressionEmpty = expressionTv.text.isNullOrEmpty()
+            btnCut.visibility = if (isExpressionEmpty) View.GONE else View.VISIBLE
+            // Hide/show first divider (between cut and copy)
+            (toolbarInclude.getChildAt(1) as View).visibility = if (isExpressionEmpty) View.GONE else View.VISIBLE
+            btnCopy.visibility = if (isExpressionEmpty) View.GONE else View.VISIBLE
+            // Hide/show second divider (between copy and paste)
+            (toolbarInclude.getChildAt(3) as View).visibility = if (isExpressionEmpty) View.GONE else View.VISIBLE
+            btnPaste.visibility = View.VISIBLE
+
             true
+        }
+
+        btnCut.setOnClickListener {
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val text = expressionTv.text
+            val clip = ClipData.newPlainText("Cut Text", text)
+            clipboard.setPrimaryClip(clip)
+            expressionTv.setText("")
+            toolbarInclude.visibility = View.GONE
+        }
+
+        btnCopy.setOnClickListener {
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val text = expressionTv.text
+            val clip = ClipData.newPlainText("Copied Text", text)
+            clipboard.setPrimaryClip(clip)
+            Toast.makeText(this, "Copied!", Toast.LENGTH_SHORT).show()
+            toolbarInclude.visibility = View.GONE
+        }
+
+        btnPaste.setOnClickListener {
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val paste = clipboard.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString() ?: ""
+            val allowedChars = "0123456789+-×÷%.()√^!πe"
+            val filteredPaste = paste.filter { it in allowedChars }
+            val start = expressionTv.selectionStart
+            val end = expressionTv.selectionEnd
+            val text = expressionTv.text.toString()
+            val newText = text.substring(0, start) + filteredPaste + text.substring(end)
+            expressionTv.setText(newText)
+            expressionTv.setSelection(start + filteredPaste.length)
+            toolbarInclude.visibility = View.GONE
         }
 
         // Solution TextView: show single-copy toolbar on long press
@@ -381,7 +444,22 @@ class BasicActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.btn_history).setOnClickListener {
             startActivity(Intent(this, HistoryActivity::class.java))
         }
-        
+
+        // Toggle button for scientific functions row
+        val toggleButton = findViewById<ImageView>(R.id.button_toggle_row1)
+        val row1Layout = findViewById<LinearLayout>(R.id.row1_layout)
+        // Set initial rotation to up arrow since scientific functions are hidden by default
+        toggleButton.rotation = 180f
+        toggleButton.setOnClickListener {
+            if (row1Layout.visibility == View.VISIBLE) {
+                row1Layout.visibility = View.GONE
+                toggleButton.rotation = 180f // Point up when hidden
+            } else {
+                row1Layout.visibility = View.VISIBLE
+                toggleButton.rotation = 0f // Point down when shown
+            }
+        }
+
         // Remove gestureDetector initialization and outputArea.setOnTouchListener
         // Removed click listeners for btn_settings and btn_hot_apps since those icons are no longer in the layout
         // findViewById<ImageView>(R.id.btn_settings)?.setOnClickListener { v ->
@@ -520,12 +598,14 @@ class BasicActivity : AppCompatActivity() {
             pasteBtn.setOnClickListener {
                 val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 val paste = clipboard.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString() ?: ""
+                val allowedChars = "0123456789+-×÷%.()√^!πe"
+                val filteredPaste = paste.filter { it in allowedChars }
                 val start = expressionTv.selectionStart
                 val end = expressionTv.selectionEnd
                 val text = expressionTv.text.toString()
-                val newText = text.substring(0, start) + paste + text.substring(end)
+                val newText = text.substring(0, start) + filteredPaste + text.substring(end)
                 expressionTv.setText(newText)
-                expressionTv.setSelection(start + paste.length)
+                expressionTv.setSelection(start + filteredPaste.length)
                 popup.dismiss()
             }
             layout.addView(pasteBtn)

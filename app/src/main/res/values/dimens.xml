@@ -96,6 +96,12 @@
     <!-- Default grid column count -->
     <integer name="grid_columns">3</integer>
     
+    <!-- Pill button dimensions -->
+    <dimen name="pill_button_height">70dp</dimen>
+    <dimen name="pill_corner_radius">35dp</dimen>
+    <dimen name="pill_icon_size">24dp</dimen>
+    <dimen name="pill_text_size">24sp</dimen>
+
     <!-- Default responsive dimensions (fallback for all devices) -->
     <dimen name="button_size">@dimen/button_size_large</dimen>
     <dimen name="special_button_size">@dimen/special_button_size_large</dimen>
