@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.GestureDetector.SimpleOnGestureListener
+import android.view.View.OnTouchListener
 import android.view.ViewGroup
 import android.widget.RelativeLayout
 import android.widget.FrameLayout
@@ -30,22 +31,29 @@ import kotlin.math.abs
 import android.util.Log
 import com.shaadow.onecalculator.utils.AnalyticsHelper
 import com.google.firebase.crashlytics.FirebaseCrashlytics
-import com.shaadow.onecalculator.MediaGalleryActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import android.text.InputFilter
+import android.view.HapticFeedbackConstants
+import android.content.SharedPreferences
 
 class BasicActivity : AppCompatActivity() {
     private var isResultShown = false
     private lateinit var analyticsHelper: AnalyticsHelper
+    private lateinit var preferenceDao: PreferenceDao
 
     private lateinit var expressionTv: EditText
     private lateinit var solutionTv: TextView
     private lateinit var gestureDetector: GestureDetector
 
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_basic)
+
+        // Initialize preference DAO
+        preferenceDao = HistoryDatabase.getInstance(this).preferenceDao()
 
         // Show popup if in landscape (should not happen, but as a fallback)
         if (resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
@@ -54,6 +62,13 @@ class BasicActivity : AppCompatActivity() {
 
         expressionTv = findViewById(R.id.expression_tv)
         solutionTv = findViewById(R.id.solution_tv)
+
+        // Request focus for expression EditText to show cursor and hint
+        expressionTv.requestFocus()
+
+        // Ensure solution TextView starts empty
+        solutionTv.text = ""
+        solutionTv.visibility = View.INVISIBLE
 
         Log.d("Gesture", "GestureDetector initialized")
         gestureDetector = GestureDetector(this, object : SimpleOnGestureListener() {
@@ -142,6 +157,9 @@ class BasicActivity : AppCompatActivity() {
         for (id in buttons) {
             val button = findViewById<MaterialButton>(id)
             button.setOnClickListener {
+                // Trigger haptic feedback
+                button.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+
                 val input = when (id) {
                     R.id.button_multiply -> "×"
                     R.id.button_divide -> "÷"
@@ -169,7 +187,7 @@ class BasicActivity : AppCompatActivity() {
                 appendToExpression(input)
 
                 val expressionToEvaluate = getExpressionForCalculation()
-                if (isExpressionComplete(expressionToEvaluate)) {
+                if (isExpressionComplete(expressionToEvaluate) && hasOperators(expressionToEvaluate)) {
                     try {
                         val result = safeCalculate(expressionToEvaluate)
                         val formattedResult = formatNumberWithCommas(doubleToStringWithoutScientificNotation(result))
@@ -187,8 +205,9 @@ class BasicActivity : AppCompatActivity() {
         }
 
         findViewById<MaterialButton>(R.id.button_ac).setOnClickListener {
+            it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
             expressionTv.setText("")
-            solutionTv.text = "0"
+            solutionTv.text = ""
             expressionTv.visibility = View.VISIBLE
             solutionTv.visibility = View.VISIBLE
             solutionTv.textSize = 50f
@@ -197,6 +216,7 @@ class BasicActivity : AppCompatActivity() {
         }
 
         findViewById<MaterialButton>(R.id.button_backspace).setOnClickListener {
+            it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
             val text = expressionTv.text.toString()
             val selectionStart = expressionTv.selectionStart
             val selectionEnd = expressionTv.selectionEnd
@@ -219,7 +239,7 @@ class BasicActivity : AppCompatActivity() {
                 }
 
                 val expressionToEvaluate = getExpressionForCalculation()
-                if (isExpressionComplete(expressionToEvaluate)) {
+                if (isExpressionComplete(expressionToEvaluate) && hasOperators(expressionToEvaluate)) {
                     try {
                         val result = safeCalculate(expressionToEvaluate)
                         val formattedResult = formatNumberWithCommas(doubleToStringWithoutScientificNotation(result))
@@ -238,64 +258,9 @@ class BasicActivity : AppCompatActivity() {
 
         val equalsButton = findViewById<MaterialButton>(R.id.button_equals)
 
-        // Handle normal click (short press)
         equalsButton.setOnClickListener {
-            val expression = expressionTv.text.toString()
-
-            // Check if it's a single digit for potential shortcut
-            if (isSingleDigitShortcut(expression)) {
-                // For single digits, we could show a hint or just proceed with calculation
-                // For now, proceed with normal calculation
-            }
-
-            val formattedExpression = getExpressionForCalculation()
-            try {
-                val result = safeCalculate(formattedExpression)
-                // Solution already has the correct result from live calculation
-                solutionTv.visibility = View.VISIBLE
-                isResultShown = true
-                // If expression ends without operator (complete), hide expression
-                if (isExpressionComplete(expression)) {
-                    expressionTv.visibility = View.GONE
-                    expressionTv.setText("")
-                }
-                // Save to Room DB
-                val expr = expression
-                val res = doubleToStringWithoutScientificNotation(result)
-                lifecycleScope.launch {
-                    val db = HistoryDatabase.getInstance(this@BasicActivity)
-                    db.historyDao().insert(HistoryEntity(expression = expr, result = res))
-                }
-
-                // Track calculation in Analytics
-                analyticsHelper.logCalculation(expr, res)
-            } catch (e: Exception) {
-                // Track error in Crashlytics
-                FirebaseCrashlytics.getInstance().recordException(e)
-                analyticsHelper.logError("calculation_error", e.message ?: "Unknown calculation error")
-
-                solutionTv.text = getString(R.string.error_text)
-                solutionTv.visibility = View.VISIBLE
-                isResultShown = true
-            }
-        }
-
-        // Handle long press (4 seconds) for gallery shortcut
-        equalsButton.setOnLongClickListener {
-            val expression = expressionTv.text.toString()
-
-            if (isSingleDigitShortcut(expression)) {
-                val position = expression.toInt()
-                // Clear the calculator input immediately when shortcut is triggered
-                expressionTv.setText("")
-                solutionTv.text = ""
-                solutionTv.visibility = View.VISIBLE
-                isResultShown = false
-                startGalleryShortcutFlow(position)
-                return@setOnLongClickListener true // Consume the long click
-            }
-
-            false // Don't consume if not a shortcut
+            it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            handleNormalClick()
         }
 
         // Use the included custom_toolbar in the layout
@@ -487,7 +452,7 @@ class BasicActivity : AppCompatActivity() {
             false
         }
 
-        findViewById<android.widget.ImageButton>(R.id.btn_menu).setOnClickListener {
+        findViewById<LinearLayout>(R.id.btn_menu).setOnClickListener {
             startActivity(Intent(this, HomeActivity::class.java))
         }
         findViewById<TextView>(R.id.btn_history).setOnClickListener {
@@ -537,6 +502,50 @@ class BasicActivity : AppCompatActivity() {
         //     Toast.makeText(this, "Hot Apps clicked", Toast.LENGTH_SHORT).show()
         // }
     }
+
+    // Handle normal click (short press)
+    private fun handleNormalClick() {
+        val expression = expressionTv.text.toString()
+
+        // Check if expression contains operators before performing calculation
+        if (hasOperators(expression)) {
+            // If operators found, perform calculation
+            val formattedExpression = getExpressionForCalculation()
+            try {
+                val result = safeCalculate(formattedExpression)
+                // Solution already has the correct result from live calculation
+                solutionTv.visibility = View.VISIBLE
+                isResultShown = true
+                // If expression ends without operator (complete), hide expression
+                if (isExpressionComplete(expression)) {
+                    expressionTv.visibility = View.GONE
+                    expressionTv.setText("")
+                }
+                // Save to Room DB
+                val expr = expression
+                val res = doubleToStringWithoutScientificNotation(result)
+                lifecycleScope.launch {
+                    val db = HistoryDatabase.getInstance(this@BasicActivity)
+                    db.historyDao().insert(HistoryEntity(expression = expr, result = res))
+                }
+
+                // Track calculation in Analytics
+                analyticsHelper.logCalculation(expr, res)
+            } catch (e: Exception) {
+                // Track error in Crashlytics
+                FirebaseCrashlytics.getInstance().recordException(e)
+                analyticsHelper.logError("calculation_error", e.message ?: "Unknown calculation error")
+
+                solutionTv.text = getString(R.string.error_text)
+                solutionTv.visibility = View.VISIBLE
+                isResultShown = true
+            }
+        } else {
+            // If no operators found, don't perform calculation
+            android.util.Log.d("BasicActivity", "No operators found in expression: '$expression', skipping calculation")
+        }
+    }
+
 
     // --- Helper methods migrated from old MainActivity ---
 
@@ -759,63 +768,13 @@ class BasicActivity : AppCompatActivity() {
         throw RuntimeException("Test Crash for Crashlytics")
     }
 
-    // Gallery shortcut helper methods
-    private fun isSingleDigitShortcut(expression: String): Boolean {
-        // Only allow pure single digits (0-9) without any mathematical operators
-        if (expression.length != 1) return false
-        if (!expression[0].isDigit() || expression[0] !in '0'..'9') return false
-
-        // Check if expression contains any mathematical operators that would indicate a calculation
-        val hasOperators = expression.contains(Regex("[+\\-×÷^%!√πe\\(\\)]"))
-        return !hasOperators
+    // Helper method to check if expression contains operators
+    private fun hasOperators(expression: String): Boolean {
+        // Check for mathematical operators and special functions
+        val operators = Regex("[+\\-×÷^%!√πe\\(\\)\\.]")
+        return operators.containsMatchIn(expression)
     }
 
-    private fun startGalleryShortcutFlow(position: Int) {
-        lifecycleScope.launch {
-            try {
-                // Special case: position 0 opens the main gallery screen
-                if (position == 0) {
-                    val intent = Intent(this@BasicActivity, MediaGalleryActivity::class.java).apply {
-                        putExtra("is_shortcut_access", true)
-                        putExtra("shortcut_position", 0)
-                    }
-                    startActivity(intent)
-                    return@launch
-                }
 
-                // For positions 1-9, open specific folders
-                // Get database instance
-                val db = HistoryDatabase.getInstance(this@BasicActivity)
-                val folderDao = db.encryptedFolderDao()
 
-                // Get all folders ordered by creation time (position 1 = first folder, 2 = second, etc.)
-                val folders = withContext(Dispatchers.IO) {
-                    folderDao.getAllFoldersSync()
-                }
-
-                // Adjust position for 1-based indexing (position 1 = folders[0], position 2 = folders[1], etc.)
-                val folderIndex = position - 1
-
-                if (folderIndex >= folders.size) {
-                    Toast.makeText(this@BasicActivity, "No folder at position $position", Toast.LENGTH_SHORT).show()
-                    return@launch
-                }
-
-                val targetFolder = folders[folderIndex]
-
-                // Start gallery activity with shortcut intent
-                val intent = Intent(this@BasicActivity, MediaGalleryActivity::class.java).apply {
-                    putExtra("shortcut_folder_id", targetFolder.id)
-                    putExtra("shortcut_position", position)
-                    putExtra("is_shortcut_access", true)
-                }
-
-                startActivity(intent)
-
-            } catch (e: Exception) {
-                android.util.Log.e("BasicActivity", "Error starting gallery shortcut", e)
-                Toast.makeText(this@BasicActivity, "Error accessing gallery", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
 }

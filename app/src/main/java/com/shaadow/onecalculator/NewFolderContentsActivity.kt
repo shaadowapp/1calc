@@ -367,6 +367,20 @@ class NewFolderContentsActivity : AppCompatActivity() {
 
                 folderName = folder.name
                 folderSalt = folder.salt
+
+                // Fix for folders created without salt - generate one if missing
+                if (folderSalt.isEmpty()) {
+                    android.util.Log.w("NewFolderContentsActivity", "Folder '${folder.name}' has empty salt, generating new salt")
+                    folderSalt = com.shaadow.onecalculator.utils.EncryptionUtils.generateSalt()
+
+                    // Update the folder in database with the new salt
+                    val updatedFolder = folder.copy(salt = folderSalt)
+                    withContext(Dispatchers.IO) {
+                        database.encryptedFolderDao().updateFolder(updatedFolder)
+                    }
+                    android.util.Log.d("NewFolderContentsActivity", "Generated and saved new salt for folder: ${folder.name}")
+                }
+
                 findViewById<android.widget.TextView>(R.id.folder_name_title).text = folderName
                 initializeAdapter()
                 loadFiles()

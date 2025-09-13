@@ -80,7 +80,38 @@
                 android:letterSpacing="0.05"
                 android:layout_marginBottom="12dp" />
 
-            <!-- Description -->
+            <!-- Vision Section -->
+            <TextView
+                android:id="@+id/vision_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Our Vision"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/vision_content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#CCCCCC"
+                android:textSize="15sp"
+                android:lineSpacingExtra="6dp"
+                android:justificationMode="inter_word"
+                android:textAlignment="center"
+                android:text="1Calculator aims to be more than just a calculator. Our vision is to create a secure, all-in-one productivity tool where privacy and simplicity come first. We believe your personal data should remain yours — safe, offline, and encrypted — while still giving you advanced features like a hidden gallery, secure file storage, and everyday tools in one trusted app."
+                tools:ignore="JustificationMode" />
+
+            <!-- Divider -->
+            <View
+                android:layout_width="40dp"
+                android:layout_height="1dp"
+                android:layout_marginTop="28dp"
+                android:background="#444444" />
+
+            <!-- Privacy Policy -->
             <TextView
                 android:id="@+id/privacy_content"
                 android:layout_width="match_parent"
@@ -90,7 +121,8 @@
                 android:lineSpacingExtra="6dp"
                 android:justificationMode="inter_word"
                 android:textAlignment="center"
-                android:text="Your privacy matters. 1Calculator is designed to work entirely offline, ensuring that your data stays on your device.\n\nPermissions like camera (for scanning) and microphone (for voice commands) are requested only when necessary and are never used without your explicit consent.\n\nWe don’t collect personal data. No analytics, no trackers. Just math.\n\nQuestions? Reach us at support@1calculator.app"
+                android:layout_marginTop="20dp"
+                android:text="Your privacy matters. 1Calculator is designed to work entirely offline, ensuring that your data stays on your device.\n\nPermissions like storage (for encrypted files and hidden gallery) and camera (for adding photos to your private vault) are requested only when necessary and are never used without your explicit consent.\n\nWe don’t collect personal data. No analytics, no trackers. Your hidden gallery, todo lists, and encrypted folders remain completely private.\n\nQuestions? Reach us at support@1calculator.app"
                 tools:ignore="JustificationMode" />
 
             <!-- Divider -->
@@ -105,24 +137,24 @@
                 android:id="@+id/privacy_footer"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Last updated: July 2025"
+                android:text="Last updated: Sep 2025"
                 android:textSize="13sp"
                 android:textColor="#888888"
                 android:gravity="center"
                 android:layout_marginTop="12dp"
                 android:textAlignment="center" />
 
-            <!-- CTA: Website -->
-            <Button
-                android:id="@+id/cta_website"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Privacy Policy Online"
-                android:textColor="#FFFFFF"
-                android:backgroundTint="#5D2DC8"
-                android:layout_gravity="center_horizontal"
-                android:elevation="2dp"
-                android:layout_marginTop="18dp" />
+<!--            &lt;!&ndash; CTA: Website &ndash;&gt;-->
+<!--            <Button-->
+<!--                android:id="@+id/cta_website"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:text="Privacy Policy Online"-->
+<!--                android:textColor="#FFFFFF"-->
+<!--                android:backgroundTint="#5D2DC8"-->
+<!--                android:layout_gravity="center_horizontal"-->
+<!--                android:elevation="2dp"-->
+<!--                android:layout_marginTop="18dp" />-->
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

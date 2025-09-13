@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#000000">
+    android:background="@color/settings_background">
 
     <!-- Header -->
     <LinearLayout
@@ -13,7 +13,7 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:padding="16dp"
-        android:background="#000000">
+        android:background="@color/settings_header_background">
 
         <ImageButton
             android:id="@+id/btn_back"
@@ -22,14 +22,14 @@
             android:src="@drawable/ic_back"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Back"
-            app:tint="@color/text_light_e0e0e0" />
+            app:tint="@color/settings_text_primary_light" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/settings"
-            android:textColor="@color/text_light_e0e0e0"
+            android:textColor="@color/settings_text_primary_light"
             android:textSize="20sp"
             android:textStyle="bold"
             android:gravity="center"
@@ -64,7 +64,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/preferences"
-                    android:textColor="@color/text_muted_a0a0a0"
+                    android:textColor="@color/settings_text_secondary_light"
                     android:textSize="12sp"
                     android:textStyle="bold"
                     android:fontFamily="sans-serif"
@@ -97,7 +97,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/theme_mode"
-                                android:textColor="@color/text_light_e0e0e0"
+                                android:textColor="@color/settings_text_primary_light"
                                 android:textSize="16sp"
                                 android:fontFamily="sans-serif"
                                 android:textStyle="normal" />
@@ -107,7 +107,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/auto"
-                                android:textColor="@color/text_muted_a0a0a0"
+                                android:textColor="@color/settings_text_secondary_light"
                                 android:textSize="14sp"
                                 android:fontFamily="sans-serif" />
                         </LinearLayout>
@@ -129,6 +129,8 @@
                         android:layout_marginStart="16dp"
                         android:layout_marginEnd="16dp" />
 
+
+
                     <!-- Default home screen -->
                     <LinearLayout
                         android:id="@+id/calculator_mode_item"
@@ -149,7 +151,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/default_home_screen_dialog"
-                                android:textColor="@color/text_light_e0e0e0"
+                                android:textColor="@color/settings_text_primary_light"
                                 android:textSize="16sp"
                                 android:fontFamily="sans-serif"
                                 android:textStyle="normal" />
@@ -159,7 +161,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/basic_calculator"
-                                android:textColor="@color/text_muted_a0a0a0"
+                                android:textColor="@color/settings_text_secondary_light"
                                 android:textSize="14sp"
                                 android:fontFamily="sans-serif" />
                         </LinearLayout>
@@ -170,182 +172,12 @@
                             android:src="@drawable/ic_back"
                             android:rotation="180"
                             android:contentDescription="Arrow"
-                            app:tint="@color/text_muted_a0a0a0" />
+                            app:tint="@color/settings_text_secondary_light" />
                     </LinearLayout>
 
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Advanced Customization Section -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_marginBottom="32dp"
-                android:visibility="gone">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/advanced_customization"
-                    android:textColor="@color/text_muted_a0a0a0"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:fontFamily="sans-serif"
-                    android:layout_marginBottom="12dp"
-                    android:letterSpacing="0.1" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:background="@drawable/settings_card_background">
-
-                    <!-- Dropdown Header -->
-                    <LinearLayout
-                        android:id="@+id/advanced_customization_header"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:padding="16dp"
-                        android:background="?attr/selectableItemBackground">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/mathly"
-                            android:textColor="@color/text_light_e0e0e0"
-                            android:textSize="16sp"
-                            android:fontFamily="sans-serif"
-                            android:textStyle="normal" />
-
-                        <ImageView
-                            android:id="@+id/advanced_customization_arrow"
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:src="@drawable/ic_arrow_down"
-                            android:rotation="180"
-                            android:contentDescription="Expand"
-                            app:tint="@color/text_muted_a0a0a0" />
-                    </LinearLayout>
-
-                    <!-- Dropdown Content -->
-                    <LinearLayout
-                        android:id="@+id/advanced_customization_content"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:visibility="gone">
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:background="@color/white_ffffff"
-                            android:alpha="0.1"
-                            android:layout_marginStart="16dp"
-                            android:layout_marginEnd="16dp" />
-
-                        <!-- Mathly Voice -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:padding="16dp">
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="@string/voice"
-                                android:textColor="@color/text_light_e0e0e0"
-                                android:textSize="16sp"
-                                android:fontFamily="sans-serif"
-                                android:textStyle="normal" />
-
-                            <com.google.android.material.switchmaterial.SwitchMaterial
-                                android:id="@+id/mathly_voice_switch"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:checked="true"
-                                app:thumbTint="@color/switch_thumb_color"
-                                app:trackTint="@color/switch_track_color" />
-                        </LinearLayout>
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:background="@color/white_ffffff"
-                            android:alpha="0.1"
-                            android:layout_marginStart="16dp"
-                            android:layout_marginEnd="16dp" />
-
-                        <!-- Mathly Chat -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:padding="16dp">
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="@string/chat"
-                                android:textColor="@color/text_light_e0e0e0"
-                                android:textSize="16sp"
-                                android:fontFamily="sans-serif"
-                                android:textStyle="normal" />
-
-                            <com.google.android.material.switchmaterial.SwitchMaterial
-                                android:id="@+id/mathly_chat_switch"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:checked="true"
-                                app:thumbTint="@color/switch_thumb_color"
-                                app:trackTint="@color/switch_track_color" />
-                        </LinearLayout>
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:background="@color/white_ffffff"
-                            android:alpha="0.1"
-                            android:layout_marginStart="16dp"
-                            android:layout_marginEnd="16dp" />
-
-                        <!-- Mathly Scanner -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:padding="16dp">
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="@string/scanner"
-                                android:textColor="@color/text_light_e0e0e0"
-                                android:textSize="16sp"
-                                android:fontFamily="sans-serif"
-                                android:textStyle="normal" />
-
-                            <com.google.android.material.switchmaterial.SwitchMaterial
-                                android:id="@+id/mathly_scanner_switch"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:checked="true"
-                                app:thumbTint="@color/switch_thumb_color"
-                                app:trackTint="@color/switch_track_color" />
-                        </LinearLayout>
-                    </LinearLayout>
-                </LinearLayout>
-            </LinearLayout>
 
             <!-- Hidden Gallery Section -->
             <LinearLayout
@@ -358,7 +190,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Hidden Gallery"
-                    android:textColor="@color/text_muted_a0a0a0"
+                    android:textColor="@color/settings_text_secondary_light"
                     android:textSize="12sp"
                     android:textStyle="bold"
                     android:fontFamily="sans-serif"
@@ -388,7 +220,7 @@
                             android:layout_height="24dp"
                             android:src="@drawable/ic_gallery"
                             android:layout_marginEnd="16dp"
-                            app:tint="@color/text_light_e0e0e0" />
+                            app:tint="@color/settings_text_primary_light" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -400,7 +232,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Open Hidden Gallery"
-                                android:textColor="@color/text_light_e0e0e0"
+                                android:textColor="@color/settings_text_primary_light"
                                 android:textSize="16sp"
                                 android:fontFamily="sans-serif"
                                 android:textStyle="normal" />
@@ -409,7 +241,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Access your encrypted media files"
-                                android:textColor="@color/text_muted_a0a0a0"
+                                android:textColor="@color/settings_text_secondary_light"
                                 android:textSize="14sp"
                                 android:fontFamily="sans-serif"
                                 android:layout_marginTop="2dp" />
@@ -420,78 +252,9 @@
                             android:layout_height="20dp"
                             android:src="@drawable/ic_arrow_down"
                             android:rotation="270"
-                            app:tint="@color/text_muted_a0a0a0" />
+                            app:tint="@color/settings_text_secondary_light" />
                     </LinearLayout>
 
-                    <!-- Divider -->
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="@color/text_muted_a0a0a0"
-                        android:alpha="0.3"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="16dp" />
-
-                    <!-- Change Hidden Gallery Password Button -->
-                    <LinearLayout
-                        android:id="@+id/set_hidden_gallery_security_button"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:padding="16dp"
-                        android:background="?android:attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_lock"
-                            android:layout_marginEnd="16dp"
-                            app:tint="@color/text_light_e0e0e0" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Set Hidden Gallery Security"
-                                android:textColor="@color/text_light_e0e0e0"
-                                android:textSize="16sp"
-                                android:fontFamily="sans-serif"
-                                android:textStyle="normal" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Fingerprint authentication only"
-                                android:textColor="@color/text_muted_a0a0a0"
-                                android:textSize="14sp"
-                                android:fontFamily="sans-serif"
-                                android:layout_marginTop="2dp" />
-                        </LinearLayout>
-
-                        <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:src="@drawable/ic_arrow_down"
-                            android:rotation="270"
-                            app:tint="@color/text_muted_a0a0a0" />
-                    </LinearLayout>
-
-                    <!-- Divider -->
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="@color/text_muted_a0a0a0"
-                        android:alpha="0.3"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="16dp" />
 
                     <!-- Setup Recovery Question Button -->
                     <LinearLayout
@@ -509,7 +272,7 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/ic_help_outline"
-                            app:tint="@color/text_muted_a0a0a0"
+                            app:tint="@color/settings_text_secondary_light"
                             android:layout_marginEnd="16dp" />
 
                         <LinearLayout
@@ -522,7 +285,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Setup Recovery Question"
-                                android:textColor="@color/text_light_e0e0e0"
+                                android:textColor="@color/settings_text_primary_light"
                                 android:textSize="16sp"
                                 android:fontFamily="sans-serif"
                                 android:textStyle="normal" />
@@ -531,7 +294,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Set up security question for PIN/password recovery"
-                                android:textColor="@color/text_muted_a0a0a0"
+                                android:textColor="@color/settings_text_secondary_light"
                                 android:textSize="14sp"
                                 android:fontFamily="sans-serif"
                                 android:layout_marginTop="2dp" />
@@ -541,7 +304,7 @@
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:src="@drawable/ic_arrow_forward"
-                            app:tint="@color/text_muted_a0a0a0" />
+                            app:tint="@color/settings_text_secondary_light" />
 
                     </LinearLayout>
 
@@ -549,8 +312,7 @@
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:background="@color/text_muted_a0a0a0"
-                        android:alpha="0.3"
+                        android:background="@color/settings_divider_light"
                         android:layout_marginStart="16dp"
                         android:layout_marginEnd="16dp" />
 
@@ -572,7 +334,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Show Hidden Gallery Button"
-                                android:textColor="@color/text_light_e0e0e0"
+                                android:textColor="@color/settings_text_primary_light"
                                 android:textSize="16sp"
                                 android:fontFamily="sans-serif"
                                 android:textStyle="normal" />
@@ -581,7 +343,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Display hidden gallery button in home features section"
-                                android:textColor="@color/text_muted_a0a0a0"
+                                android:textColor="@color/settings_text_secondary_light"
                                 android:textSize="14sp"
                                 android:fontFamily="sans-serif"
                                 android:layout_marginTop="2dp" />
@@ -595,17 +357,6 @@
                             app:thumbTint="@color/switch_thumb_color"
                             app:trackTint="@color/switch_track_color" />
                     </LinearLayout>
-
-                    <!-- Divider -->
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="@color/text_muted_a0a0a0"
-                        android:alpha="0.3"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="16dp" />
-
-
 
                 </LinearLayout>
 
@@ -622,7 +373,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/about_app"
-                    android:textColor="@color/text_muted_a0a0a0"
+                    android:textColor="@color/settings_text_secondary_light"
                     android:textSize="12sp"
                     android:textStyle="bold"
                     android:fontFamily="sans-serif"
@@ -650,7 +401,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/privacy_permissions"
-                            android:textColor="@color/text_light_e0e0e0"
+                            android:textColor="@color/settings_text_primary_light"
                             android:textSize="16sp"
                             android:fontFamily="sans-serif"
                             android:textStyle="normal" />
@@ -661,14 +412,13 @@
                             android:src="@drawable/ic_back"
                             android:rotation="180"
                             android:contentDescription="Arrow"
-                            app:tint="@color/text_muted_a0a0a0" />
+                            app:tint="@color/settings_text_secondary_light" />
                     </LinearLayout>
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:background="@color/white_ffffff"
-                        android:alpha="0.1"
+                        android:background="@color/settings_divider_light"
                         android:layout_marginStart="16dp"
                         android:layout_marginEnd="16dp" />
 
@@ -692,7 +442,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Clear Cache"
-                                android:textColor="@color/text_light_e0e0e0"
+                                android:textColor="@color/settings_text_primary_light"
                                 android:textSize="16sp"
                                 android:fontFamily="sans-serif"
                                 android:textStyle="normal" />
@@ -702,7 +452,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Calculating..."
-                                android:textColor="@color/text_muted_a0a0a0"
+                                android:textColor="@color/settings_text_secondary_light"
                                 android:textSize="14sp"
                                 android:fontFamily="sans-serif" />
                         </LinearLayout>
@@ -713,14 +463,13 @@
                             android:src="@drawable/ic_back"
                             android:rotation="180"
                             android:contentDescription="Arrow"
-                            app:tint="@color/text_muted_a0a0a0" />
+                            app:tint="@color/settings_text_secondary_light" />
                     </LinearLayout>
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:background="@color/white_ffffff"
-                        android:alpha="0.1"
+                        android:background="@color/settings_divider_light"
                         android:layout_marginStart="16dp"
                         android:layout_marginEnd="16dp" />
 
@@ -737,7 +486,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="App Version"
-                            android:textColor="@color/text_light_e0e0e0"
+                            android:textColor="@color/settings_text_primary_light"
                             android:textSize="16sp"
                             android:fontFamily="sans-serif"
                             android:textStyle="normal" />
@@ -747,7 +496,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/app_version"
-                            android:textColor="@color/text_muted_a0a0a0"
+                            android:textColor="@color/settings_text_secondary_light"
                             android:textSize="14sp"
                             android:fontFamily="sans-serif" />
                     </LinearLayout>
@@ -760,41 +509,6 @@
                         android:layout_marginStart="16dp"
                         android:layout_marginEnd="16dp" />
 
-                    <!-- Mathly Version -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:padding="16dp">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Mathly Version"
-                            android:textColor="@color/text_light_e0e0e0"
-                            android:textSize="16sp"
-                            android:fontFamily="sans-serif"
-                            android:textStyle="normal" />
-
-                        <TextView
-                            android:id="@+id/mathly_version"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="1.0"
-                            android:textColor="@color/text_muted_a0a0a0"
-                            android:textSize="14sp"
-                            android:fontFamily="sans-serif" />
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="@color/white_ffffff"
-                        android:alpha="0.1"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="16dp" />
 
                     <!-- Check for Updates -->
                     <LinearLayout
@@ -811,7 +525,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/check_for_updates"
-                            android:textColor="@color/text_light_e0e0e0"
+                            android:textColor="@color/settings_text_primary_light"
                             android:textSize="16sp"
                             android:fontFamily="sans-serif"
                             android:textStyle="normal" />
@@ -822,14 +536,13 @@
                             android:src="@drawable/ic_back"
                             android:rotation="180"
                             android:contentDescription="Arrow"
-                            app:tint="@color/text_muted_a0a0a0" />
+                            app:tint="@color/settings_text_secondary_light" />
                     </LinearLayout>
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:background="@color/white_ffffff"
-                        android:alpha="0.1"
+                        android:background="@color/settings_divider_light"
                         android:layout_marginStart="16dp"
                         android:layout_marginEnd="16dp" />
 
@@ -848,7 +561,7 @@
         android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/feedback"
-                            android:textColor="@color/text_light_e0e0e0"
+                            android:textColor="@color/settings_text_primary_light"
                             android:textSize="16sp"
                             android:fontFamily="sans-serif"
                             android:textStyle="normal" />
@@ -859,14 +572,13 @@
                             android:src="@drawable/ic_back"
                             android:rotation="180"
                             android:contentDescription="Arrow"
-                            app:tint="@color/text_muted_a0a0a0" />
+                            app:tint="@color/settings_text_secondary_light" />
                     </LinearLayout>
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:background="@color/white_ffffff"
-                        android:alpha="0.1"
+                        android:background="@color/settings_divider_light"
                         android:layout_marginStart="16dp"
                         android:layout_marginEnd="16dp" />
 
@@ -885,7 +597,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="Report Bug"
-                            android:textColor="@color/text_light_e0e0e0"
+                            android:textColor="@color/settings_text_primary_light"
                             android:textSize="16sp"
                             android:fontFamily="sans-serif"
                             android:textStyle="normal" />
@@ -896,14 +608,13 @@
                             android:src="@drawable/ic_back"
                             android:rotation="180"
                             android:contentDescription="Arrow"
-                            app:tint="@color/text_muted_a0a0a0" />
+                            app:tint="@color/settings_text_secondary_light" />
                     </LinearLayout>
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:background="@color/white_ffffff"
-                        android:alpha="0.1"
+                        android:background="@color/settings_divider_light"
                         android:layout_marginStart="16dp"
                         android:layout_marginEnd="16dp" />
 
@@ -922,7 +633,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/rate_us"
-                            android:textColor="@color/text_light_e0e0e0"
+                            android:textColor="@color/settings_text_primary_light"
                             android:textSize="16sp"
                             android:fontFamily="sans-serif"
                             android:textStyle="normal" />
@@ -933,10 +644,86 @@
                             android:src="@drawable/ic_back"
                             android:rotation="180"
                             android:contentDescription="Arrow"
-                            app:tint="@color/text_muted_a0a0a0" />
+                            app:tint="@color/settings_text_secondary_light" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Apps by Shaadow Section -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="32dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="APPS BY SHAADOW"
+                    android:textColor="@color/settings_text_secondary_light"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif"
+                    android:layout_marginBottom="12dp"
+                    android:letterSpacing="0.1" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/settings_card_background">
+
+                    <!-- FavTunes App -->
+                    <LinearLayout
+                        android:id="@+id/favtunes_app_item"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="16dp"
+                        android:background="?attr/selectableItemBackground">
+
+                        <ImageView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:src="@drawable/favtunes_logo"
+                            android:layout_marginEnd="16dp" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="FavTunes"
+                                android:textColor="@color/settings_text_primary_light"
+                                android:textSize="16sp"
+                                android:fontFamily="sans-serif"
+                                android:textStyle="normal" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Your personal music player with playlist management"
+                                android:textColor="@color/settings_text_secondary_light"
+                                android:textSize="14sp"
+                                android:fontFamily="sans-serif"
+                                android:layout_marginTop="2dp" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_back"
+                            android:rotation="180"
+                            android:contentDescription="Arrow"
+                            app:tint="@color/settings_text_secondary_light" />
                     </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
     </ScrollView>
-</LinearLayout> 
+</LinearLayout>

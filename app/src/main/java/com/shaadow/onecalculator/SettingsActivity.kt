@@ -27,6 +27,7 @@ import kotlinx.coroutines.withContext
 import android.widget.CompoundButton
 import java.io.File
 import java.text.DecimalFormat
+import androidx.core.net.toUri
 
 class SettingsActivity : BaseActivity() {
 
@@ -35,9 +36,6 @@ class SettingsActivity : BaseActivity() {
     private lateinit var preferenceDao: PreferenceDao
     private lateinit var cacheManager: CacheManager
     
-    private lateinit var mathlyVoiceSwitchListener: CompoundButton.OnCheckedChangeListener
-    private lateinit var mathlyChatSwitchListener: CompoundButton.OnCheckedChangeListener
-    private lateinit var mathlyScannerSwitchListener: CompoundButton.OnCheckedChangeListener
     private lateinit var hiddenGallerySwitchListener: CompoundButton.OnCheckedChangeListener
 
 
@@ -45,11 +43,8 @@ class SettingsActivity : BaseActivity() {
         private const val PREFS_NAME = "CalculatorSettings"
         private const val KEY_THEME_MODE = "theme_mode"
         private const val KEY_CALCULATOR_MODE = "calculator_mode"
-        private const val KEY_MATHLY_VOICE = "mathly_voice"
-        private const val KEY_MATHLY_CHAT = "mathly_chat"
-        private const val KEY_MATHLY_SCANNER = "mathly_scanner"
+        private const val KEY_SOUND_EFFECTS = "sound_effects"
         private const val KEY_HIDDEN_GALLERY_VISIBLE = "hidden_gallery_visible"
-        private const val KEY_ADVANCED_CUSTOMIZATION_EXPANDED = "advanced_customization_expanded"
 
 
     }
@@ -71,85 +66,6 @@ class SettingsActivity : BaseActivity() {
     }
     
     private fun setupSwitchListeners() {
-        mathlyVoiceSwitchListener = CompoundButton.OnCheckedChangeListener { buttonView, isChecked ->
-            if (!buttonView.isPressed) return@OnCheckedChangeListener // Only react to user interaction
-            if (!isChecked) {
-                AlertDialog.Builder(this)
-                    .setTitle("Turn Off Mathly Voice?")
-                    .setMessage("Are you sure you want to turn off Mathly Voice? You can always turn it back on from settings.")
-                    .setPositiveButton("Turn Off") { _, _ ->
-                        lifecycleScope.launch {
-                            setPrefBool(KEY_MATHLY_VOICE, false)
-                            updateBottomTabBarVisibility()
-                            Toast.makeText(this@SettingsActivity, getString(R.string.toast_mathly_voice_status, getString(R.string.off)), Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                    .setNegativeButton("Cancel") { _, _ ->
-                        binding.mathlyVoiceSwitch.isChecked = true
-                    }
-                    .setCancelable(false)
-                    .show()
-            } else {
-                lifecycleScope.launch {
-                    setPrefBool(KEY_MATHLY_VOICE, true)
-                    updateBottomTabBarVisibility()
-                    Toast.makeText(this@SettingsActivity, getString(R.string.toast_mathly_voice_status, getString(R.string.on)), Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-        mathlyChatSwitchListener = CompoundButton.OnCheckedChangeListener { buttonView, isChecked ->
-            if (!buttonView.isPressed) return@OnCheckedChangeListener
-            if (!isChecked) {
-                AlertDialog.Builder(this)
-                    .setTitle("Turn Off Mathly Chat?")
-                    .setMessage("Are you sure you want to turn off Mathly Chat? You can always turn it back on from settings.")
-                    .setPositiveButton("Turn Off") { _, _ ->
-                        lifecycleScope.launch {
-                            setPrefBool(KEY_MATHLY_CHAT, false)
-                            updateBottomTabBarVisibility()
-                            Toast.makeText(this@SettingsActivity, getString(R.string.toast_mathly_chat_status, getString(R.string.off)), Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                    .setNegativeButton("Cancel") { _, _ ->
-                        binding.mathlyChatSwitch.isChecked = true
-                    }
-                    .setCancelable(false)
-                    .show()
-            } else {
-                lifecycleScope.launch {
-                    setPrefBool(KEY_MATHLY_CHAT, true)
-                    updateBottomTabBarVisibility()
-                    Toast.makeText(this@SettingsActivity, getString(R.string.toast_mathly_chat_status, getString(R.string.on)), Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-        mathlyScannerSwitchListener = CompoundButton.OnCheckedChangeListener { buttonView, isChecked ->
-            if (!buttonView.isPressed) return@OnCheckedChangeListener
-            if (!isChecked) {
-                AlertDialog.Builder(this)
-                    .setTitle("Turn Off Mathly Scanner?")
-                    .setMessage("Are you sure you want to turn off Mathly Scanner? You can always turn it back on from settings.")
-                    .setPositiveButton("Turn Off") { _, _ ->
-                        lifecycleScope.launch {
-                            setPrefBool(KEY_MATHLY_SCANNER, false)
-                            updateBottomTabBarVisibility()
-                            Toast.makeText(this@SettingsActivity, getString(R.string.toast_mathly_scanner_status, getString(R.string.off)), Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                    .setNegativeButton("Cancel") { _, _ ->
-                        binding.mathlyScannerSwitch.isChecked = true
-                    }
-                    .setCancelable(false)
-                    .show()
-            } else {
-                lifecycleScope.launch {
-                    setPrefBool(KEY_MATHLY_SCANNER, true)
-                    updateBottomTabBarVisibility()
-                    Toast.makeText(this@SettingsActivity, getString(R.string.toast_mathly_scanner_status, getString(R.string.on)), Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-
         hiddenGallerySwitchListener = CompoundButton.OnCheckedChangeListener { _, isChecked ->
             lifecycleScope.launch {
                 android.util.Log.d("SettingsActivity", "Hidden gallery switch toggled: $isChecked")
@@ -166,9 +82,6 @@ class SettingsActivity : BaseActivity() {
 
 
 
-        binding.mathlyVoiceSwitch.setOnCheckedChangeListener(mathlyVoiceSwitchListener)
-        binding.mathlyChatSwitch.setOnCheckedChangeListener(mathlyChatSwitchListener)
-        binding.mathlyScannerSwitch.setOnCheckedChangeListener(mathlyScannerSwitchListener)
         binding.hiddenGallerySwitch.setOnCheckedChangeListener(hiddenGallerySwitchListener)
 
         // Setup hidden gallery buttons
@@ -191,10 +104,6 @@ class SettingsActivity : BaseActivity() {
             showCalculatorModeDialog()
         }
         
-        // Advanced Customization Dropdown
-        binding.advancedCustomizationHeader.setOnClickListener {
-            toggleAdvancedCustomization()
-        }
         
         // Privacy & Permissions
         binding.privacyPermissionsItem.setOnClickListener {
@@ -223,6 +132,57 @@ class SettingsActivity : BaseActivity() {
         // Rate Us
         binding.rateUsItem.setOnClickListener {
             startActivity(Intent(this, RateUsActivity::class.java))
+        }
+
+        // FavTunes App
+        binding.favtunesAppItem.setOnClickListener {
+            try {
+                // First try to open the FavTunes app directly if installed
+                android.util.Log.d("SettingsActivity", "Checking for FavTunes app installation...")
+
+                // Try multiple possible package names
+                val possiblePackages = arrayOf(
+                    "com.shaadow.tunes",
+                    "com.shaadow.favtunes",
+                    "com.shaadow.favTunes"
+                )
+
+                var launchIntent: Intent? = null
+                var foundPackage = ""
+
+                for (packageName in possiblePackages) {
+                    try {
+                        launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+                        if (launchIntent != null) {
+                            foundPackage = packageName
+                            android.util.Log.d("SettingsActivity", "Found FavTunes app with package: $packageName")
+                            break
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.d("SettingsActivity", "Package $packageName not found: ${e.message}")
+                    }
+                }
+
+                if (launchIntent != null) {
+                    android.util.Log.d("SettingsActivity", "FavTunes app is installed (package: $foundPackage), launching directly")
+                    startActivity(launchIntent)
+                } else {
+                    android.util.Log.d("SettingsActivity", "FavTunes app not installed, opening Play Store")
+                    // If app is not installed, open Play Store
+                    val intent = Intent(Intent.ACTION_VIEW,
+                        "market://details?id=com.shaadow.tunes".toUri())
+                    startActivity(intent)
+                }
+            } catch (e: android.content.ActivityNotFoundException) {
+                android.util.Log.d("SettingsActivity", "Play Store not available, opening in browser")
+                // If Play Store app is not installed, open in browser
+                val intent = Intent(Intent.ACTION_VIEW,
+                    "https://play.google.com/store/apps/details?id=com.shaadow.tunes".toUri())
+                startActivity(intent)
+            } catch (e: Exception) {
+                android.util.Log.e("SettingsActivity", "Unexpected error opening FavTunes: ${e.message}")
+                Toast.makeText(this, "Error opening FavTunes", Toast.LENGTH_SHORT).show()
+            }
         }
     }
     
@@ -253,12 +213,14 @@ class SettingsActivity : BaseActivity() {
                 R.id.radio_auto -> "auto"
                 else -> "auto"
             }
-            
+
             lifecycleScope.launch {
                 setPrefString(KEY_THEME_MODE, selectedTheme)
                 updateThemeModeDisplay(selectedTheme)
                 Toast.makeText(this@SettingsActivity, getString(R.string.toast_theme_mode_updated), Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
+                // Send broadcast for instant theme change
+                sendThemeChangeBroadcast()
             }
         }
         
@@ -316,37 +278,17 @@ class SettingsActivity : BaseActivity() {
         lifecycleScope.launch {
             val themeMode = getPrefString(KEY_THEME_MODE, "auto")
             val calculatorMode = getPrefString(KEY_CALCULATOR_MODE, "basic")
-            val mathlyVoice = getPrefBool(KEY_MATHLY_VOICE, true)
-            val mathlyChat = getPrefBool(KEY_MATHLY_CHAT, true)
-            val mathlyScanner = getPrefBool(KEY_MATHLY_SCANNER, true)
             val hiddenGalleryVisible = getPrefBool(KEY_HIDDEN_GALLERY_VISIBLE, true)
 
-            val advancedExpanded = getPrefBool(KEY_ADVANCED_CUSTOMIZATION_EXPANDED, false)
             updateThemeModeDisplay(themeMode)
             updateCalculatorModeDisplay(calculatorMode)
             // Remove listeners before setting isChecked
-            binding.mathlyVoiceSwitch.setOnCheckedChangeListener(null)
-            binding.mathlyChatSwitch.setOnCheckedChangeListener(null)
-            binding.mathlyScannerSwitch.setOnCheckedChangeListener(null)
             binding.hiddenGallerySwitch.setOnCheckedChangeListener(null)
-            binding.mathlyVoiceSwitch.isChecked = mathlyVoice
-            binding.mathlyChatSwitch.isChecked = mathlyChat
-            binding.mathlyScannerSwitch.isChecked = mathlyScanner
+
             binding.hiddenGallerySwitch.isChecked = hiddenGalleryVisible
 
             // Re-attach listeners
-            binding.mathlyVoiceSwitch.setOnCheckedChangeListener(mathlyVoiceSwitchListener)
-            binding.mathlyChatSwitch.setOnCheckedChangeListener(mathlyChatSwitchListener)
-            binding.mathlyScannerSwitch.setOnCheckedChangeListener(mathlyScannerSwitchListener)
             binding.hiddenGallerySwitch.setOnCheckedChangeListener(hiddenGallerySwitchListener)
-            // Set initial dropdown state
-            if (advancedExpanded) {
-                binding.advancedCustomizationContent.visibility = android.view.View.VISIBLE
-                binding.advancedCustomizationArrow.rotation = 360f
-            } else {
-                binding.advancedCustomizationContent.visibility = android.view.View.GONE
-                binding.advancedCustomizationArrow.rotation = 180f
-            }
         }
     }
     
@@ -377,47 +319,9 @@ class SettingsActivity : BaseActivity() {
         val packageInfo = packageManager.getPackageInfo(packageName, 0)
         val versionName = packageInfo.versionName
         binding.appVersion.text = versionName
-        // Set Mathly version (hardcoded or from config)
-        binding.mathlyVersion.text = "1.0"
     }
     
-    private fun toggleAdvancedCustomization() {
-        lifecycleScope.launch {
-            val isExpanded = binding.advancedCustomizationContent.visibility == android.view.View.VISIBLE
-            
-            if (isExpanded) {
-                // Collapse
-                binding.advancedCustomizationContent.visibility = android.view.View.GONE
-                binding.advancedCustomizationArrow.animate().rotation(180f).setDuration(200).start()
-            } else {
-                // Expand
-                binding.advancedCustomizationContent.visibility = android.view.View.VISIBLE
-                binding.advancedCustomizationArrow.animate().rotation(360f).setDuration(200).start()
-            }
-            
-            setPrefBool(KEY_ADVANCED_CUSTOMIZATION_EXPANDED, !isExpanded)
-        }
-    }
     
-    private fun updateBottomTabBarVisibility() {
-        lifecycleScope.launch {
-            val mathlyVoice = getPrefBool(KEY_MATHLY_VOICE, true)
-            val mathlyChat = getPrefBool(KEY_MATHLY_CHAT, true)
-            val mathlyScanner = getPrefBool(KEY_MATHLY_SCANNER, true)
-
-            // If all three are disabled, hide the bottom tab bar
-            val shouldHideTabBar = !mathlyVoice && !mathlyChat && !mathlyScanner
-
-            // Send broadcast to update bottom tab bar visibility (explicit intent)
-            val intent = android.content.Intent(this@SettingsActivity, TabBarVisibilityReceiver::class.java)
-            intent.action = "com.shaadow.onecalculator.UPDATE_TAB_BAR_VISIBILITY"
-            intent.putExtra("hide_tab_bar", shouldHideTabBar)
-            intent.putExtra("mathly_voice_enabled", mathlyVoice)
-            intent.putExtra("mathly_chat_enabled", mathlyChat)
-            intent.putExtra("mathly_scanner_enabled", mathlyScanner)
-            sendBroadcast(intent)
-        }
-    }
 
 
 
@@ -484,11 +388,6 @@ class SettingsActivity : BaseActivity() {
             openHiddenGallery()
         }
 
-        // Set Hidden Gallery Security button - Now only shows fingerprint info
-        binding.setHiddenGallerySecurityButton.setOnClickListener {
-            android.util.Log.d("SettingsActivity", "Set Hidden Gallery Security button clicked")
-            showFingerprintOnlyDialog()
-        }
 
         // Setup Recovery Question button
         binding.setupRecoveryQuestionButton.setOnClickListener {
@@ -912,7 +811,7 @@ class SettingsActivity : BaseActivity() {
                 return ValidationResult(false, "PIN hint cannot exceed 150 characters")
             }
             // Check if hint reveals the actual PIN
-            if (pinHint.matches(Regex(".*\\b\\d{4}\\b.*"))) {
+            if (pinHint.matches(Regex(".*\\b\\d{3}\\b.*"))) {
                 return ValidationResult(false, "PIN hint should not contain the actual PIN")
             }
         }

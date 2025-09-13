@@ -84,7 +84,7 @@
                 android:id="@+id/update_message"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="1Calculator is always improving. To enjoy the latest features, performance upgrades, and enhancements, make sure auto-updates are turned on or manually check the Play Store regularly."
+                android:text="1Calculator keeps getting better with every release. Stay updated to enjoy the latest features, bug fixes, and performance improvements. \n\nMake sure auto-updates are enabled in the Play Store, or check manually to never miss new enhancements."
                 android:textColor="#CCCCCC"
                 android:textSize="15sp"
                 android:lineSpacingExtra="6dp"
@@ -120,8 +120,6 @@
                 android:textColor="#FFFFFF"
                 android:backgroundTint="#5D2DC8"
                 android:layout_gravity="center_horizontal"
-                android:drawableLeft="@drawable/ic_star"
-                android:drawablePadding="6dp"
                 android:elevation="2dp"
                 android:layout_marginTop="18dp" />
         </LinearLayout>

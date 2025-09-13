@@ -1149,8 +1149,8 @@ class MediaGalleryActivity : BaseActivity() {
 
             // Validate PIN only if locking is enabled
             if (isLocked) {
-                if (pin.length != 4) {
-                    folderPinLayout.error = "PIN must be exactly 4 digits"
+                if (pin.length != 3) {
+                    folderPinLayout.error = "PIN must be exactly 3 digits"
                     hasError = true
                 } else if (!pin.all { it.isDigit() }) {
                     folderPinLayout.error = "PIN must contain only numbers"
@@ -1446,8 +1446,8 @@ class MediaGalleryActivity : BaseActivity() {
             var hasError = false
 
             // Validate PIN
-            if (pin.length != 4) {
-                pinLayout?.error = "PIN must be exactly 4 digits"
+            if (pin.length != 3) {
+                pinLayout?.error = "PIN must be exactly 3 digits"
                 hasError = true
             } else if (!pin.all { it.isDigit() }) {
                 pinLayout?.error = "PIN must contain only numbers"
@@ -1753,8 +1753,8 @@ class MediaGalleryActivity : BaseActivity() {
             if (currentPin.isEmpty()) {
                 currentPinLayout?.error = "Current PIN is required"
                 hasError = true
-            } else if (currentPin.length != 4 || !currentPin.all { it.isDigit() }) {
-                currentPinLayout?.error = "Current PIN must be 4 digits"
+            } else if (currentPin.length != 3 || !currentPin.all { it.isDigit() }) {
+                currentPinLayout?.error = "Current PIN must be 3 digits"
                 hasError = true
             }
 
@@ -1762,8 +1762,8 @@ class MediaGalleryActivity : BaseActivity() {
             if (newPin.isEmpty()) {
                 newPinLayout?.error = "New PIN is required"
                 hasError = true
-            } else if (newPin.length != 4 || !newPin.all { it.isDigit() }) {
-                newPinLayout?.error = "New PIN must be 4 digits"
+            } else if (newPin.length != 3 || !newPin.all { it.isDigit() }) {
+                newPinLayout?.error = "New PIN must be 3 digits"
                 hasError = true
             } else if (isWeakPin(newPin)) {
                 newPinLayout?.error = "PIN is too weak. Avoid repeating digits or sequential patterns"
@@ -2601,8 +2601,7 @@ private fun toggleSelectAllFolders(menuItem: android.view.MenuItem) {
         val pinDigits = arrayOf(
             dialogView.findViewById<TextView>(R.id.pin_digit_1),
             dialogView.findViewById<TextView>(R.id.pin_digit_2),
-            dialogView.findViewById<TextView>(R.id.pin_digit_3),
-            dialogView.findViewById<TextView>(R.id.pin_digit_4)
+            dialogView.findViewById<TextView>(R.id.pin_digit_3)
         )
 
         var currentPin = ""
@@ -2629,7 +2628,7 @@ private fun toggleSelectAllFolders(menuItem: android.view.MenuItem) {
                     updatePinDisplay(pinDigits, currentPin)
                     errorMessage?.visibility = View.GONE
 
-                    if (currentPin.length == 4) {
+                    if (currentPin.length == 3) {
                         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                             verifyFolderPin(folder, currentPin) { success ->
                                 if (success) {

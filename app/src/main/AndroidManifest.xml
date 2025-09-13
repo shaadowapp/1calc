@@ -3,9 +3,10 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Permissions -->
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- RECORD_AUDIO and CAMERA permissions commented out - Mathly Voice & Scanner under development -->
+    <!-- <uses-permission android:name="android.permission.RECORD_AUDIO" /> -->
+    <!-- <uses-permission android:name="android.permission.CAMERA" /> -->
+    <!-- <uses-feature android:name="android.hardware.camera" android:required="false" /> -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- PDF Viewer WebView requires internet for Google Docs viewer -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -27,6 +28,9 @@
 
     <!-- FCM Notification permission -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Vibration permission for haptic feedback -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:name=".CalculatorApplication"
@@ -100,6 +104,14 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="com.shaadow.onecalculator.UPDATE_TAB_BAR_VISIBILITY" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".GalleryShortcutReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.shaadow.onecalculator.GALLERY_SHORTCUT" />
             </intent-filter>
         </receiver>
 

@@ -87,15 +87,6 @@
             android:textStyle="bold"
             android:layout_marginEnd="12dp" />
 
-        <TextView
-            android:id="@+id/pin_digit_4"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="@drawable/pin_digit_background"
-            android:gravity="center"
-            android:textColor="@color/text_light_e0e0e0"
-            android:textSize="24sp"
-            android:textStyle="bold" />
 
     </LinearLayout>
 

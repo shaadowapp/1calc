@@ -54,20 +54,20 @@ class HotAppsActivity : AppCompatActivity() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // Hardcoded FavTunes data
+                // Hardcoded FavTunes data (matching settings description)
                 val hotApps = listOf(
                     HotApp(
                         id = "favtunes",
                         name = "FavTunes",
-                        shortDesc = "Choose FavTunes now for songs & playlists.",
-                        fullDesc = "FavTunes, by Shaadow, is a music app that offers a personalized and hassle-free listening experience. It features a vast collection of over 10,000 songs and a sleek user interface. The app provides custom playlists based on your preferences, without requiring any login or personal information.",
+                        shortDesc = "Your personal music player with playlist management",
+                        fullDesc = "FavTunes is your personal music player featuring extensive playlist management, offline playback, and a clean interface. Enjoy your favorite songs without any login requirements or personal data collection.",
                         features = listOf(
-                            "Personalized Playlists",
-                            "No Login/Signup Required",
-                            "Offline music playback",
-                            "10,000+ Songs Collection",
-                            "Sleek and Clean UI",
-                            "High-quality audio streaming"
+                            "Personal Music Player",
+                            "Playlist Management",
+                            "Offline Playback",
+                            "No Login Required",
+                            "Clean Interface",
+                            "Extensive Music Library"
                         ),
                         iconUrl = null, // Will use favtunes_logo drawable
                         playStoreUrl = "https://play.google.com/store/apps/details?id=com.shaadow.tunes",
@@ -151,10 +151,49 @@ class HotAppsActivity : AppCompatActivity() {
 
             holder.cta.setOnClickListener {
                 try {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(item.playStoreUrl))
-                    startActivity(intent)
+                    // Check if this is FavTunes app
+                    if (item.id == "favtunes") {
+                        Log.d("HotAppsActivity", "Checking for FavTunes app installation...")
+
+                        // Try multiple possible package names
+                        val possiblePackages = arrayOf(
+                            "com.shaadow.tunes",
+                            "com.shaadow.favtunes",
+                            "com.shaadow.favTunes"
+                        )
+
+                        var launchIntent: Intent? = null
+                        var foundPackage = ""
+
+                        for (packageName in possiblePackages) {
+                            try {
+                                launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+                                if (launchIntent != null) {
+                                    foundPackage = packageName
+                                    Log.d("HotAppsActivity", "Found FavTunes app with package: $packageName")
+                                    break
+                                }
+                            } catch (e: Exception) {
+                                Log.d("HotAppsActivity", "Package $packageName not found: ${e.message}")
+                            }
+                        }
+
+                        if (launchIntent != null) {
+                            Log.d("HotAppsActivity", "FavTunes app is installed (package: $foundPackage), launching directly")
+                            startActivity(launchIntent)
+                        } else {
+                            Log.d("HotAppsActivity", "FavTunes app not installed, opening Play Store")
+                            // If app is not installed, open Play Store
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(item.playStoreUrl))
+                            startActivity(intent)
+                        }
+                    } else {
+                        // For other apps, open Play Store directly
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(item.playStoreUrl))
+                        startActivity(intent)
+                    }
                 } catch (e: Exception) {
-                    Log.e("HotAppsActivity", "Error opening Play Store: ${e.message}")
+                    Log.e("HotAppsActivity", "Error opening app/Play Store: ${e.message}")
                 }
             }
         }

@@ -26,24 +26,34 @@
         android:paddingEnd="10dp">
         <!-- Left: Menu Button -->
         <LinearLayout
+            android:id="@+id/btn_menu"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="start|center_vertical">
+            android:layout_weight="1.5"
+            android:gravity="start|center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:minWidth="100dp"
+            android:clickable="true"
+            android:focusable="true">
             <ImageButton
-                android:id="@+id/btn_menu"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:background="@android:color/transparent"
                 android:src="@drawable/ic_menu"
                 app:tint="@color/white"
-                android:contentDescription="Menu" />
+                android:contentDescription="Menu"
+                android:padding="8dp"
+                android:clickable="false"
+                android:focusable="false" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="17sp"
-                android:paddingStart="2dp"
-                android:text="Menu"/>
+                android:text="Menu"
+                android:paddingStart="6dp"
+                android:clickable="false"
+                android:focusable="false"/>
 
         </LinearLayout>
 
@@ -51,8 +61,11 @@
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="end|center_vertical">
+            android:layout_weight="0.7"
+            android:gravity="end|center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:minWidth="100dp">
             <TextView
                 android:id="@+id/btn_history"
                 android:layout_width="wrap_content"
@@ -62,9 +75,11 @@
                 android:textSize="17sp"
                 android:textStyle="bold"
                 android:gravity="center"
-                android:padding="8dp"
+                android:padding="12dp"
                 android:background="@android:color/transparent"
-                android:textAllCaps="false" />
+                android:textAllCaps="false"
+                android:clickable="false"
+                android:focusable="false" />
         </LinearLayout>
     </LinearLayout>
     <!-- Output Display Area -->
@@ -101,6 +116,8 @@
                 android:focusable="true"
                 android:focusableInTouchMode="true"
                 android:gravity="end|center_vertical"
+                android:hint="0"
+                android:textColorHint="#666666"
                 android:inputType="none"
                 android:longClickable="true"
                 android:scrollHorizontally="true"

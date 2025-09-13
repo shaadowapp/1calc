@@ -33,13 +33,12 @@ class OnboardingActivity : AppCompatActivity() {
             return
         }
         setContentView(R.layout.activity_onboarding)
-        // Always check and request permissions if not granted
+        // Request notification permission on first app open
         val permissionsNeeded = mutableListOf<String>()
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            permissionsNeeded.add(Manifest.permission.CAMERA)
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            permissionsNeeded.add(Manifest.permission.RECORD_AUDIO)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                permissionsNeeded.add(Manifest.permission.POST_NOTIFICATIONS)
+            }
         }
         if (permissionsNeeded.isNotEmpty()) {
             ActivityCompat.requestPermissions(this, permissionsNeeded.toTypedArray(), REQ_PERMISSIONS)
@@ -85,11 +84,10 @@ class OnboardingActivity : AppCompatActivity() {
         val getStartedBtn = findViewById<Button>(R.id.getStartedBtn)
         getStartedBtn.setOnClickListener {
             val permissionsNeeded = mutableListOf<String>()
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                permissionsNeeded.add(Manifest.permission.CAMERA)
-            }
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                permissionsNeeded.add(Manifest.permission.RECORD_AUDIO)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                    permissionsNeeded.add(Manifest.permission.POST_NOTIFICATIONS)
+                }
             }
             if (permissionsNeeded.isNotEmpty()) {
                 ActivityCompat.requestPermissions(this, permissionsNeeded.toTypedArray(), REQ_PERMISSIONS)

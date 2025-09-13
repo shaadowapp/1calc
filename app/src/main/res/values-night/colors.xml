@@ -23,6 +23,14 @@
     <color name="navbar_background">#080209</color>
     <color name="surface">#1E1E1E</color>
     <color name="surface_variant">#2C2C2C</color>
+
+    <!-- Settings specific colors for dark theme -->
+    <color name="settings_background">#000000</color>
+    <color name="settings_card_background_light">#1E1E1E</color>
+    <color name="settings_header_background">#000000</color>
+    <color name="settings_text_primary_light">#E0E0E0</color>
+    <color name="settings_text_secondary_light">#A0A0A0</color>
+    <color name="settings_divider_light">#333333</color>
     
     <!-- Text Colors -->
     <color name="text_primary">#F5E9F7</color>
