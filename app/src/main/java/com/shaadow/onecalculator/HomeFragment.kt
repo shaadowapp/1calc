@@ -58,6 +58,10 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Add analytics tracking for home screen
+        val analyticsHelper = com.shaadow.onecalculator.utils.AnalyticsHelper(requireContext())
+        analyticsHelper.logScreenView("Home Screen", "HomeFragment")
+
         setupSearchManager()
         setupSearchBar()
         setupSearchResults()
@@ -493,15 +497,6 @@ class HomeFragment : Fragment() {
 
         val permissions = mutableListOf<String>()
 
-        // Check for MANAGE_EXTERNAL_STORAGE permission on Android 11+
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            if (!android.os.Environment.isExternalStorageManager()) {
-                android.util.Log.d("HomeFragment", "MANAGE_EXTERNAL_STORAGE permission needed")
-                requestManageExternalStoragePermission()
-                return
-            }
-        }
-
         // Check for media permissions based on Android version
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             if (androidx.core.content.ContextCompat.checkSelfPermission(
@@ -523,12 +518,6 @@ class HomeFragment : Fragment() {
                 ) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
                 permissions.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
             }
-            if (androidx.core.content.ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-                ) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                permissions.add(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            }
         }
 
         if (permissions.isNotEmpty()) {
@@ -540,34 +529,6 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun requestManageExternalStoragePermission() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            try {
-                val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                    data = android.net.Uri.parse("package:${requireContext().packageName}")
-                }
-                manageStorageLauncher.launch(intent)
-            } catch (e: Exception) {
-                android.util.Log.e("HomeFragment", "Error requesting MANAGE_EXTERNAL_STORAGE permission", e)
-                showPermissionDeniedDialog()
-            }
-        }
-    }
-
-    // Launcher for MANAGE_EXTERNAL_STORAGE permission
-    private val manageStorageLauncher = registerForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            if (android.os.Environment.isExternalStorageManager()) {
-                android.util.Log.d("HomeFragment", "MANAGE_EXTERNAL_STORAGE permission granted")
-                checkPermissionsAndOpenGallery() // Continue with other permissions
-            } else {
-                android.util.Log.w("HomeFragment", "MANAGE_EXTERNAL_STORAGE permission denied")
-                showPermissionDeniedDialog()
-            }
-        }
-    }
 
     private fun authenticateAndOpenGallery() {
         android.util.Log.d("HomeFragment", "Starting fingerprint authentication for hidden gallery")

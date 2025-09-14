@@ -30,7 +30,7 @@ android {
 
     defaultConfig {
         applicationId = "com.shaadow.onecalculator"
-        minSdk = 31
+        minSdk = 21  // Reduced from 31 to 21 for broader compatibility (Android 5.0+)
         targetSdk = 36
         versionCode = 1
         versionName = "1.0.1"
@@ -42,7 +42,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

@@ -150,6 +150,10 @@ class MediaGalleryActivity : BaseActivity() {
         binding = ActivityMediaGalleryBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Add analytics tracking for hidden gallery
+        val analyticsHelper = com.shaadow.onecalculator.utils.AnalyticsHelper(this)
+        analyticsHelper.logScreenView("Hidden Gallery", "MediaGalleryActivity")
+
         // Initialize SharedPreferences for authentication state
         authPrefs = getSharedPreferences(AUTH_PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -326,15 +330,6 @@ class MediaGalleryActivity : BaseActivity() {
     private fun checkPermissions() {
         val permissions = mutableListOf<String>()
 
-        // Check for MANAGE_EXTERNAL_STORAGE permission on Android 11+
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            if (!android.os.Environment.isExternalStorageManager()) {
-                android.util.Log.d("MediaGalleryActivity", "Requesting MANAGE_EXTERNAL_STORAGE permission")
-                requestManageExternalStoragePermission()
-                return
-            }
-        }
-
         // Check for media permissions based on Android version
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
@@ -347,9 +342,6 @@ class MediaGalleryActivity : BaseActivity() {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE)
             }
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            }
         }
 
         if (permissions.isNotEmpty()) {
@@ -359,50 +351,7 @@ class MediaGalleryActivity : BaseActivity() {
         }
     }
 
-    private fun requestManageExternalStoragePermission() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            try {
-                val intent = Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                    data = android.net.Uri.parse("package:$packageName")
-                }
-                manageStorageLauncher.launch(intent)
-            } catch (e: Exception) {
-                android.util.Log.e("MediaGalleryActivity", "Error requesting MANAGE_EXTERNAL_STORAGE permission", e)
-                // Fallback to regular permissions
-                checkPermissions()
-            }
-        }
-    }
 
-    // Launcher for MANAGE_EXTERNAL_STORAGE permission
-    private val manageStorageLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            if (android.os.Environment.isExternalStorageManager()) {
-                android.util.Log.d("MediaGalleryActivity", "MANAGE_EXTERNAL_STORAGE permission granted")
-                checkPermissions() // Continue with other permissions
-            } else {
-                android.util.Log.w("MediaGalleryActivity", "MANAGE_EXTERNAL_STORAGE permission denied")
-                showManageStoragePermissionDialog()
-            }
-        }
-    }
-
-    private fun showManageStoragePermissionDialog() {
-        MaterialAlertDialogBuilder(this)
-            .setTitle("Storage Permission Required")
-            .setMessage("To create the hidden gallery folder (.1Calculator), the app needs permission to manage all files. Please grant this permission in the next screen.")
-            .setPositiveButton("Grant Permission") { _, _ ->
-                requestManageExternalStoragePermission()
-            }
-            .setNegativeButton("Continue Without") { _, _ ->
-                // Continue with fallback storage
-                checkPermissions()
-            }
-            .setCancelable(false)
-            .show()
-    }
 
     private fun setupFolderList() {
         folderAdapter = EncryptedFolderAdapter(

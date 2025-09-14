@@ -33,6 +33,10 @@ class TodoActivity : AppCompatActivity() {
         setContentView(R.layout.activity_todo)
         supportActionBar?.hide()
 
+        // Add analytics tracking for todo screen
+        val analyticsHelper = com.shaadow.onecalculator.utils.AnalyticsHelper(this)
+        analyticsHelper.logScreenView("Todo List", "TodoActivity")
+
         // sharedPreferences = getSharedPreferences("todo_prefs", Context.MODE_PRIVATE)
         // val todoList = loadTodos().toMutableList()
 

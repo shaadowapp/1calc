@@ -13,40 +13,25 @@ object ExternalStorageManager {
     private const val NOMEDIA_FILE = ".nomedia"
     
     /**
-     * Get the hidden calculator directory on external storage
-     * Creates .1Calculator folder directly in device external storage root for visibility in file manager
+     * Get the hidden calculator directory in app-specific external storage
+     * Creates .1Calculator folder in app's external files directory
      */
     fun getHiddenCalculatorDir(context: Context): File? {
         return try {
             android.util.Log.d("ExternalStorageManager", "Getting hidden calculator directory...")
             android.util.Log.d("ExternalStorageManager", "Android version: ${android.os.Build.VERSION.SDK_INT}")
 
-            // For Android 11+ (API 30+), try to use MANAGE_EXTERNAL_STORAGE permission
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                if (android.os.Environment.isExternalStorageManager()) {
-                    android.util.Log.d("ExternalStorageManager", "MANAGE_EXTERNAL_STORAGE permission granted")
-                    return createHiddenDirInExternalStorage(context)
-                } else {
-                    android.util.Log.w("ExternalStorageManager", "MANAGE_EXTERNAL_STORAGE permission not granted, using fallback")
-                }
-            }
-
-            // For Android 10 and below, or when MANAGE_EXTERNAL_STORAGE is not available
-            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R || !android.os.Environment.isExternalStorageManager()) {
-                return createHiddenDirInExternalStorageLegacy(context)
-            }
-
-            // Fallback to app's external files directory
-            val appDir = context.getExternalFilesDir(null)
-            if (appDir != null) {
-                val hiddenDir = File(appDir, HIDDEN_FOLDER_NAME)
-                android.util.Log.w("ExternalStorageManager", "Using app external files directory as fallback: ${hiddenDir.absolutePath}")
+            // Use app-specific external storage (recommended approach)
+            val appExternalDir = context.getExternalFilesDir(null)
+            if (appExternalDir != null) {
+                val hiddenDir = File(appExternalDir, HIDDEN_FOLDER_NAME)
+                android.util.Log.d("ExternalStorageManager", "Using app-specific external storage: ${hiddenDir.absolutePath}")
                 return hiddenDir
             } else {
                 android.util.Log.e("ExternalStorageManager", "Cannot get app external files directory")
-                // Final fallback to internal storage
+                // Fallback to internal storage
                 val internalDir = File(context.filesDir, HIDDEN_FOLDER_NAME)
-                android.util.Log.w("ExternalStorageManager", "Using internal storage as final fallback: ${internalDir.absolutePath}")
+                android.util.Log.w("ExternalStorageManager", "Using internal storage as fallback: ${internalDir.absolutePath}")
                 return internalDir
             }
 
@@ -64,68 +49,6 @@ object ExternalStorageManager {
         }
     }
 
-    /**
-     * Create hidden directory in external storage for Android 11+ with MANAGE_EXTERNAL_STORAGE
-     */
-    private fun createHiddenDirInExternalStorage(context: Context): File? {
-        return try {
-            val externalDir = Environment.getExternalStorageDirectory()
-            val hiddenDir = File(externalDir, HIDDEN_FOLDER_NAME)
-            android.util.Log.d("ExternalStorageManager", "Attempting to create hidden dir: ${hiddenDir.absolutePath}")
-
-            if (!hiddenDir.exists()) {
-                val created = hiddenDir.mkdirs()
-                android.util.Log.d("ExternalStorageManager", "Hidden directory creation result: $created")
-                if (!created) {
-                    android.util.Log.e("ExternalStorageManager", "Failed to create hidden directory with mkdirs()")
-                    return null
-                }
-            }
-
-            if (hiddenDir.exists() && hiddenDir.canWrite()) {
-                android.util.Log.d("ExternalStorageManager", "Hidden directory is ready and writable")
-                return hiddenDir
-            } else {
-                android.util.Log.e("ExternalStorageManager", "Hidden directory exists but is not writable")
-                return null
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("ExternalStorageManager", "Error creating hidden directory in external storage", e)
-            null
-        }
-    }
-
-    /**
-     * Create hidden directory in external storage for Android 10 and below
-     */
-    private fun createHiddenDirInExternalStorageLegacy(context: Context): File? {
-        return try {
-            // Try external storage root first for all Android versions to make folder visible in file manager
-            if (isExternalStorageWritable()) {
-                val externalDir = Environment.getExternalStorageDirectory()
-                val hiddenDir = File(externalDir, HIDDEN_FOLDER_NAME)
-                android.util.Log.d("ExternalStorageManager", "External storage directory: ${hiddenDir.absolutePath}")
-
-                // Check if we can actually write to this location
-                if (hiddenDir.exists() || hiddenDir.mkdirs()) {
-                    if (hiddenDir.canWrite()) {
-                        android.util.Log.d("ExternalStorageManager", "External storage directory is writable")
-                        return hiddenDir
-                    } else {
-                        android.util.Log.w("ExternalStorageManager", "External storage directory not writable")
-                    }
-                } else {
-                    android.util.Log.w("ExternalStorageManager", "Cannot create external storage directory")
-                }
-            } else {
-                android.util.Log.e("ExternalStorageManager", "External storage is not writable")
-            }
-            null
-        } catch (e: Exception) {
-            android.util.Log.e("ExternalStorageManager", "Error in legacy external storage creation", e)
-            null
-        }
-    }
     
     /**
      * Get the encrypted files directory
@@ -272,14 +195,14 @@ object ExternalStorageManager {
                 android.util.Log.w("ExternalStorageManager", "Failed to create .nomedia files (non-critical)", e)
             }
 
-            // Create a visible marker file to ensure directory is visible in file manager
+            // Create a marker file for internal reference (not visible to users)
             try {
                 val markerFile = File(hiddenDir, ".directory_info.txt")
                 val info = """
-                    |Hidden Calculator Gallery Directory
+                    |Hidden Calculator Gallery Directory (App-Specific Storage)
                     |Created: ${java.util.Date()}
                     |This directory contains encrypted media files.
-                    |Do not modify files directly - use the app instead.
+                    |Files are stored in app-specific storage for security.
                     |Location: ${hiddenDir.absolutePath}
                 """.trimMargin()
                 markerFile.writeText(info)
@@ -289,7 +212,7 @@ object ExternalStorageManager {
             }
 
             android.util.Log.d("ExternalStorageManager", "Hidden directory initialization completed successfully")
-            android.util.Log.d("ExternalStorageManager", "Directory should be visible at: ${hiddenDir.absolutePath}")
+            android.util.Log.d("ExternalStorageManager", "App-specific storage directory: ${hiddenDir.absolutePath}")
             return true
         } catch (e: Exception) {
             android.util.Log.e("ExternalStorageManager", "CRITICAL: Failed to initialize hidden directory", e)

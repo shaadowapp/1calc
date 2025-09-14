@@ -19,7 +19,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.shaadow.onecalculator.databinding.ActivitySettingsBinding
-import com.shaadow.onecalculator.databinding.DialogCalculatorModeBinding
 import com.shaadow.onecalculator.databinding.DialogThemeModeBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -42,7 +41,6 @@ class SettingsActivity : BaseActivity() {
     companion object {
         private const val PREFS_NAME = "CalculatorSettings"
         private const val KEY_THEME_MODE = "theme_mode"
-        private const val KEY_CALCULATOR_MODE = "calculator_mode"
         private const val KEY_SOUND_EFFECTS = "sound_effects"
         private const val KEY_HIDDEN_GALLERY_VISIBLE = "hidden_gallery_visible"
 
@@ -53,6 +51,10 @@ class SettingsActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Add analytics tracking for settings screen
+        val analyticsHelper = com.shaadow.onecalculator.utils.AnalyticsHelper(this)
+        analyticsHelper.logScreenView("Settings", "SettingsActivity")
         
         sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         preferenceDao = HistoryDatabase.getInstance(this).preferenceDao()
@@ -98,12 +100,6 @@ class SettingsActivity : BaseActivity() {
         binding.themeModeItem.setOnClickListener {
             showThemeModeDialog()
         }
-        
-        // Calculator Mode
-        binding.calculatorModeItem.setOnClickListener {
-            showCalculatorModeDialog()
-        }
-        
         
         // Privacy & Permissions
         binding.privacyPermissionsItem.setOnClickListener {
@@ -227,61 +223,13 @@ class SettingsActivity : BaseActivity() {
         dialog.show()
     }
     
-    private fun showCalculatorModeDialog() {
-        val dialogBinding = DialogCalculatorModeBinding.inflate(LayoutInflater.from(this))
-        val dialog = AlertDialog.Builder(this)
-            .setView(dialogBinding.root)
-            .create()
-
-        lifecycleScope.launch {
-            val currentMode = withContext(Dispatchers.IO) {
-                preferenceDao.getPreference(KEY_CALCULATOR_MODE)?.value ?: "basic"
-            }
-            when (currentMode) {
-                "basic" -> dialogBinding.radioBasic.isChecked = true
-                "mathly_voice" -> dialogBinding.radioMathlyVoice.isChecked = true
-                "chat" -> dialogBinding.radioChat.isChecked = true
-                "scanner" -> dialogBinding.radioScanner.isChecked = true
-                "todo" -> dialogBinding.radioTodo.isChecked = true
-                "gallery" -> dialogBinding.radioGallery.isChecked = true
-                else -> dialogBinding.radioBasic.isChecked = true
-            }
-        }
-
-        dialogBinding.btnCancel.setOnClickListener {
-            dialog.dismiss()
-        }
-
-        dialogBinding.btnApply.setOnClickListener {
-            val selectedMode = when (dialogBinding.calculatorRadioGroup.checkedRadioButtonId) {
-                R.id.radio_basic -> "basic"
-                R.id.radio_mathly_voice -> "mathly_voice"
-                R.id.radio_chat -> "chat"
-                R.id.radio_scanner -> "scanner"
-                R.id.radio_todo -> "todo"
-                R.id.radio_gallery -> "gallery"
-                else -> "basic"
-            }
-            lifecycleScope.launch {
-                withContext(Dispatchers.IO) {
-                    preferenceDao.setPreference(PreferenceEntity(KEY_CALCULATOR_MODE, selectedMode))
-                }
-                updateCalculatorModeDisplay(selectedMode)
-                Toast.makeText(this@SettingsActivity, getString(R.string.toast_default_calculator_mode_updated), Toast.LENGTH_SHORT).show()
-                dialog.dismiss()
-            }
-        }
-        dialog.show()
-    }
     
     private fun loadCurrentPreferences() {
         lifecycleScope.launch {
             val themeMode = getPrefString(KEY_THEME_MODE, "auto")
-            val calculatorMode = getPrefString(KEY_CALCULATOR_MODE, "basic")
             val hiddenGalleryVisible = getPrefBool(KEY_HIDDEN_GALLERY_VISIBLE, true)
 
             updateThemeModeDisplay(themeMode)
-            updateCalculatorModeDisplay(calculatorMode)
             // Remove listeners before setting isChecked
             binding.hiddenGallerySwitch.setOnCheckedChangeListener(null)
 
@@ -302,18 +250,6 @@ class SettingsActivity : BaseActivity() {
         binding.themeModeValue.text = themeText
     }
     
-    private fun updateCalculatorModeDisplay(calculatorMode: String) {
-        val modeText = when (calculatorMode) {
-            "basic" -> "Basic Calculator"
-            "mathly_voice" -> "Mathly Voice"
-            "chat" -> "Chat"
-            "scanner" -> "Scanner"
-            "todo" -> "To-Do List"
-            "gallery" -> "Hidden Gallery"
-            else -> "Basic Calculator"
-        }
-        binding.calculatorModeValue.text = modeText
-    }
     
     private fun displayAppVersion() {
         val packageInfo = packageManager.getPackageInfo(packageName, 0)
@@ -405,15 +341,6 @@ class SettingsActivity : BaseActivity() {
 
         val permissions = mutableListOf<String>()
 
-        // Check for MANAGE_EXTERNAL_STORAGE permission on Android 11+
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            if (!android.os.Environment.isExternalStorageManager()) {
-                android.util.Log.d("SettingsActivity", "MANAGE_EXTERNAL_STORAGE permission needed")
-                requestManageExternalStoragePermission()
-                return
-            }
-        }
-
         // Check for media permissions based on Android version
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             if (androidx.core.content.ContextCompat.checkSelfPermission(
@@ -435,12 +362,6 @@ class SettingsActivity : BaseActivity() {
                 ) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
                 permissions.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
             }
-            if (androidx.core.content.ContextCompat.checkSelfPermission(
-                    this,
-                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-                ) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                permissions.add(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            }
         }
 
         if (permissions.isNotEmpty()) {
@@ -449,20 +370,6 @@ class SettingsActivity : BaseActivity() {
         } else {
             android.util.Log.d("SettingsActivity", "All permissions already granted")
             authenticateAndOpenGallery()
-        }
-    }
-
-    private fun requestManageExternalStoragePermission() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            try {
-                val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                    data = android.net.Uri.parse("package:$packageName")
-                }
-                manageStorageLauncher.launch(intent)
-            } catch (e: Exception) {
-                android.util.Log.e("SettingsActivity", "Error requesting MANAGE_EXTERNAL_STORAGE permission", e)
-                showPermissionDeniedDialog()
-            }
         }
     }
 
@@ -477,21 +384,6 @@ class SettingsActivity : BaseActivity() {
         } else {
             android.util.Log.w("SettingsActivity", "Storage permissions denied")
             showPermissionDeniedDialog()
-        }
-    }
-
-    // Launcher for MANAGE_EXTERNAL_STORAGE permission
-    private val manageStorageLauncher = registerForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            if (android.os.Environment.isExternalStorageManager()) {
-                android.util.Log.d("SettingsActivity", "MANAGE_EXTERNAL_STORAGE permission granted")
-                checkPermissionsAndOpenGallery() // Continue with other permissions
-            } else {
-                android.util.Log.w("SettingsActivity", "MANAGE_EXTERNAL_STORAGE permission denied")
-                showPermissionDeniedDialog()
-            }
         }
     }
 
